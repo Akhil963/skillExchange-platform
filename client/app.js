@@ -1759,6 +1759,12 @@ async function renderExchanges() {
         return '';
       }
 
+      // Additional safety check for otherUser
+      if (!otherUser) {
+        console.warn('Other user is null for exchange:', exchange);
+        return '';
+      }
+
       return `
         <div class="exchange-item">
           <div class="exchange-header">

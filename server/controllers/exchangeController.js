@@ -105,36 +105,10 @@ exports.getUserExchanges = async (req, res, next) => {
       .populate('provider_learningPathId') // Provider's learning path
       .sort({ created_date: -1 });
 
-    // Filter out exchanges with deleted users
-    const validExchanges = exchanges.filter(exchange => 
-      exchange.requester_id && exchange.provider_id
-    );
-
-    // Add frontend-compatible aliases
-    const exchangesWithAliases = validExchanges.map(ex => {
-      const exchangeObj = ex.toObject();
-      exchangeObj.requesterId = exchangeObj.requester_id?._id;
-      exchangeObj.requester = exchangeObj.requester_id;
-      exchangeObj.responderId = exchangeObj.provider_id?._id;
-      exchangeObj.responder = exchangeObj.provider_id;
-      exchangeObj.skillRequested = exchangeObj.requested_skill;
-      exchangeObj.skillOffered = exchangeObj.offered_skill;
-      return exchangeObj;
-    });
-
-    console.log(`📋 Returning ${exchangesWithAliases.length} exchanges`);
-    exchangesWithAliases.slice(0, 3).forEach(ex => {
-      const reqPath = ex.requester_learningPathId;
-      const provPath = ex.provider_learningPathId;
-      console.log(`  - Exchange ${ex._id}: status=${ex.status}`);
-      console.log(`    Requester path: ${reqPath ? `${reqPath.completedModules}/${reqPath.totalModules} modules` : 'none'}`);
-      console.log(`    Provider path: ${provPath ? `${provPath.completedModules}/${provPath.totalModules} modules` : 'none'}`);
-    });
-
     res.status(200).json({
       success: true,
-      count: exchangesWithAliases.length,
-      exchanges: exchangesWithAliases
+      count: exchanges.length,
+      exchanges
     });
   } catch (error) {
     next(error);
