@@ -12,17 +12,87 @@ const skillSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  subcategory: {
+    type: String,
+    trim: true
+  },
   experience_level: {
     type: String,
     enum: ['Beginner', 'Intermediate', 'Advanced', 'Expert'],
     required: true
   },
+  years_of_experience: {
+    type: Number,
+    min: 0,
+    max: 50,
+    default: 0
+  },
   description: {
     type: String,
     required: true,
+    trim: true,
+    maxlength: [500, 'Description cannot exceed 500 characters']
+  },
+  tags: [{
+    type: String,
     trim: true
+  }],
+  verified: {
+    type: Boolean,
+    default: false
+  },
+  verifiedAt: {
+    type: Date
+  },
+  portfolio: [{
+    title: String,
+    url: String,
+    description: String
+  }],
+  certificates: [{
+    name: String,
+    issuer: String,
+    issueDate: Date,
+    url: String
+  }],
+  endorsements: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    userName: String,
+    comment: String,
+    date: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  proficiencyScore: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 0
+  },
+  availability: {
+    hoursPerWeek: {
+      type: Number,
+      min: 0,
+      max: 168
+    },
+    preferredDays: [{
+      type: String,
+      enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    }],
+    preferredTimeSlots: [{
+      type: String,
+      enum: ['Morning', 'Afternoon', 'Evening', 'Night']
+    }]
+  },
+  addedAt: {
+    type: Date,
+    default: Date.now
   }
-}, { _id: false });
+}, { _id: true });
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -62,7 +132,7 @@ const userSchema = new mongoose.Schema({
   },
   bio: {
     type: String,
-    default: 'New SkillSwap member',
+    default: 'New SkillExchange member',
     maxlength: [500, 'Bio cannot exceed 500 characters']
   },
   location: {

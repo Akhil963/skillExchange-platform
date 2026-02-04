@@ -14,18 +14,18 @@
     <nav class="nav" id="mainNav">
         <div class="nav-container">
             <div class="nav-brand">
-                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='%2321808c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2L2 7l10 5 10-5-10-5z'/%3E%3Cpath d='M2 17l10 5 10-5'/%3E%3Cpath d='M2 12l10 5 10-5'/%3E%3C/svg%3E" alt="SkillSwap" class="nav-logo">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='%2321808c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2L2 7l10 5 10-5-10-5z'/%3E%3Cpath d='M2 17l10 5 10-5'/%3E%3Cpath d='M2 12l10 5 10-5'/%3E%3C/svg%3E" alt="SkillExchange" class="nav-logo">
                 <span class="nav-title">Skill Exchange</span>
             </div>
             <div class="nav-menu" id="navMenu">
                 <a href="#" class="nav-link" data-page="home">Home</a>
                 <a href="#" class="nav-link" data-page="marketplace">Marketplace</a>
-                <a href="#contact-section" class="nav-link" id="contactLink">Contact</a>
-                <a href="#" class="nav-link" data-page="dashboard" id="dashboardLink" style="display: none;">Dashboard</a>
                 <a href="#" class="nav-link" data-page="exchanges" id="exchangesLink" style="display: none;">My Exchanges</a>
+                <a href="#" class="nav-link" data-page="dashboard" id="dashboardLink" style="display: none;">Dashboard</a>
                 <a href="#" class="nav-link" data-page="messages" id="messagesLink" style="display: none;">Messages</a>
-                <a href="#" class="nav-link" data-page="profile" id="profileLink" style="display: none;">Profile</a>
                 <a href="#" class="nav-link" data-page="settings" id="settingsLink" style="display: none;">Settings</a>
+                <a href="#contact-section" class="nav-link" id="contactLink">Contact</a>
+                <a href="#" class="nav-link" data-page="profile" id="profileLink" style="display: none;">Profile</a>
                 <div class="nav-auth" id="navAuth">
                     <button class="btn btn--outline btn--sm" data-page="login">Login</button>
                     <button class="btn btn--primary btn--sm" data-page="signup">Sign Up</button>
@@ -518,7 +518,7 @@
                         </div>
                         <div class="dashboard-profile-info">
                             <h1>Welcome back, <span id="dashboardUserName"></span>!</h1>
-                            <p class="dashboard-user-bio" id="dashboardUserBio">New SkillSwap member</p>
+                            <p class="dashboard-user-bio" id="dashboardUserBio">New SkillExchange member</p>
                             <div class="dashboard-quick-actions">
                                 <button class="btn btn--primary btn--sm" onclick="showEditProfileModal()">
                                     ✏️ Edit Profile
@@ -644,25 +644,108 @@
         <!-- Messages Page -->
         <div class="page" id="messagesPage" style="display: none;">
             <div class="messages-container">
+                <!-- Conversations Sidebar -->
                 <div class="messages-sidebar">
-                    <h2>Conversations</h2>
+                    <div class="sidebar-header">
+                        <h2>💬 Messages</h2>
+                        <button class="icon-btn" title="New conversation" onclick="showNewConversationModal()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="search-container">
+                        <div class="search-input-wrapper">
+                            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <input type="text" class="search-input" placeholder="Search conversations..." id="conversationSearch">
+                        </div>
+                    </div>
+                    
                     <div class="conversations-list" id="conversationsList"></div>
                 </div>
-                <div class="messages-main">
+                
+                <!-- Chat Main Area -->
+                <div class="messages-main" id="messagesMain">
+                    <!-- Chat Header -->
                     <div class="chat-header" id="chatHeader" style="display: none;">
-                        <div class="chat-user-info">
-                            <img class="chat-avatar" id="chatAvatar">
-                            <div class="chat-user-name" id="chatUserName"></div>
+                        <button class="back-btn" id="backToConversations" onclick="backToConversationsList()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        
+                        <div class="chat-user-info" onclick="viewUserProfile()">
+                            <div class="chat-avatar-wrapper">
+                                <img class="chat-avatar" id="chatAvatar" alt="User">
+                                <div class="online-status" id="userOnlineStatus"></div>
+                            </div>
+                            <div class="chat-user-details">
+                                <div class="chat-user-name" id="chatUserName"></div>
+                                <div class="chat-user-status" id="chatUserStatus">Click to view profile</div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-actions">
+                            <button class="icon-btn" title="Search in chat" onclick="toggleChatSearch()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="m21 21-4.35-4.35"></path>
+                                </svg>
+                            </button>
+                            <button class="icon-btn" title="More options" onclick="toggleChatMenu()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="1"></circle>
+                                    <circle cx="12" cy="5" r="1"></circle>
+                                    <circle cx="12" cy="19" r="1"></circle>
+                                </svg>
+                            </button>
                         </div>
                     </div>
+                    
+                    <!-- Chat Messages Area -->
                     <div class="chat-messages" id="chatMessages">
                         <div class="empty-chat">
-                            <p>Select a conversation to start messaging</p>
+                            <div class="empty-chat-icon">💬</div>
+                            <h3>Welcome to SkillExchange Messaging</h3>
+                            <p>Select a conversation to start chatting with your learning partners</p>
                         </div>
                     </div>
-                    <div class="chat-input" id="chatInput" style="display: none;">
-                        <input type="text" placeholder="Type a message..." class="form-control" id="messageInput">
-                        <button class="btn btn--primary" id="sendMessageBtn">Send</button>
+                    
+                    <!-- Chat Input Area -->
+                    <div class="chat-input-container" id="chatInput" style="display: none;">
+                        <div class="chat-input-wrapper">
+                            <button class="input-action-btn" title="Add emoji" onclick="toggleEmojiPicker()">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                                </svg>
+                            </button>
+                            
+                            <div class="message-input-wrapper">
+                                <textarea 
+                                    class="message-input" 
+                                    id="messageInput" 
+                                    placeholder="Type a message..."
+                                    rows="1"
+                                    maxlength="5000"></textarea>
+                            </div>
+                            
+                            <button class="send-btn" id="sendMessageBtn" title="Send message">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div class="typing-indicator-container" id="typingIndicator" style="display: none;">
+                            <span class="typing-text"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -693,7 +776,7 @@
         </div>
 
         <!-- Settings Page -->
-        <div class="page" id="settingsPage" style="display: none;">
+        <div class="page" id="settingsPage">
             <div class="settings-container">
                 <h1>⚙️ Account Settings</h1>
                 
@@ -781,7 +864,7 @@
                                         <span class="setting-icon">📰</span>
                                         Marketing Emails
                                     </label>
-                                    <p class="setting-description">Receive tips, updates, and news about SkillSwap</p>
+                                    <p class="setting-description">Receive tips, updates, and news about SkillExchange</p>
                                 </div>
                                 <label class="toggle-switch">
                                     <input type="checkbox" id="marketingEmails">
@@ -925,13 +1008,13 @@
                                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                                 <circle cx="12" cy="10" r="3"></circle>
                             </svg>
-                            <span>123 Skill Street, Exchange City, EC 12345</span>
+                            <span>Wardha, Maharashtra, India</span>
                         </li>
                         <li>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                             </svg>
-                            <span>+1 (555) 123-4567</span>
+                            <span>+91 9876543210</span>
                         </li>
                         <li>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -945,7 +1028,7 @@
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
-                            <span>Mon-Fri: 9:00 AM - 6:00 PM EST</span>
+                            <span>Mon-Fri: 10:00 AM - 6:00 PM IST</span>
                         </li>
                     </ul>
                 </div>
@@ -978,9 +1061,43 @@
         </div>
     </div>
 
+    <!-- Image Crop Modal -->
+    <div class="modal" id="imageCropModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>✂️ Crop Profile Picture</h3>
+                <button class="modal-close" onclick="closeCropModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <p style="color: var(--color-text-secondary); margin-bottom: 16px;">
+                        Drag to reposition • Pinch or scroll to zoom
+                    </p>
+                    <div style="position: relative; display: inline-block; background: #000; border-radius: 8px; overflow: hidden;">
+                        <canvas id="cropCanvas" style="max-width: 100%; cursor: move; touch-action: none;"></canvas>
+                    </div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Zoom</label>
+                    <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1" 
+                           style="width: 100%;" oninput="updateCropZoom(this.value)">
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn--primary" onclick="applyCrop()" style="flex: 1;">
+                        ✓ Apply Crop
+                    </button>
+                    <button class="btn btn--outline" onclick="closeCropModal()">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Success/Error Messages -->
     <div class="notification" id="notification"></div>
 
-    <script src="app.js"></script>
+    <script src="messages-helpers.js"></script>
+    <script src="app.js?v=2"></script>
 </body>
 </html>

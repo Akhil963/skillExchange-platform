@@ -112,6 +112,27 @@ exports.getMessagesByExchange = async (req, res, next) => {
       });
     }
 
+    // Mark incoming (not sent by current user) messages as read
+    let updated = false;
+    exchange.messages.forEach(m => {
+      const isIncoming = m.user_id && m.user_id._id
+        ? m.user_id._id.toString() !== req.user._id.toString()
+        : m.user_id.toString() !== req.user._id.toString();
+      if (isIncoming && !m.read) {
+        m.read = true;
+        updated = true;
+      }
+    });
+
+    if (updated) {
+      try {
+        await exchange.save();
+      } catch (saveErr) {
+        // Do not block response if save fails; log for debugging
+        console.error('Failed to update message read flags:', saveErr);
+      }
+    }
+
     res.status(200).json({
       success: true,
       messages: exchange.messages

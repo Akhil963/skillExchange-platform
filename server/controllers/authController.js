@@ -262,7 +262,7 @@ exports.forgotPassword = async (req, res, next) => {
       if (contactInfo.method === 'email') {
         await sendEmail({
           email: user.email,
-          subject: 'Password Reset Request - SkillSwap',
+          subject: 'Password Reset Request - SkillExchange',
           html: getResetPasswordEmail(clientResetUrl, user.name)
         });
       }

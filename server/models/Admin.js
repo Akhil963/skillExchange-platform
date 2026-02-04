@@ -112,9 +112,7 @@ adminSchema.methods.updateLastLogin = async function() {
     await this.save({ validateBeforeSave: false });
 };
 
-// Indexes for performance
-adminSchema.index({ email: 1 });
-adminSchema.index({ uniqueId: 1 });
+// Indexes for performance (email and uniqueId already indexed via unique: true)
 adminSchema.index({ isActive: 1 });
 
 module.exports = mongoose.model('Admin', adminSchema);

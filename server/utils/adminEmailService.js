@@ -1,19 +1,28 @@
 const nodemailer = require('nodemailer');
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../../client/admin/.env.admin') });
+require('dotenv').config(); // Use main .env file
 
-// Create reusable transporter
+// Create reusable transporter - ALWAYS use main SMTP credentials
 const createTransporter = () => {
+    // ONLY use SMTP_ variables from main .env (ignore ADMIN_EMAIL_ variables)
+    const emailUser = process.env.SMTP_EMAIL;
+    const emailPass = process.env.SMTP_PASSWORD;
+
+    console.log('📧 Admin Email Config:', {
+        emailUser: emailUser || 'NOT SET',
+        hasPassword: !!emailPass
+    });
+
+    if (!emailUser || !emailPass) {
+        console.error('❌ SMTP credentials not configured in main .env file!');
+        console.error('Please set SMTP_EMAIL and SMTP_PASSWORD');
+        throw new Error('Email service not configured');
+    }
+
     return nodemailer.createTransport({
-        host: process.env.ADMIN_EMAIL_HOST || 'smtp.gmail.com',
-        port: process.env.ADMIN_EMAIL_PORT || 587,
-        secure: false, // true for 465, false for other ports
+        service: 'gmail', // Use service for better Gmail compatibility
         auth: {
-            user: process.env.ADMIN_EMAIL_USER,
-            pass: process.env.ADMIN_EMAIL_PASS
-        },
-        tls: {
-            rejectUnauthorized: false
+            user: emailUser,
+            pass: emailPass
         }
     });
 };
@@ -144,7 +153,7 @@ const sendPasswordResetEmail = async (admin, resetToken) => {
                 <div class="container">
                     <div class="header">
                         <h1>🔐 Password Reset Request</h1>
-                        <p>SkillSwap Admin Panel</p>
+                        <p>SkillExchange Admin Panel</p>
                     </div>
                     
                     <div class="content">
@@ -183,13 +192,13 @@ const sendPasswordResetEmail = async (admin, resetToken) => {
                     </div>
                     
                     <div class="footer">
-                        <p><strong>SkillSwap Admin Panel</strong></p>
+                        <p><strong>SkillExchange Admin Panel</strong></p>
                         <p>Secure Admin Management System</p>
                         <p style="margin-top: 15px; font-size: 12px;">
                             This is an automated email. Please do not reply to this message.
                         </p>
                         <p style="color: #adb5bd; font-size: 11px; margin-top: 10px;">
-                            © ${new Date().getFullYear()} SkillSwap. All rights reserved.
+                            © ${new Date().getFullYear()} SkillExchange. All rights reserved.
                         </p>
                     </div>
                 </div>
@@ -199,9 +208,9 @@ const sendPasswordResetEmail = async (admin, resetToken) => {
         
         // Send email
         const info = await transporter.sendMail({
-            from: `"SkillSwap Admin" <${process.env.ADMIN_EMAIL_USER}>`,
+            from: `"SkillExchange Admin" <${process.env.ADMIN_EMAIL_USER}>`,
             to: admin.email,
-            subject: '🔐 Admin Password Reset Request - SkillSwap',
+            subject: '🔐 Admin Password Reset Request - SkillExchange',
             html: htmlContent
         });
         
@@ -311,14 +320,14 @@ const sendWelcomeEmail = async (admin) => {
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>🎉 Welcome to SkillSwap Admin!</h1>
+                        <h1>🎉 Welcome to SkillExchange Admin!</h1>
                         <p style="margin: 10px 0 0 0; opacity: 0.9;">Your admin account has been created successfully</p>
                     </div>
                     
                     <div class="content">
                         <p>Hello <strong>${admin.fullName}</strong>,</p>
                         
-                        <p>Congratulations! Your admin account for the SkillSwap platform has been successfully created. You now have access to the admin panel where you can manage users, exchanges, skills, and more.</p>
+                        <p>Congratulations! Your admin account for the SkillExchange platform has been successfully created. You now have access to the admin panel where you can manage users, exchanges, skills, and more.</p>
                         
                         <div class="credentials-box">
                             <h3>🔑 Your Admin Credentials</h3>
@@ -344,8 +353,8 @@ const sendWelcomeEmail = async (admin) => {
                     </div>
                     
                     <div class="footer">
-                        <p><strong>SkillSwap Admin Panel</strong></p>
-                        <p>© ${new Date().getFullYear()} SkillSwap. All rights reserved.</p>
+                        <p><strong>SkillExchange Admin Panel</strong></p>
+                        <p>© ${new Date().getFullYear()} SkillExchange. All rights reserved.</p>
                     </div>
                 </div>
             </body>
@@ -353,9 +362,9 @@ const sendWelcomeEmail = async (admin) => {
         `;
         
         await transporter.sendMail({
-            from: `"SkillSwap Admin" <${process.env.ADMIN_EMAIL_USER}>`,
+            from: `"SkillExchange Admin" <${process.env.ADMIN_EMAIL_USER}>`,
             to: admin.email,
-            subject: '🎉 Welcome to SkillSwap Admin Panel!',
+            subject: '🎉 Welcome to SkillExchange Admin Panel!',
             html: htmlContent
         });
         

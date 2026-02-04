@@ -20,6 +20,7 @@ const contactRoutes = require('./routes/contactRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
 const skillRoutes = require('./routes/skillRoutes');
+const learningPathRoutes = require('./routes/learningPathRoutes');
 
 // Initialize express app
 const app = express();
@@ -73,6 +74,29 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
+// Live reload for development
+if (process.env.NODE_ENV === 'development') {
+  try {
+    const livereload = require('livereload');
+    const connectLivereload = require('connect-livereload');
+    
+    const liveReloadServer = livereload.createServer({
+      exts: ['html', 'css', 'js'],
+      debug: false
+    });
+    
+    liveReloadServer.watch([
+      path.join(__dirname, '../client'),
+    ]);
+    
+    app.use(connectLivereload());
+    
+    console.log('🔄 Live reload enabled');
+  } catch (err) {
+    console.log('⚠️  Live reload not available (install: npm i livereload connect-livereload -D)');
+  }
+}
+
 // Serve static files from client directory
 app.use(express.static(path.join(__dirname, '../client')));
 
@@ -88,6 +112,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin-auth', adminAuthRoutes);
 app.use('/api/skills', skillRoutes);
+app.use('/api/learning-paths', learningPathRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -154,7 +179,7 @@ const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log('');
   console.log('═══════════════════════════════════════════════════════');
-  console.log(`🚀 SkillSwap Server Running`);
+  console.log(`🚀 SkillExchange Server Running`);
   console.log(`📡 Environment: ${process.env.NODE_ENV}`);
   console.log(`🌐 Server: http://localhost:${PORT}`);
   console.log(`🔗 API: http://localhost:${PORT}/api`);

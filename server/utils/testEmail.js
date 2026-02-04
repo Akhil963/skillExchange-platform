@@ -26,7 +26,7 @@ async function testEmailConfiguration() {
     
     const result = await sendEmail({
       email: process.env.SMTP_EMAIL, // Send to yourself for testing
-      subject: '🧪 SkillSwap Email Test - Password Reset',
+      subject: '🧪 SkillExchange Email Test - Password Reset',
       html: htmlContent
     });
 

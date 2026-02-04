@@ -2,33 +2,52 @@ const nodemailer = require('nodemailer');
 
 // Email configuration
 const sendEmail = async (options) => {
-  // Create transporter
+  // Validate environment variables
+  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
+    console.error('❌ Email configuration missing! Check SMTP_EMAIL and SMTP_PASSWORD in .env');
+    throw new Error('Email service not configured. Please contact administrator.');
+  }
+
+  // Create transporter with improved configuration
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: process.env.SMTP_PORT || 587,
-    secure: false, // true for 465, false for other ports
+    service: 'gmail', // Use service instead of host for better compatibility
     auth: {
-      user: process.env.SMTP_EMAIL || 'your-email@gmail.com',
-      pass: process.env.SMTP_PASSWORD || 'your-app-password'
-    }
+      user: process.env.SMTP_EMAIL,
+      pass: process.env.SMTP_PASSWORD
+    },
+    // Add these for better debugging
+    debug: process.env.NODE_ENV === 'development',
+    logger: process.env.NODE_ENV === 'development'
   });
 
   // Email options
   const mailOptions = {
-    from: `${process.env.FROM_NAME || 'SkillSwap'} <${process.env.FROM_EMAIL || process.env.SMTP_EMAIL}>`,
+    from: `${process.env.FROM_NAME || 'SkillExchange'} <${process.env.SMTP_EMAIL}>`,
     to: options.email,
     subject: options.subject,
     html: options.html || options.message
   };
 
   try {
+    // Verify connection before sending
+    await transporter.verify();
+    
     // Send email
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.messageId);
+    console.log('✅ Email sent successfully:', info.messageId);
     return info;
   } catch (error) {
-    console.error('Email error:', error);
-    throw new Error('Email could not be sent');
+    console.error('❌ Email error:', error.message);
+    
+    // Provide helpful error messages
+    if (error.code === 'EAUTH') {
+      console.error('💡 Fix: Generate a new Gmail App Password at https://myaccount.google.com/apppasswords');
+      throw new Error('Email authentication failed. Please contact administrator to update email credentials.');
+    } else if (error.code === 'ECONNECTION') {
+      throw new Error('Cannot connect to email server. Please check your internet connection.');
+    } else {
+      throw new Error('Email could not be sent: ' + error.message);
+    }
   }
 };
 
@@ -55,7 +74,7 @@ const getResetPasswordEmail = (resetUrl, name) => {
         </div>
         <div class="content">
           <h2>Hi ${name || 'there'},</h2>
-          <p>You requested to reset your password for your SkillSwap account.</p>
+          <p>You requested to reset your password for your SkillExchange account.</p>
           <p>Click the button below to reset your password:</p>
           <div style="text-align: center;">
             <a href="${resetUrl}" class="button">Reset Password</a>
@@ -73,10 +92,10 @@ const getResetPasswordEmail = (resetUrl, name) => {
             </ul>
           </div>
           <p>If you have any questions, please contact our support team.</p>
-          <p>Best regards,<br><strong>The SkillSwap Team</strong></p>
+          <p>Best regards,<br><strong>The SkillExchange Team</strong></p>
         </div>
         <div class="footer">
-          <p>© 2024 SkillSwap. All rights reserved.</p>
+          <p>© 2024 SkillExchange. All rights reserved.</p>
           <p>This is an automated email, please do not reply.</p>
         </div>
       </div>
@@ -103,11 +122,11 @@ const getWelcomeEmail = (name) => {
     <body>
       <div class="container">
         <div class="header">
-          <h1>🎉 Welcome to SkillSwap!</h1>
+          <h1>🎉 Welcome to SkillExchange!</h1>
         </div>
         <div class="content">
           <h2>Hi ${name},</h2>
-          <p>Welcome aboard! We're excited to have you join the SkillSwap community.</p>
+          <p>Welcome aboard! We're excited to have you join the SkillExchange community.</p>
           <p>Here's what you can do now:</p>
           <div class="feature">
             <strong>🎯 Add Your Skills</strong><br>
@@ -126,10 +145,10 @@ const getWelcomeEmail = (name) => {
             Complete exchanges and earn rewards
           </div>
           <p>Start by adding your first skill to your profile!</p>
-          <p>Happy learning,<br><strong>The SkillSwap Team</strong></p>
+          <p>Happy learning,<br><strong>The SkillExchange Team</strong></p>
         </div>
         <div class="footer">
-          <p>© 2024 SkillSwap. All rights reserved.</p>
+          <p>© 2024 SkillExchange. All rights reserved.</p>
         </div>
       </div>
     </body>

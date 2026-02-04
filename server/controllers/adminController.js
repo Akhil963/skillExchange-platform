@@ -710,7 +710,7 @@ exports.createBackup = async (req, res) => {
             exchanges,
             timestamp: new Date().toISOString(),
             version: '1.0.0',
-            platform: 'SkillSwap'
+            platform: 'SkillExchange'
         };
         
         res.json({

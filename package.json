@@ -1,5 +1,5 @@
 {
-  "name": "skillswap-platform",
+  "name": "SkillExchange-platform",
   "version": "1.0.0",
   "description": "A full-stack skill exchange platform where users can trade skills without money",
   "main": "server/server.js",
@@ -11,7 +11,9 @@
     "server": "nodemon server/server.js",
     "client": "cd client && start http://localhost:5000",
     "init-db": "node server/config/seedDatabase.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "seed:modules": "node server/utils/seedModulesAndVideos.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "make-pdf": "node scripts/markdown-to-pdf.js"
   },
   "keywords": [
     "skill-exchange",
@@ -41,7 +43,12 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "nodemon": "^3.0.2"
+    "connect-livereload": "^0.6.1",
+    "fs-extra": "^11.3.3",
+    "livereload": "^0.9.3",
+    "markdown-it": "^14.1.0",
+    "nodemon": "^3.0.2",
+    "puppeteer": "^24.34.0"
   },
   "engines": {
     "node": ">=16.0.0",

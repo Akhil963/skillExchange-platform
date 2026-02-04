@@ -1,7 +1,7 @@
-# SkillSwap Platform - Quick Deploy to Netlify
+# SkillExchange Platform - Quick Deploy to Netlify
 # Run this script after making changes
 
-Write-Host "🚀 SkillSwap Platform - Netlify Deployment" -ForegroundColor Cyan
+Write-Host "🚀 SkillExchange Platform - Netlify Deployment" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 

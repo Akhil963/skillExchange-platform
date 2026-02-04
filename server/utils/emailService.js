@@ -35,7 +35,7 @@ const emailTemplates = {
     html: `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
         <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">SkillSwap Platform</h1>
+          <h1 style="color: white; margin: 0; font-size: 28px;">SkillExchange Platform</h1>
           <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">New Exchange Request</p>
         </div>
         
@@ -79,7 +79,7 @@ const emailTemplates = {
         
         <div style="text-align: center; padding: 20px;">
           <p style="font-size: 12px; color: #888; margin: 5px 0;">
-            SkillSwap Platform - Exchange Skills, Build Connections
+            SkillExchange Platform - Exchange Skills, Build Connections
           </p>
           <p style="font-size: 11px; color: #aaa; margin: 5px 0;">
             You received this email because someone requested to exchange skills with you.
@@ -138,7 +138,7 @@ const emailTemplates = {
         
         <div style="text-align: center; padding: 20px;">
           <p style="font-size: 12px; color: #888; margin: 5px 0;">
-            SkillSwap Platform - Exchange Skills, Build Connections
+            SkillExchange Platform - Exchange Skills, Build Connections
           </p>
         </div>
       </div>
@@ -190,7 +190,7 @@ const emailTemplates = {
         
         <div style="text-align: center; padding: 20px;">
           <p style="font-size: 12px; color: #888; margin: 5px 0;">
-            SkillSwap Platform - Exchange Skills, Build Connections
+            SkillExchange Platform - Exchange Skills, Build Connections
           </p>
         </div>
       </div>
@@ -249,7 +249,7 @@ const emailTemplates = {
         
         <div style="text-align: center; padding: 20px;">
           <p style="font-size: 12px; color: #888; margin: 5px 0;">
-            SkillSwap Platform - Exchange Skills, Build Connections
+            SkillExchange Platform - Exchange Skills, Build Connections
           </p>
         </div>
       </div>
@@ -262,7 +262,7 @@ const emailTemplates = {
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
         <div style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 28px;">💬 New Message</h1>
-          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">You have a new message on SkillSwap</p>
+          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">You have a new message on SkillExchange</p>
         </div>
         
         <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -287,7 +287,7 @@ const emailTemplates = {
         
         <div style="text-align: center; padding: 20px;">
           <p style="font-size: 12px; color: #888; margin: 5px 0;">
-            SkillSwap Platform - Exchange Skills, Build Connections
+            SkillExchange Platform - Exchange Skills, Build Connections
           </p>
         </div>
       </div>
@@ -295,11 +295,11 @@ const emailTemplates = {
   }),
 
   welcomeEmail: (data) => ({
-    subject: `🎉 Welcome to SkillSwap Platform, ${data.userName}!`,
+    subject: `🎉 Welcome to SkillExchange Platform, ${data.userName}!`,
     html: `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
         <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 40px; border-radius: 12px 12px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 32px;">Welcome to SkillSwap!</h1>
+          <h1 style="color: white; margin: 0; font-size: 32px;">Welcome to SkillExchange!</h1>
           <p style="color: rgba(255,255,255,0.9); margin: 15px 0 0 0; font-size: 16px;">Your journey of learning begins now</p>
         </div>
         
@@ -307,7 +307,7 @@ const emailTemplates = {
           <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Hi <strong>${data.userName}</strong>,</p>
           
           <p style="font-size: 15px; color: #555; line-height: 1.6;">
-            Thank you for joining SkillSwap! You're now part of a community where everyone teaches and learns together.
+            Thank you for joining SkillExchange! You're now part of a community where everyone teaches and learns together.
           </p>
           
           <div style="background: #f3f4f6; padding: 25px; border-radius: 8px; margin: 25px 0;">
@@ -341,7 +341,7 @@ const emailTemplates = {
         
         <div style="text-align: center; padding: 20px;">
           <p style="font-size: 12px; color: #888; margin: 5px 0;">
-            SkillSwap Platform - Exchange Skills, Build Connections
+            SkillExchange Platform - Exchange Skills, Build Connections
           </p>
           <p style="font-size: 11px; color: #aaa; margin: 5px 0;">
             If you have any questions, feel free to reach out to our support team.
@@ -457,7 +457,7 @@ const sendEmail = async (to, template, data) => {
     const emailContent = emailTemplates[template](data);
 
     // Use FROM_NAME and FROM_EMAIL from .env, with fallbacks
-    const fromName = process.env.FROM_NAME || 'SkillSwap Platform';
+    const fromName = process.env.FROM_NAME || 'SkillExchange Platform';
     const fromEmail = process.env.FROM_EMAIL || process.env.SMTP_EMAIL || process.env.EMAIL_USER;
 
     const mailOptions = {

@@ -1,6 +1,9 @@
+const mongoose = require('mongoose');
 const Exchange = require('../models/Exchange');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
+const LearningPath = require('../models/LearningPath');
+const Skill = require('../models/Skill');
 const { sendEmail } = require('../utils/emailService');
 
 // Get base URL for emails
@@ -95,12 +98,43 @@ exports.getUserExchanges = async (req, res, next) => {
     const exchanges = await Exchange.find(query)
       .populate('requester_id', 'name email avatar rating')
       .populate('provider_id', 'name email avatar rating')
+      .populate('requested_skill', 'name description') // Populate requested skill
+      .populate('offered_skill', 'name description') // Populate offered skill
+      .populate('learningPathId') // Legacy field
+      .populate('requester_learningPathId') // Requester's learning path
+      .populate('provider_learningPathId') // Provider's learning path
       .sort({ created_date: -1 });
+
+    // Filter out exchanges with deleted users
+    const validExchanges = exchanges.filter(exchange => 
+      exchange.requester_id && exchange.provider_id
+    );
+
+    // Add frontend-compatible aliases
+    const exchangesWithAliases = validExchanges.map(ex => {
+      const exchangeObj = ex.toObject();
+      exchangeObj.requesterId = exchangeObj.requester_id?._id;
+      exchangeObj.requester = exchangeObj.requester_id;
+      exchangeObj.responderId = exchangeObj.provider_id?._id;
+      exchangeObj.responder = exchangeObj.provider_id;
+      exchangeObj.skillRequested = exchangeObj.requested_skill;
+      exchangeObj.skillOffered = exchangeObj.offered_skill;
+      return exchangeObj;
+    });
+
+    console.log(`📋 Returning ${exchangesWithAliases.length} exchanges`);
+    exchangesWithAliases.slice(0, 3).forEach(ex => {
+      const reqPath = ex.requester_learningPathId;
+      const provPath = ex.provider_learningPathId;
+      console.log(`  - Exchange ${ex._id}: status=${ex.status}`);
+      console.log(`    Requester path: ${reqPath ? `${reqPath.completedModules}/${reqPath.totalModules} modules` : 'none'}`);
+      console.log(`    Provider path: ${provPath ? `${provPath.completedModules}/${provPath.totalModules} modules` : 'none'}`);
+    });
 
     res.status(200).json({
       success: true,
-      count: exchanges.length,
-      exchanges
+      count: exchangesWithAliases.length,
+      exchanges: exchangesWithAliases
     });
   } catch (error) {
     next(error);
@@ -114,7 +148,12 @@ exports.getExchangeById = async (req, res, next) => {
   try {
     const exchange = await Exchange.findById(req.params.id)
       .populate('requester_id', 'name email avatar rating')
-      .populate('provider_id', 'name email avatar rating');
+      .populate('provider_id', 'name email avatar rating')
+      .populate('requested_skill', 'name description') // Populate requested skill
+      .populate('offered_skill', 'name description') // Populate offered skill
+      .populate('learningPathId') // Legacy field
+      .populate('requester_learningPathId') // Requester's learning path
+      .populate('provider_learningPathId'); // Provider's learning path
 
     if (!exchange) {
       return res.status(404).json({
@@ -134,9 +173,20 @@ exports.getExchangeById = async (req, res, next) => {
       });
     }
 
+    // Create response with consistent field naming for frontend
+    const exchangeData = exchange.toObject();
+    
+    // Add aliases for frontend compatibility
+    exchangeData.requesterId = exchangeData.requester_id?._id;
+    exchangeData.requester = exchangeData.requester_id;
+    exchangeData.responderId = exchangeData.provider_id?._id;
+    exchangeData.responder = exchangeData.provider_id;
+    exchangeData.skillRequested = exchangeData.requested_skill;
+    exchangeData.skillOffered = exchangeData.offered_skill;
+
     res.status(200).json({
       success: true,
-      exchange
+      exchange: exchangeData
     });
   } catch (error) {
     next(error);
@@ -185,6 +235,179 @@ exports.updateExchangeStatus = async (req, res, next) => {
 
     // Send email notifications based on status
     if (status === 'active') {
+      // Exchange accepted - CREATE BOTH LEARNING PATHS (one for each person's learning)
+      
+      // LEARNING PATH 1: Requester learns requested_skill, Provider teaches
+      if (!exchange.requester_learningPathId) {
+        try {
+          console.log(`📚 Creating requester learning path for exchange ${exchange._id}`);
+          console.log(`   - Learner: ${exchange.requester_id._id}`);
+          console.log(`   - Instructor: ${exchange.provider_id._id}`);
+          console.log(`   - Skill to learn: ${exchange.requested_skill}`);
+          
+          // Try multiple matching strategies for better skill finding
+          let skill = await Skill.findOne({ name: exchange.requested_skill });
+          if (!skill) {
+            skill = await Skill.findOne({ name: { $regex: new RegExp(`^${exchange.requested_skill}$`, 'i') } });
+          }
+          if (!skill) {
+            // Try fuzzy matching - e.g., "REACT JS" should match "React"
+            const cleanedSkillName = exchange.requested_skill.replace(/\s+(JS|JAVA|CPP|PY|PROGRAMMING)$/i, '').trim();
+            skill = await Skill.findOne({ name: { $regex: new RegExp(`^${cleanedSkillName}`, 'i') } });
+          }
+          if (!skill) {
+            // Try word matching - "Project Management" contains "Management"
+            const skillWords = exchange.requested_skill.split(/\s+/).filter(word => word.length > 3);
+            for (const word of skillWords) {
+              skill = await Skill.findOne({ name: { $regex: new RegExp(word, 'i') } });
+              if (skill && skill.videos && skill.videos.length >= 5) break;
+            }
+          }
+
+          if (!skill || !skill.videos || skill.videos.length < 5) {
+            console.warn(`⚠️ Skill "${exchange.requested_skill}" not found with 5 videos`);
+          } else {
+            console.log(`   ✓ Found skill: ${skill._id}`);
+          }
+
+          const modules = [];
+          if (skill && skill.videos && skill.videos.length >= 5) {
+            // Use exactly 5 videos from the skill
+            for (let i = 0; i < 5; i++) {
+              modules.push({
+                title: skill.videos[i].title || `Module ${i + 1}: ${skill.name}`,
+                description: `Learn ${skill.name} - ${skill.videos[i].title || `Part ${i + 1}`}`,
+                videoUrl: skill.videos[i].url || '',
+                duration: skill.videos[i].duration || 45,
+                order: i + 1,
+                isCompleted: false
+              });
+            }
+            console.log(`   ✅ Created 5 modules from skill videos`);
+          } else {
+            // Create 5 default modules if skill not found or has < 5 videos
+            for (let i = 0; i < 5; i++) {
+              modules.push({
+                title: `Module ${i + 1}: ${exchange.requested_skill}`,
+                description: `Learn ${exchange.requested_skill} - Part ${i + 1}`,
+                videoUrl: '',
+                duration: 45,
+                order: i + 1,
+                isCompleted: false
+              });
+            }
+            console.log(`   ⚠️ Skill not found - created 5 default modules`);
+          }
+
+          const requesterPath = new LearningPath({
+            exchangeId: exchange._id,
+            skillId: skill ? skill._id : new mongoose.Types.ObjectId(),
+            learner: exchange.requester_id._id,
+            instructor: exchange.provider_id._id,
+            modules: modules,
+            totalModules: 5,
+            completedModules: 0,
+            progressPercentage: 0,
+            status: 'not-started',
+            estimatedDuration: 225 // 5 modules * 45 min
+          });
+
+          await requesterPath.save();
+          console.log(`✅ Requester learning path created: ${requesterPath._id} (5 modules)`);
+          
+          exchange.requester_learningPathId = requesterPath._id;
+          exchange.learningPathId = requesterPath._id; // Keep legacy field for compatibility
+          await exchange.save();
+        } catch (lpError) {
+          console.error('Error creating requester learning path:', lpError);
+        }
+      }
+
+      // LEARNING PATH 2: Provider learns offered_skill, Requester teaches
+      if (!exchange.provider_learningPathId) {
+        try {
+          console.log(`📚 Creating provider learning path for exchange ${exchange._id}`);
+          console.log(`   - Learner: ${exchange.provider_id._id}`);
+          console.log(`   - Instructor: ${exchange.requester_id._id}`);
+          console.log(`   - Skill to learn: ${exchange.offered_skill}`);
+          
+          // Try multiple matching strategies for better skill finding
+          let skill = await Skill.findOne({ name: exchange.offered_skill });
+          if (!skill) {
+            skill = await Skill.findOne({ name: { $regex: new RegExp(`^${exchange.offered_skill}$`, 'i') } });
+          }
+          if (!skill) {
+            // Try fuzzy matching - e.g., "HOME ORGANIZATION" should match "Home Organization"
+            const cleanedSkillName = exchange.offered_skill.replace(/\s+(JS|JAVA|CPP|PY|PROGRAMMING)$/i, '').trim();
+            skill = await Skill.findOne({ name: { $regex: new RegExp(`^${cleanedSkillName}`, 'i') } });
+          }
+          if (!skill) {
+            // Try word matching
+            const skillWords = exchange.offered_skill.split(/\s+/).filter(word => word.length > 3);
+            for (const word of skillWords) {
+              skill = await Skill.findOne({ name: { $regex: new RegExp(word, 'i') } });
+              if (skill && skill.videos && skill.videos.length >= 5) break;
+            }
+          }
+
+          if (!skill || !skill.videos || skill.videos.length < 5) {
+            console.warn(`⚠️ Skill "${exchange.offered_skill}" not found with 5 videos`);
+          } else {
+            console.log(`   ✓ Found skill: ${skill._id}`);
+          }
+
+          const modules = [];
+          if (skill && skill.videos && skill.videos.length >= 5) {
+            // Use exactly 5 videos from the skill
+            for (let i = 0; i < 5; i++) {
+              modules.push({
+                title: skill.videos[i].title || `Module ${i + 1}: ${skill.name}`,
+                description: `Learn ${skill.name} - ${skill.videos[i].title || `Part ${i + 1}`}`,
+                videoUrl: skill.videos[i].url || '',
+                duration: skill.videos[i].duration || 45,
+                order: i + 1,
+                isCompleted: false
+              });
+            }
+            console.log(`   ✅ Created 5 modules from skill videos`);
+          } else {
+            // Create 5 default modules if skill not found or has < 5 videos
+            for (let i = 0; i < 5; i++) {
+              modules.push({
+                title: `Module ${i + 1}: ${exchange.offered_skill}`,
+                description: `Learn ${exchange.offered_skill} - Part ${i + 1}`,
+                videoUrl: '',
+                duration: 45,
+                order: i + 1,
+                isCompleted: false
+              });
+            }
+            console.log(`   ⚠️ Skill not found - created 5 default modules`);
+          }
+
+          const providerPath = new LearningPath({
+            exchangeId: exchange._id,
+            skillId: skill ? skill._id : new mongoose.Types.ObjectId(),
+            learner: exchange.provider_id._id,
+            instructor: exchange.requester_id._id,
+            modules: modules,
+            totalModules: 5,
+            completedModules: 0,
+            progressPercentage: 0,
+            status: 'not-started',
+            estimatedDuration: 225 // 5 modules * 45 min
+          });
+
+          await providerPath.save();
+          console.log(`✅ Provider learning path created: ${providerPath._id} (5 modules)`);
+          
+          exchange.provider_learningPathId = providerPath._id;
+          await exchange.save();
+        } catch (lpError) {
+          console.error('Error creating provider learning path:', lpError);
+        }
+      }
+
       // Exchange accepted - notify requester
       const requester = exchange.requester_id;
       if (requester.emailNotifications && requester.emailNotifications.exchangeAccepted) {
@@ -289,13 +512,18 @@ exports.updateExchangeStatus = async (req, res, next) => {
       }
     }
 
-    await exchange.populate('requester_id', 'name email avatar rating');
-    await exchange.populate('provider_id', 'name email avatar rating');
+    // Refresh exchange and populate all references
+    const refreshedExchange = await Exchange.findById(exchange._id)
+      .populate('requester_id', 'name email avatar rating')
+      .populate('provider_id', 'name email avatar rating')
+      .populate('learningPathId'); // Populate learning path reference
+
+    console.log(`📤 Returning exchange with learningPathId:`, refreshedExchange.learningPathId);
 
     res.status(200).json({
       success: true,
       message: `Exchange ${status}`,
-      exchange
+      exchange: refreshedExchange
     });
   } catch (error) {
     next(error);
@@ -362,6 +590,7 @@ exports.addMessage = async (req, res, next) => {
 exports.addReview = async (req, res, next) => {
   try {
     const { rating, review } = req.body;
+    const userId = req.user._id;
 
     if (!rating) {
       return res.status(400).json({
@@ -386,6 +615,39 @@ exports.addReview = async (req, res, next) => {
       });
     }
 
+    // Determine if the user is requester or provider
+    const isRequester = exchange.requester_id.toString() === userId.toString();
+    const isProvider = exchange.provider_id.toString() === userId.toString();
+
+    if (!isRequester && !isProvider) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not part of this exchange'
+      });
+    }
+
+    // Save rating based on who is rating
+    if (isRequester) {
+      if (exchange.requester_rating) {
+        return res.status(400).json({
+          success: false,
+          message: 'You have already rated this exchange'
+        });
+      }
+      exchange.requester_rating = rating;
+      exchange.requester_review = review || null;
+    } else if (isProvider) {
+      if (exchange.provider_rating) {
+        return res.status(400).json({
+          success: false,
+          message: 'You have already rated this exchange'
+        });
+      }
+      exchange.provider_rating = rating;
+      exchange.provider_review = review || null;
+    }
+
+    // Keep legacy fields in sync for backward compatibility
     exchange.rating = rating;
     if (review) {
       exchange.review = review;
@@ -393,29 +655,52 @@ exports.addReview = async (req, res, next) => {
 
     await exchange.save();
 
-    // Update provider's rating
-    const provider = await User.findById(exchange.provider_id);
-    const providerExchanges = await Exchange.find({
-      provider_id: exchange.provider_id,
-      rating: { $exists: true }
+    // Determine whose rating to update - the person being rated is the "other" person
+    const ratedPersonId = isRequester ? exchange.provider_id : exchange.requester_id;
+    const ratedPerson = await User.findById(ratedPersonId);
+
+    // Calculate average rating for the person being rated
+    const allRatingsForPerson = await Exchange.find({
+      $or: [
+        { provider_id: ratedPersonId, requester_rating: { $exists: true } },
+        { requester_id: ratedPersonId, provider_rating: { $exists: true } }
+      ]
     });
 
-    const avgRating = providerExchanges.reduce((sum, ex) => sum + ex.rating, 0) / providerExchanges.length;
-    provider.rating = Math.round(avgRating * 10) / 10;
-    await provider.save();
+    const totalRating = allRatingsForPerson.reduce((sum, ex) => {
+      if (ex.provider_id.toString() === ratedPersonId.toString()) {
+        return sum + (ex.requester_rating || 0);
+      } else {
+        return sum + (ex.provider_rating || 0);
+      }
+    }, 0);
 
-    // Send email notification to provider about new rating
-    if (provider.emailNotifications && provider.emailNotifications.newRatings) {
-      const requester = await User.findById(exchange.requester_id);
-      await sendEmail(provider.email, 'newRating', {
-        providerName: provider.name,
-        requesterName: requester.name,
+    const ratingCount = allRatingsForPerson.filter(ex => {
+      if (ex.provider_id.toString() === ratedPersonId.toString()) {
+        return ex.requester_rating;
+      } else {
+        return ex.provider_rating;
+      }
+    }).length;
+
+    if (ratingCount > 0) {
+      const avgRating = totalRating / ratingCount;
+      ratedPerson.rating = Math.round(avgRating * 10) / 10;
+      await ratedPerson.save();
+    }
+
+    // Send email notification about new rating
+    if (ratedPerson.emailNotifications && ratedPerson.emailNotifications.newRatings) {
+      const ratingGiver = await User.findById(userId);
+      await sendEmail(ratedPerson.email, 'newRating', {
+        providerName: ratedPerson.name,
+        requesterName: ratingGiver.name,
         rating: rating,
         review: review || null,
         requestedSkill: exchange.requested_skill,
         offeredSkill: exchange.offered_skill,
-        newAverageRating: provider.rating.toFixed(1),
-        totalRatings: providerExchanges.length,
+        newAverageRating: ratedPerson.rating.toFixed(1),
+        totalRatings: ratingCount,
         profileUrl: `${getBaseUrl()}/#profile`
       });
     }
@@ -479,21 +764,23 @@ exports.getLearnedSkills = async (req, res, next) => {
       .populate('provider_id', 'name email avatar rating total_exchanges')
       .sort({ completed_date: -1 });
 
-    // Format the learned skills data
-    const learnedSkills = learnedExchanges.map(exchange => ({
-      skill: exchange.requested_skill,
-      teacher: {
-        id: exchange.provider_id._id,
-        name: exchange.provider_id.name,
-        avatar: exchange.provider_id.avatar,
-        rating: exchange.provider_id.rating
-      },
-      completedDate: exchange.completed_date,
-      rating: exchange.rating,
-      review: exchange.review,
-      sessionsCompleted: exchange.sessions_completed,
-      totalHours: exchange.total_hours
-    }));
+    // Format the learned skills data (filter out exchanges with deleted users)
+    const learnedSkills = learnedExchanges
+      .filter(exchange => exchange.provider_id) // Skip if provider was deleted
+      .map(exchange => ({
+        skill: exchange.requested_skill,
+        teacher: {
+          id: exchange.provider_id._id,
+          name: exchange.provider_id.name,
+          avatar: exchange.provider_id.avatar,
+          rating: exchange.provider_id.rating
+        },
+        completedDate: exchange.completed_date,
+        rating: exchange.rating,
+        review: exchange.review,
+        sessionsCompleted: exchange.sessions_completed,
+        totalHours: exchange.total_hours
+      }));
 
     res.status(200).json({
       success: true,
@@ -518,21 +805,23 @@ exports.getTaughtSkills = async (req, res, next) => {
       .populate('requester_id', 'name email avatar rating total_exchanges')
       .sort({ completed_date: -1 });
 
-    // Format the taught skills data
-    const taughtSkills = taughtExchanges.map(exchange => ({
-      skill: exchange.offered_skill,
-      student: {
-        id: exchange.requester_id._id,
-        name: exchange.requester_id.name,
-        avatar: exchange.requester_id.avatar,
-        rating: exchange.requester_id.rating
-      },
-      completedDate: exchange.completed_date,
-      rating: exchange.rating,
-      review: exchange.review,
-      sessionsCompleted: exchange.sessions_completed,
-      totalHours: exchange.total_hours
-    }));
+    // Format the taught skills data (filter out exchanges with deleted users)
+    const taughtSkills = taughtExchanges
+      .filter(exchange => exchange.requester_id) // Skip if requester was deleted
+      .map(exchange => ({
+        skill: exchange.offered_skill,
+        student: {
+          id: exchange.requester_id._id,
+          name: exchange.requester_id.name,
+          avatar: exchange.requester_id.avatar,
+          rating: exchange.requester_id.rating
+        },
+        completedDate: exchange.completed_date,
+        rating: exchange.rating,
+        review: exchange.review,
+        sessionsCompleted: exchange.sessions_completed,
+        totalHours: exchange.total_hours
+      }));
 
     res.status(200).json({
       success: true,

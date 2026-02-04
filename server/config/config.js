@@ -1,6 +1,6 @@
 /**
  * ===================================
- * SKILLSWAP - CENTRALIZED CONFIGURATION
+ * SkillExchange - CENTRALIZED CONFIGURATION
  * ===================================
  * All environment variables and configuration in one place
  * Validates required variables and provides defaults
@@ -50,7 +50,7 @@ const config = {
   // DATABASE
   // ===================================
   database: {
-    uri: requireEnv('MONGODB_URI', 'mongodb://localhost:27017/skillswap'),
+    uri: requireEnv('MONGODB_URI', 'mongodb://localhost:27017/SkillExchange'),
     options: {
       // Modern connection options (removes deprecation warnings)
       // No need for useNewUrlParser, useUnifiedTopology etc. in Mongoose 6+
@@ -91,8 +91,8 @@ const config = {
       pass: process.env.SMTP_PASSWORD,
     },
     from: {
-      email: process.env.FROM_EMAIL || 'noreply@skillswap.com',
-      name: process.env.FROM_NAME || 'SkillSwap Platform',
+      email: process.env.FROM_EMAIL || 'noreply@SkillExchange.com',
+      name: process.env.FROM_NAME || 'SkillExchange Platform',
     },
     // Check if email is properly configured
     isConfigured: !!(process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD),

@@ -59,6 +59,28 @@ const exchangeSchema = new mongoose.Schema({
   completed_date: {
     type: Date
   },
+  // Ratings from both parties
+  requester_rating: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  requester_review: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'Review cannot exceed 1000 characters']
+  },
+  provider_rating: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  provider_review: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'Review cannot exceed 1000 characters']
+  },
+  // Legacy single rating field (for backward compatibility)
   rating: {
     type: Number,
     min: 1,
@@ -78,6 +100,43 @@ const exchangeSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: 0
+  },
+  // BIDIRECTIONAL LEARNING PATHS - One for each person's learning
+  // Requester learns the requested_skill with this path
+  requester_learningPathId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'LearningPath'
+  },
+  requester_learningCompleted: {
+    type: Boolean,
+    default: false
+  },
+  requester_learningCompletedAt: {
+    type: Date
+  },
+  // Provider learns the offered_skill with this path
+  provider_learningPathId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'LearningPath'
+  },
+  provider_learningCompleted: {
+    type: Boolean,
+    default: false
+  },
+  provider_learningCompletedAt: {
+    type: Date
+  },
+  // Legacy single learning path (for backward compatibility)
+  learningPathId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'LearningPath'
+  },
+  learningCompleted: {
+    type: Boolean,
+    default: false
+  },
+  learningCompletedAt: {
+    type: Date
   }
 }, {
   timestamps: true

@@ -1,0 +1,14 @@
+body {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  color: #111;
+  margin: 28px;
+  line-height: 1.4;
+  max-width: 900px;
+}
+h1,h2,h3 { color: #0b5; }
+pre,code { font-family: monospace; background:#f6f6f6; padding:6px; border-radius:4px; }
+hr { border: none; border-top: 1px solid #ddd; margin: 1rem 0; }
+@media print {
+  h1 { page-break-after: avoid; }
+  pre { white-space: pre-wrap; }
+}

@@ -1,11 +1,11 @@
 # ===================================
-# MULTI-STAGE DOCKERFILE FOR SKILLSWAP
+# MULTI-STAGE DOCKERFILE FOR SkillExchange
 # ===================================
 
 # Stage 1: Base
 FROM node:18-alpine AS base
-LABEL maintainer="SkillSwap Platform"
-LABEL description="SkillSwap - Skill Exchange Platform"
+LABEL maintainer="SkillExchange Platform"
+LABEL description="SkillExchange - Skill Exchange Platform"
 
 # Set working directory
 WORKDIR /app
