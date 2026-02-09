@@ -18,12 +18,26 @@
   # Performance optimization
   FUNCTION_MEMORY = "1024"
   AWS_LAMBDA_LOG_LEVEL = "error"
+  # Set your backend URL here for production
+  # BACKEND_URL = "https://your-backend-domain.com"
 
 # ===================================
 # REDIRECT RULES
 # ===================================
 
-# API requests to serverless functions
+# IMPORTANT: Configure your backend URL below
+# For local development: API_BASE in LearningDashboard.html will use http://localhost:5000
+# For production: Uncomment the redirect below and replace with your actual backend URL
+
+# Production Option 1: API requests to external Express backend (MODIFY THIS)
+# Uncomment and replace "https://your-backend-url.com" with your actual backend server URL
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://your-backend-url.com/api/:splat"
+#   status = 200
+#   force = true
+
+# CURRENT: API requests to serverless functions
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
@@ -37,7 +51,7 @@
   status = 200
 
 # ===================================
-# HEADERS FOR SECURITY
+# HEADERS FOR SECURITY AND CORS
 # ===================================
 
 [[headers]]
@@ -47,6 +61,10 @@
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    # CORS headers for API responses
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
 
 [[headers]]
   for = "/api/*"

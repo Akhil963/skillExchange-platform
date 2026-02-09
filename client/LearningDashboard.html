@@ -903,12 +903,50 @@
     </div>
 
     <script>
+        /**
+         * PRODUCTION DEPLOYMENT GUIDE:
+         * 
+         * For Netlify Deployment:
+         * 1. If backend is on the SAME domain as frontend, no changes needed
+         * 2. If backend is on a DIFFERENT domain:
+         *    - Create a netlify.toml with a rewrite rule:
+         *      [[redirects]]
+         *      from = "/api/*"
+         *      to = "https://your-backend-url/api/:splat"
+         *      status = 200
+         *    - OR inject window.__API_BASE__ in Netlify build or test edge function
+         * 3. Ensure backend has CORS headers allowing Netlify domain
+         */
+        
         // Global state
         let learningPathData = null;
         let exchangeData = null;
         let currentModuleId = null;
-        const API_BASE = 'http://localhost:5000/api';
         let currentUserId = null;
+
+        // Determine API URL based on environment
+        function getAPIBase() {
+            const hostname = window.location.hostname;
+            const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0';
+            
+            if (isLocalhost) {
+                // Local development: use localhost
+                return 'http://localhost:5000/api';
+            } else if (window.location.protocol === 'https:') {
+                // Production (HTTPS): use relative path for same-origin or environment-specific URL
+                // For Netlify deployment, you'll need to configure a backend URL
+                // Option 1: Use relative path if backend is on same domain (e.g., /api)
+                // Option 2: Use environment variable (set in Netlify config)
+                const prodApiUrl = window.__API_BASE__ || '/api'; // Check for injected config first
+                return prodApiUrl;
+            } else {
+                // HTTP deployment: use relative path
+                return '/api';
+            }
+        }
+
+        const API_BASE = getAPIBase();
+        console.log('API Base URL:', API_BASE);
 
         // Initialize dashboard
         async function initDashboard() {
@@ -1489,6 +1527,10 @@
                 return true;
             } catch (error) {
                 console.warn('Server connection check failed:', error);
+                // Check if it's a CORS error or network error
+                if (error.message.includes('CORS') || error.message.includes('loopback')) {
+                    console.error('CORS Error detected - frontend and backend on different domains');
+                }
                 return false;
             }
         }
