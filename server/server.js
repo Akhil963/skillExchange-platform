@@ -100,6 +100,18 @@ if (process.env.NODE_ENV === 'development') {
 // Serve static files from client directory
 app.use(express.static(path.join(__dirname, '../client')));
 
+// Add cache headers for static assets
+app.use((req, res, next) => {
+  if (req.url.endsWith('.js') || req.url.endsWith('.css')) {
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  } else if (req.url.endsWith('.html')) {
+    res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+  } else if (req.url.match(/\.(jpg|jpeg|png|gif|svg|webp)$/i)) {
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+  next();
+});
+
 // Serve admin static files (now inside client folder)
 app.use('/admin', express.static(path.join(__dirname, '../client/admin')));
 

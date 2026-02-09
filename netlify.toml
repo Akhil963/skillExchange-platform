@@ -107,15 +107,11 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    # Enable compression
-    Content-Encoding = "gzip"
-    # Performance optimization
+    # Let Netlify handle compression automatically
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    # Enable HTTP/2 Server Push
-    Link = "</style.css>; rel=preload; as=style, </app.js>; rel=preload; as=script"
 
 # ===================================
 # DEVELOPMENT SETTINGS
