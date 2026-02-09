@@ -923,12 +923,19 @@
             
             if (!learningPathId) {
                 console.error('❌ No learningPathId found!');
-                showEmptyState();
+                showEmptyState('No learning path found. Please select a learning path from the dashboard.', false);
                 return;
             }
 
             try {
                 showLoading(true);
+                
+                // Check server connection first
+                const isServerAlive = await checkServerConnection();
+                if (!isServerAlive) {
+                    showEmptyState('Backend server is not responding. Please try again in a moment or contact support.', true);
+                    return;
+                }
                 
                 // Get current user info
                 const meResponse = await fetch(`${API_BASE}/auth/me`, {
@@ -936,6 +943,16 @@
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
+                
+                if (!meResponse.ok) {
+                    if (meResponse.status === 401) {
+                        showEmptyState('Your session has expired. Please log in again.', false);
+                        setTimeout(() => window.location.href = '/index.html', 2000);
+                        return;
+                    }
+                    throw new Error(`Server error: ${meResponse.status}`);
+                }
+                
                 const meData = await meResponse.json();
                 currentUserId = meData.userId;
                 
@@ -980,7 +997,20 @@
                 renderDashboard();
             } catch (error) {
                 console.error('Error loading dashboard:', error);
-                showEmptyState();
+                
+                // Provide specific error messages
+                let errorMessage = 'Failed to load dashboard. ';
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+                } else if (error.message.includes('Failed to load learning path')) {
+                    errorMessage = 'Could not load the learning path. It may have been deleted or you may not have access to it.';
+                } else if (error.message.includes('Unauthorized')) {
+                    errorMessage = 'You are not authorized to view this learning path.';
+                } else {
+                    errorMessage += error.message || 'Please try again or contact support.';
+                }
+                
+                showEmptyState(errorMessage, true);
             } finally {
                 showLoading(false);
             }
@@ -1445,13 +1475,64 @@
         }
 
         // Utility functions
+        
+        // Check if server is reachable
+        async function checkServerConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                // Server is reachable if we get any response (even 401)
+                return true;
+            } catch (error) {
+                console.warn('Server connection check failed:', error);
+                return false;
+            }
+        }
+        
         function showLoading(show) {
             document.getElementById('loadingState').classList.toggle('active', show);
         }
 
-        function showEmptyState() {
-            document.getElementById('emptyState').style.display = 'block';
+        function showEmptyState(message = 'No modules available yet.', showRetry = false) {
+            const emptyStateEl = document.getElementById('emptyState');
+            emptyStateEl.style.display = 'block';
             document.getElementById('modulesContainer').innerHTML = '';
+            
+            // Update the message
+            const messageEl = emptyStateEl.querySelector('p') || document.createElement('p');
+            messageEl.textContent = message;
+            
+            // Add retry button if needed
+            const existingRetryBtn = emptyStateEl.querySelector('button');
+            if (showRetry && !existingRetryBtn) {
+                const retryBtn = document.createElement('button');
+                retryBtn.textContent = 'Try Again';
+                retryBtn.style.cssText = `
+                    margin-top: 15px;
+                    padding: 8px 16px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 500;
+                    transition: transform 0.2s;
+                `;
+                retryBtn.onmouseover = () => retryBtn.style.transform = 'scale(1.05)';
+                retryBtn.onmouseout = () => retryBtn.style.transform = 'scale(1)';
+                retryBtn.addEventListener('click', () => {
+                    console.log('Retrying dashboard initialization...');
+                    initDashboard();
+                });
+                emptyStateEl.appendChild(retryBtn);
+            } else if (!showRetry && existingRetryBtn) {
+                existingRetryBtn.remove();
+            }
         }
 
         function getQueryParam(name) {
