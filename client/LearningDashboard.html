@@ -1319,31 +1319,22 @@
             currentModuleId = moduleId;
             const module = learningPathData.modules.find(m => m.moduleId === moduleId);
             
-            if (!module || !module.videoId) return;
-
-            // Fetch video details
-            try {
-                const response = await fetch(`${API_BASE}/videos/${module.videoId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-
-                const video = await response.json();
-                showVideoModal(module, video);
-            } catch (error) {
-                console.error('Error loading video:', error);
-                alert('Failed to load video');
+            if (!module || !module.videoUrl) {
+                alert('No video available for this module');
+                return;
             }
+
+            // Video data is now embedded in the module, no need to fetch separately
+            showVideoModal(module);
         }
 
         // Show video modal
-        function showVideoModal(module, video) {
-            document.getElementById('videoTitle').textContent = module.title;
+        function showVideoModal(module) {
+            document.getElementById('videoTitle').textContent = module.title || 'Video Lesson';
             document.getElementById('videoDescription').innerHTML = `
                 <div style="margin-bottom: 20px;">
-                    <p><strong>Duration:</strong> ${module.duration} minutes</p>
-                    <p><strong>Description:</strong> ${video.description || 'No description available'}</p>
+                    <p><strong>Duration:</strong> ${module.duration || 'N/A'} minutes</p>
+                    <p><strong>Description:</strong> ${module.description || 'No description available'}</p>
                 </div>
             `;
 
@@ -1352,7 +1343,7 @@
             videoContainer.innerHTML = '';
             
             const iframe = document.createElement('iframe');
-            iframe.src = video.videoUrl;
+            iframe.src = module.videoUrl;
             iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
             iframe.allowFullscreen = true;
             videoContainer.appendChild(iframe);
