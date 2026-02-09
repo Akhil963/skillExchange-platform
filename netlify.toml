@@ -15,6 +15,9 @@
 [build.environment]
   NODE_VERSION = "18"
   NPM_VERSION = "9"
+  # Performance optimization
+  FUNCTION_MEMORY = "1024"
+  AWS_LAMBDA_LOG_LEVEL = "error"
 
 # ===================================
 # REDIRECT RULES
@@ -51,6 +54,68 @@
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Cache-Control = "max-age=300, public"
+
+# ===================================
+# CACHE HEADERS FOR STATIC ASSETS
+# ===================================
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.json"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, must-revalidate"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.gif"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ===================================
+# PERFORMANCE HEADERS
+# ===================================
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Enable compression
+    Content-Encoding = "gzip"
+    # Performance optimization
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Enable HTTP/2 Server Push
+    Link = "</style.css>; rel=preload; as=style, </app.js>; rel=preload; as=script"
 
 # ===================================
 # DEVELOPMENT SETTINGS

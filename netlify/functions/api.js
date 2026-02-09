@@ -67,6 +67,10 @@ const limiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: false, // Count all requests
   skipFailedRequests: false,
+  keyGenerator: (req) => {
+    // Use X-Forwarded-For for accurate IP behind proxy
+    return req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  },
   handler: (req, res) => {
     res.status(429).json({
       success: false,

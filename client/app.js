@@ -1,7 +1,25 @@
-// SkillExchange Application - Frontend with API Integration
+// SkillExchange Application - Frontend with API Integration & Performance Optimization
 
 // API Base URL
 const API_URL = window.location.origin + '/api';
+
+// ========================================
+// PERFORMANCE OPTIMIZATION SETTINGS
+// ========================================
+
+// Enable localStorage-based session storage for faster page loads
+const useSessionStorage = true;
+
+// Disable automatic polling - only fetch on demand
+const autoPollingDisabled = true;
+
+// Reduce cache expiry times for freshness
+const CACHE_EXPIRY_TIMES = {
+  SHORT: 2 * 60 * 1000,    // 2 minutes for frequently changing data
+  MEDIUM: 5 * 60 * 1000,   // 5 minutes
+  LONG: 15 * 60 * 1000,    // 15 minutes for static data
+  USER: 10 * 60 * 1000     // 10 minutes for user data
+};
 
 // Application State
 const AppState = {
@@ -18,10 +36,14 @@ const AppState = {
   activeConversation: null,
   requestQueue: [],
   isProcessingQueue: false,
-  rateLimitDelay: 100, // Delay between requests in ms
+  rateLimitDelay: 50, // Reduced from 100ms for faster requests
   cache: {}, // Cache for API responses
-  cacheExpiry: 5 * 60 * 1000, // 5 minutes cache
-  pendingRequests: {} // Track pending requests to avoid duplicates
+  cacheExpiry: CACHE_EXPIRY_TIMES.MEDIUM,
+  pendingRequests: {}, // Track pending requests to avoid duplicates
+  requestTimings: {}, // Track request timings for optimization
+  batchRequests: [], // Batch multiple requests
+  batchTimeout: null,
+  useBatching: true // Enable request batching
 };
 
 // ======================

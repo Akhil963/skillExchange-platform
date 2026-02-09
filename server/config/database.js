@@ -10,6 +10,8 @@ const connectDB = async () => {
     const options = {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      maxPoolSize: 10, // Connection pooling for better performance
+      minPoolSize: 2,
     };
 
     console.log('🔄 Connecting to MongoDB...');
@@ -19,6 +21,16 @@ const connectDB = async () => {
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📊 Database: ${conn.connection.name}`);
+
+    // Initialize indexes on connection
+    if (process.env.NODE_ENV === 'production' || process.env.INIT_INDEXES === 'true') {
+      try {
+        const { initializeIndexes } = require('./indexing');
+        await initializeIndexes();
+      } catch (indexError) {
+        console.warn('⚠️  Index initialization warning:', indexError.message);
+      }
+    }
 
     // Handle connection events
     mongoose.connection.on('error', (err) => {
