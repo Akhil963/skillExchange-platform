@@ -60,13 +60,18 @@ exports.createLearningPath = async (req, res) => {
 
     if (videos.length > 0) {
       for (let i = 0; i < videos.length; i++) {
-        // Since Video model might not exist, create modules from skill videos array
-        // Videos in this context are just object IDs, so we create modules without detailed video data
+        const video = videos[i];
+        const duration = video.duration || 0;
+        totalDuration += duration;
+        
+        // Store video data directly in module (not as reference)
         modules.push({
-          title: `Module ${i + 1}`,
-          description: `Module for ${skill.name}`,
-          videoId: videos[i],
-          order: i + 1,
+          title: video.title || `Module ${i + 1}`,
+          description: `Learn ${skill.name}`,
+          videoUrl: video.url,  // YouTube URL
+          videoTitle: video.title,
+          duration: duration,
+          order: video.order || i + 1,
           isCompleted: false
         });
       }
@@ -480,8 +485,9 @@ exports.getLearningPath = async (req, res) => {
     const learningPath = await LearningPath.findById(learningPathId)
       .populate('learner', 'name avatar email')
       .populate('instructor', 'name avatar email')
-      .populate('skillId', 'name description')
-      .populate('modules.videoId', 'title description duration videoUrl');
+      .populate('skillId', 'name description');
+    // Note: modules are embedded documents with video data stored directly (videoUrl, videoTitle, duration)
+    // No need to populate modules.videoId as it doesn't exist - video data is embedded in each module
 
     if (!learningPath) {
       console.error(`❌ Learning path not found for ID: ${learningPathId}`);
@@ -655,8 +661,9 @@ exports.getModuleDetails = async (req, res) => {
   try {
     const { learningPathId, moduleId } = req.params;
 
-    const learningPath = await LearningPath.findById(learningPathId)
-      .populate('modules.videoId', 'title description duration videoUrl category thumbnail');
+    const learningPath = await LearningPath.findById(learningPathId);
+    // Note: Video data is embedded in modules (videoUrl, videoTitle, duration)
+    // No need to populate modules.videoId as it's now embedded data
 
     if (!learningPath) {
       return res.status(404).json({ message: 'Learning path not found' });
@@ -669,7 +676,11 @@ exports.getModuleDetails = async (req, res) => {
 
     const moduleWithDetails = {
       ...module.toObject(),
-      video: module.videoId,
+      video: {
+        title: module.videoTitle,
+        url: module.videoUrl,
+        duration: module.duration
+      },
       progress: {
         currentModule: learningPath.modules.indexOf(module) + 1,
         totalModules: learningPath.totalModules,
