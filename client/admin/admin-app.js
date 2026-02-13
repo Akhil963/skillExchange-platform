@@ -4971,5 +4971,5 @@ window.testModalSystem = function() {
 };
 
 // Auto-log modal system status on load
-console.log('🎨 SkillSwap Admin Panel - Modal System v2.0');
+console.log('🎨 SkillExchange Admin Panel - Modal System v2.0');
 console.log('💡 Type testModalSystem() in console to test modals');

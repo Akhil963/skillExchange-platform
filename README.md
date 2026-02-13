@@ -1,6 +1,6 @@
-# SkillSwap Platform
+# SkillExchange Platform
 
-A simple, user-friendly platform to exchange skills — teach what you know and learn what you don't. SkillSwap is built with HTML, CSS, and JavaScript and is intended as a lightweight full‑stack / [...]
+A simple, user-friendly platform to exchange skills — teach what you know and learn what you don't. SkillExchange is built with HTML, CSS, and JavaScript and is intended as a lightweight full‑stack / [...]
 
 [![Project languages](https://img.shields.io/badge/JavaScript-50%25-yellow?logo=javascript)](#)
 [![Built with HTML/CSS](https://img.shields.io/badge/HTML%20%2F%20CSS-49%25-orange?logo=html5)](#)
@@ -28,7 +28,7 @@ Demo
 Live demo: https://skillexchangepf.netlify.app
 
 Screenshot:
-![SkillSwap screenshot](client/assets/skillExchange.png)
+![SkillExchange screenshot](client/assets/skillExchange.png)
 
 Features
 --------
@@ -56,9 +56,9 @@ Prerequisites
 
 Local development
 1. Clone the repository
-   git clone https://github.com/Akhil963/skillswap-platform.git
+   git clone https://github.com/Akhil963/SkillExchange-platform.git
 2. Change into the project directory
-   cd skillswap-platform
+   cd SkillExchange-platform
 3. Install dependencies (only if package.json exists)
    npm install
    # or
