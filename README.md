@@ -36,7 +36,7 @@ A full-stack skill exchange platform where users can trade skills without money.
 
 ## Demo
 
-**Live Demo:** https://skillexchangepf.netlify.app
+**Live Demo:** https://skillexchang.netlify.app
 
 **Test Account:**
 - Email: `demo@test.com`
