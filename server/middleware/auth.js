@@ -51,7 +51,16 @@ exports.protect = async (req, res, next) => {
 
 // Generate JWT token
 exports.generateToken = (id) => {
+  // Validate JWT_SECRET is set
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured in environment variables');
+  }
+  
+  // Use JWT_EXPIRE from env or default to '30d'
+  // JWT_EXPIRE should be in format like '30d', '7d', '24h', or a number (seconds)
+  const expiresIn = process.env.JWT_EXPIRE || '30d';
+  
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE
+    expiresIn: expiresIn
   });
 };
