@@ -743,7 +743,7 @@ You are free to use, modify, and distribute this software for personal and comme
 - 💬 [GitHub Issues](https://github.com/Akhil963/SkillExchange-platform/issues) — Report bugs & feature requests
 
 **Live Demo:**
-- 🌐 [https://skillexchang.netlify.app](https://skillexchange-platform.onrender.com/)
+- 🌐 https://skillexchange-platform.onrender.com/
 
 **Related Documentation:**
 - [DEPLOYMENT_ACTION_PLAN.md](DEPLOYMENT_ACTION_PLAN.md) — Production deployment
