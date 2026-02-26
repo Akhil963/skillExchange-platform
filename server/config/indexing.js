@@ -19,51 +19,75 @@ async function initializeIndexes() {
   try {
     console.log('🔄 Initializing database indexes...');
 
+    // Helper function to safely create indexes
+    const safeCreateIndex = async (collection, keys, options = {}) => {
+      try {
+        await collection.createIndex(keys, options);
+      } catch (error) {
+        if (error.code === 86) {
+          // IndexKeySpecsConflict - index exists with different options
+          // Extract index name from keys
+          const indexName = Object.keys(keys).join('_') + '_' + 
+            Object.values(keys).toString().replace(/[,\s]/g, '');
+          try {
+            await collection.dropIndex(indexName);
+            console.log(`  ↻ Dropped conflicting index: ${indexName}`);
+            // Retry creating the index
+            await collection.createIndex(keys, options);
+          } catch (dropError) {
+            console.warn(`  ⚠️  Could not drop index: ${indexName}`, dropError.message);
+          }
+        } else {
+          throw error;
+        }
+      }
+    };
+
     // User indexes
-    await User.collection.createIndex({ email: 1 }, { unique: true, sparse: true });
-    await User.collection.createIndex({ username: 1 }, { unique: true, sparse: true });
-    await User.collection.createIndex({ isActive: 1 });
-    await User.collection.createIndex({ createdAt: -1 });
-    await User.collection.createIndex({ skills: 1 });
+    await safeCreateIndex(User.collection, { email: 1 }, { unique: true, sparse: true });
+    await safeCreateIndex(User.collection, { username: 1 }, { unique: true, sparse: true });
+    await safeCreateIndex(User.collection, { isActive: 1 });
+    await safeCreateIndex(User.collection, { createdAt: -1 });
+    await safeCreateIndex(User.collection, { skills: 1 });
     console.log('✓ User indexes created');
 
     // Exchange indexes
-    await Exchange.collection.createIndex({ offererSkillId: 1 });
-    await Exchange.collection.createIndex({ requesterSkillId: 1 });
-    await Exchange.collection.createIndex({ status: 1 });
-    await Exchange.collection.createIndex({ offerer: 1, status: 1 });
-    await Exchange.collection.createIndex({ requester: 1, status: 1 });
-    await Exchange.collection.createIndex({ createdAt: -1 });
-    await Exchange.collection.createIndex({ completedAt: -1 });
+    await safeCreateIndex(Exchange.collection, { offererSkillId: 1 });
+    await safeCreateIndex(Exchange.collection, { requesterSkillId: 1 });
+    await safeCreateIndex(Exchange.collection, { status: 1 });
+    await safeCreateIndex(Exchange.collection, { offerer: 1, status: 1 });
+    await safeCreateIndex(Exchange.collection, { requester: 1, status: 1 });
+    await safeCreateIndex(Exchange.collection, { createdAt: -1 });
+    await safeCreateIndex(Exchange.collection, { completedAt: -1 });
     console.log('✓ Exchange indexes created');
 
     // Conversation indexes
-    await Conversation.collection.createIndex({ participants: 1 });
-    await Conversation.collection.createIndex({ exchange: 1 });
-    await Conversation.collection.createIndex({ createdAt: -1 });
-    await Conversation.collection.createIndex({ updatedAt: -1 });
+    await safeCreateIndex(Conversation.collection, { participants: 1 });
+    await safeCreateIndex(Conversation.collection, { exchange: 1 });
+    await safeCreateIndex(Conversation.collection, { createdAt: -1 });
+    await safeCreateIndex(Conversation.collection, { updatedAt: -1 });
     console.log('✓ Conversation indexes created');
 
     // Skill indexes
-    await Skill.collection.createIndex({ category: 1 });
-    await Skill.collection.createIndex({ name: 1 });
-    await Skill.collection.createIndex({ level: 1 });
-    await Skill.collection.createIndex({ createdAt: -1 });
+    await safeCreateIndex(Skill.collection, { category: 1 });
+    await safeCreateIndex(Skill.collection, { name: 1 });
+    await safeCreateIndex(Skill.collection, { level: 1 });
+    await safeCreateIndex(Skill.collection, { createdAt: -1 });
     console.log('✓ Skill indexes created');
 
     // Learning Path indexes
-    await LearningPath.collection.createIndex({ exchange: 1 });
-    await LearningPath.collection.createIndex({ userId: 1 });
-    await LearningPath.collection.createIndex({ skillId: 1 });
-    await LearningPath.collection.createIndex({ status: 1 });
-    await LearningPath.collection.createIndex({ createdAt: -1 });
+    await safeCreateIndex(LearningPath.collection, { exchange: 1 });
+    await safeCreateIndex(LearningPath.collection, { userId: 1 });
+    await safeCreateIndex(LearningPath.collection, { skillId: 1 });
+    await safeCreateIndex(LearningPath.collection, { status: 1 });
+    await safeCreateIndex(LearningPath.collection, { createdAt: -1 });
     console.log('✓ LearningPath indexes created');
 
     console.log('✅ All database indexes initialized successfully');
     return true;
   } catch (error) {
-    console.error('❌ Error initializing indexes:', error);
-    // Don't throw - indexes might already exist
+    console.error('❌ Error initializing indexes:', error.message);
+    // Don't throw - allow app to continue even if indexes fail
     return false;
   }
 }
