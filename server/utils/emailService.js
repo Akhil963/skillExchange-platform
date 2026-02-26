@@ -33,50 +33,9 @@ const createTransporter = () => {
   }
 };
 
-// Send email with proper error handling
-const sendEmail = async (to, template, data) => {
-  try {
-    // Validate email address
-    if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
-      throw new Error('Invalid email address: ' + to);
-    }
-
-    const transporter = createTransporter();
-    
-    if (!transporter) {
-      console.warn('⚠️  Email service not configured, skipping email send');
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`📧 [EMAIL SIMULATION] To: ${to}`);
-        console.log(`   Template: ${template}`);
-        console.log(`   Data:`, JSON.stringify(data, null, 2));
-      }
-      return { success: false, message: 'Email service not configured' };
-    }
-
-    // Get email template (defined below in this file)
-    const emailContent = emailTemplates[template]?.(data);
-    
-    if (!emailContent) {
-      throw new Error(`Email template '${template}' not found`);
-    }
-
-    // Send email
-    const info = await transporter.sendMail({
-      from: `${process.env.FROM_NAME || 'SkillExchange'} <${process.env.SMTP_EMAIL}>`,
-      to,
-      subject: emailContent.subject,
-      html: emailContent.html
-    });
-
-    console.log('✅ Email sent successfully to', to, 'Message ID:', info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('❌ Error sending email:', error.message);
-    throw error;
-  }
-};
-
-// Email templates
+// ========================================
+// EMAIL TEMPLATES (DEFINED BEFORE sendEmail)
+// ========================================
 const emailTemplates = {
   exchangeRequest: (data) => ({
     subject: `🤝 New Skill Exchange Request from ${data.requesterName}`,
@@ -489,8 +448,54 @@ const emailTemplates = {
   })
 };
 
-// Batch send emails
-const sendBatchEmails = async (recipients) => {
+// ========================================
+// SEND EMAIL FUNCTION (USES emailTemplates)
+// ========================================
+const sendEmail = async (to, template, data) => {
+  try {
+    // Validate email address
+    if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      throw new Error('Invalid email address: ' + to);
+    }
+
+    const transporter = createTransporter();
+    
+    if (!transporter) {
+      console.warn('⚠️  Email service not configured, skipping email send');
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`📧 [EMAIL SIMULATION] To: ${to}`);
+        console.log(`   Template: ${template}`);
+        console.log(`   Data:`, JSON.stringify(data, null, 2));
+      }
+      return { success: false, message: 'Email service not configured' };
+    }
+
+    // Get email template (now available since emailTemplates is defined above)
+    const emailContent = emailTemplates[template]?.(data);
+    
+    if (!emailContent) {
+      throw new Error(`Email template '${template}' not found`);
+    }
+
+    // Send email
+    const info = await transporter.sendMail({
+      from: `${process.env.FROM_NAME || 'SkillExchange'} <${process.env.SMTP_EMAIL}>`,
+      to,
+      subject: emailContent.subject,
+      html: emailContent.html
+    });
+
+    console.log('✅ Email sent successfully to', to, 'Message ID:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Error sending email:', error.message);
+    throw error;
+  }
+};
+
+// ========================================
+// BATCH EMAIL SENDER
+// ========================================
   const results = [];
   
   for (const recipient of recipients) {
