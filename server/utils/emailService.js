@@ -53,8 +53,7 @@ const sendEmail = async (to, template, data) => {
       return { success: false, message: 'Email service not configured' };
     }
 
-    // Get email template
-    const emailTemplates = require('./emailTemplates');
+    // Get email template (defined below in this file)
     const emailContent = emailTemplates[template]?.(data);
     
     if (!emailContent) {
