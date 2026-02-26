@@ -496,6 +496,7 @@ const sendEmail = async (to, template, data) => {
 // ========================================
 // BATCH EMAIL SENDER
 // ========================================
+const sendBatchEmails = async (recipients) => {
   const results = [];
   
   for (const recipient of recipients) {
