@@ -3,19 +3,19 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }
 
 // ===== SENTRY SETUP (ADD AT VERY TOP) =====
 if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
-  const Sentry = require("@sentry/node");
-  
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    tracesSampleRate: 0.1,
-    environment: process.env.NODE_ENV,
-    integrations: [
-      new Sentry.Integrations.Http({ tracing: true }),
-      new Sentry.Integrations.Express({ app: true, request: true })
-    ]
-  });
-  
-  global.Sentry = Sentry;
+  try {
+    const Sentry = require("@sentry/node");
+    
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      tracesSampleRate: 0.1,
+      environment: process.env.NODE_ENV
+    });
+    
+    global.Sentry = Sentry;
+  } catch (err) {
+    console.error('⚠️  Sentry initialization failed:', err.message);
+  }
 }
 // ===== END SENTRY SETUP =====
 
