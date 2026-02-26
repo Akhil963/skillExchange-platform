@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getAllUsers,
   getUserById,
+  updateProfile,
   getAllSkills,
   getCategories,
   getMatches,
@@ -26,6 +27,7 @@ router.get('/categories', getCategories);
 router.get('/:id', getUserById);
 
 // Protected routes
+router.put('/:id/profile', protect, updateProfile);
 router.get('/matches/recommendations', protect, getMatches);
 router.get('/:id/tokens', protect, getTokenHistory);
 router.put('/:id/stats', protect, updateUserStats);

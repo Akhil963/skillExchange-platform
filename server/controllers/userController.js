@@ -75,6 +75,56 @@ exports.getUserById = async (req, res, next) => {
   }
 };
 
+// @desc    Update user profile
+// @route   PUT /api/users/:id/profile
+// @access  Private (self only)
+exports.updateProfile = async (req, res, next) => {
+  try {
+    // Check if user is updating their own profile
+    if (req.params.id !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this profile'
+      });
+    }
+
+    const { name, email, username, phone, bio, location, avatar } = req.body;
+
+    // Build update object
+    const updateFields = {};
+    
+    if (name) updateFields.name = name.trim();
+    if (email) updateFields.email = email.toLowerCase().trim();
+    if (username) updateFields.username = username.trim();
+    if (phone) updateFields.phone = phone.trim();
+    if (bio) updateFields.bio = bio.trim();
+    if (location) updateFields.location = location.trim();
+    if (avatar) updateFields.avatar = avatar; // Can be base64 or URL
+
+    // Find and update user
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      updateFields,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get all skills from all users
 // @route   GET /api/users/skills/all
 // @access  Public
