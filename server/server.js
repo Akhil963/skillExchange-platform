@@ -44,6 +44,9 @@ const learningPathRoutes = require('./routes/learningPathRoutes');
 // Initialize express app
 const app = express();
 
+// Trust proxy (Render and other reverse proxies set X-Forwarded-For)
+app.set('trust proxy', 1);
+
 // Connect to MongoDB (async, doesn't block server startup)
 let dbConnected = false;
 connectDB().then(() => {
@@ -84,6 +87,8 @@ const limiter = rateLimit({
   }),
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skip: (req) => process.env.NODE_ENV !== 'production', // Skip rate limiting in development
+  validate: { xForwardedForHeader: process.env.NODE_ENV === 'production' }, // Only validate X-Forwarded-For in production
   handler: (req, res) => {
     res.status(429).json({
       success: false,
