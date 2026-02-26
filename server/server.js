@@ -44,8 +44,15 @@ const learningPathRoutes = require('./routes/learningPathRoutes');
 // Initialize express app
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB (async, doesn't block server startup)
+let dbConnected = false;
+connectDB().then(() => {
+  dbConnected = true;
+  console.log('✅ Database ready - API routes active');
+}).catch(err => {
+  console.error('⚠️  Database connection error:', err.message);
+  dbConnected = false;
+});
 
 // Security middleware
 app.use(helmet({
@@ -90,6 +97,18 @@ app.use('/api/', limiter);
 // Body parser middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Middleware to check database status for API requests
+app.use('/api', (req, res, next) => {
+  if (!dbConnected && !req.path.includes('health')) {
+    return res.status(503).json({
+      success: false,
+      message: 'Database is initializing. Please try again in a few moments.',
+      code: 'DB_INITIALIZING'
+    });
+  }
+  next();
+});
 
 // Compression middleware
 app.use(compression());
@@ -241,8 +260,13 @@ const PORT = process.env.PORT || 5000;
 
 let server;
 
-if (process.env.NODE_ENV === 'production' && process.env.SSL_KEY_PATH && process.env.SSL_CERT_PATH) {
-  // Production: Use HTTPS
+// Check if SSL certificates exist before trying to use them
+const hasSSLCerts = process.env.SSL_KEY_PATH && process.env.SSL_CERT_PATH && 
+                    fs.existsSync(process.env.SSL_KEY_PATH) && 
+                    fs.existsSync(process.env.SSL_CERT_PATH);
+
+if (process.env.NODE_ENV === 'production' && hasSSLCerts) {
+  // Production with local SSL certificates (self-hosted)
   try {
     const options = {
       key: fs.readFileSync(process.env.SSL_KEY_PATH),
@@ -272,18 +296,30 @@ if (process.env.NODE_ENV === 'production' && process.env.SSL_KEY_PATH && process
       console.log('HTTP → HTTPS redirect running on port 80');
     });
   } catch (err) {
-    console.error('SSL certificate error:', err.message);
-    process.exit(1);
+    console.error('❌ SSL certificate error:', err.message);
+    console.error('Falling back to HTTP server...');
+    // Fall back to HTTP
+    server = app.listen(PORT, () => {
+      console.log('');
+      console.log('═══════════════════════════════════════════════════════');
+      console.log(`🚀 SkillExchange Server Running (HTTP Fallback)`);
+      console.log(`📡 Environment: ${process.env.NODE_ENV}`);
+      console.log(`🌐 Server: http://0.0.0.0:${PORT}`);
+      console.log(`🔗 API: http://0.0.0.0:${PORT}/api`);
+      console.log(`💾 Database: ${process.env.MONGODB_URI}`);
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('');
+    });
   }
 } else {
-  // Development: Use HTTP only
+  // Development or production without local SSL (e.g., Render handles HTTPS automatically)
   server = app.listen(PORT, () => {
     console.log('');
     console.log('═══════════════════════════════════════════════════════');
     console.log(`🚀 SkillExchange Server Running`);
     console.log(`📡 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🌐 Server: http://localhost:${PORT}`);
-    console.log(`🔗 API: http://localhost:${PORT}/api`);
+    console.log(`🌐 Server: http://0.0.0.0:${PORT}`);
+    console.log(`🔗 API: http://0.0.0.0:${PORT}/api`);
     console.log(`💾 Database: ${process.env.MONGODB_URI}`);
     console.log('═══════════════════════════════════════════════════════');
     console.log('');
