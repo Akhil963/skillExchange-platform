@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube URL Parser Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #6366f1;
+        }
+        .test-url {
+            font-family: 'Courier New', monospace;
+            background: #e8e8e8;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 6px;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #34d399;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #f87171;
+            color: #991b1b;
+        }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 10px 10px 0;
+        }
+        button:hover {
+            background: #4f46e5;
+        }
+        .video-preview {
+            margin-top: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #testInput {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        #testInput:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+        .info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 YouTube URL Parser Test</h1>
+        <p class="subtitle">Test the YouTube URL extraction and embedding functionality</p>
+
+        <div class="info">
+            <strong>✅ Fixed Issues:</strong>
+            <ul>
+                <li>Error 153 - Video player configuration error</li>
+                <li>Invalid video ID extraction</li>
+                <li>Malformed embed URLs</li>
+                <li>Missing error handling</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test Your Own URL</h3>
+            <input type="text" id="testInput" placeholder="Paste any YouTube URL here...">
+            <button onclick="testCustomUrl()">Test URL</button>
+            <button onclick="clearTest()">Clear</button>
+            <div id="customResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Automatic Tests</h3>
+            <button onclick="runAllTests()">Run All Tests</button>
+            <div id="testResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // Copy the fixed functions from admin-app.js
+        function extractYouTubeId(url) {
+            if (!url || typeof url !== 'string') {
+                console.warn('Invalid URL provided to extractYouTubeId:', url);
+                return '';
+            }
+            
+            try {
+                url = url.trim();
+                
+                const patterns = [
+                    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+                    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+                    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+                    /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+                    /^([a-zA-Z0-9_-]{11})$/
+                ];
+                
+                for (const pattern of patterns) {
+                    const match = url.match(pattern);
+                    if (match && match[1] && match[1].length === 11) {
+                        return match[1];
+                    }
+                }
+                
+                console.warn('Could not extract YouTube ID from URL:', url);
+                return '';
+                
+            } catch (error) {
+                console.error('Error extracting YouTube ID:', error);
+                return '';
+            }
+        }
+
+        function getYouTubeEmbedUrl(url) {
+            if (!url) {
+                console.error('YouTube URL is empty');
+                return '';
+            }
+            
+            let videoId = '';
+            
+            try {
+                const patterns = [
+                    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+                    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+                    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+                    /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+                    /(?:youtube\.com\/.*[?&]v=)([a-zA-Z0-9_-]{11})/
+                ];
+                
+                for (const pattern of patterns) {
+                    const match = url.match(pattern);
+                    if (match && match[1]) {
+                        videoId = match[1];
+                        break;
+                    }
+                }
+                
+                if (!videoId) {
+                    videoId = extractYouTubeId(url);
+                }
+                
+                if (!videoId || videoId.length !== 11) {
+                    console.error('Invalid YouTube video ID:', videoId, 'from URL:', url);
+                    return '';
+                }
+                
+                return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;
+                
+            } catch (error) {
+                console.error('Error parsing YouTube URL:', url, error);
+                return '';
+            }
+        }
+
+        // Test cases
+        const testCases = [
+            {
+                name: 'Standard YouTube URL',
+                url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                expectedId: 'dQw4w9WgXcQ'
+            },
+            {
+                name: 'Short YouTube URL',
+                url: 'https://youtu.be/dQw4w9WgXcQ',
+                expectedId: 'dQw4w9WgXcQ'
+            },
+            {
+                name: 'Embed URL',
+                url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                expectedId: 'dQw4w9WgXcQ'
+            },
+            {
+                name: 'URL with parameters',
+                url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&feature=share',
+                expectedId: 'dQw4w9WgXcQ'
+            },
+            {
+                name: 'URL with timestamp',
+                url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s',
+                expectedId: 'dQw4w9WgXcQ'
+            },
+            {
+                name: 'Mobile URL',
+                url: 'https://m.youtube.com/watch?v=dQw4w9WgXcQ',
+                expectedId: 'dQw4w9WgXcQ'
+            },
+            {
+                name: 'Invalid URL',
+                url: 'https://www.example.com/video',
+                expectedId: ''
+            },
+            {
+                name: 'Empty URL',
+                url: '',
+                expectedId: ''
+            }
+        ];
+
+        function runAllTests() {
+            const resultsDiv = document.getElementById('testResults');
+            let html = '';
+            let passedTests = 0;
+            
+            testCases.forEach((test, index) => {
+                const videoId = extractYouTubeId(test.url);
+                const embedUrl = getYouTubeEmbedUrl(test.url);
+                const passed = videoId === test.expectedId;
+                
+                if (passed) passedTests++;
+                
+                html += `
+                    <div class="test-section">
+                        <h4>Test ${index + 1}: ${test.name}</h4>
+                        <div class="test-url"><strong>Input:</strong> ${test.url || '(empty)'}</div>
+                        <div class="result ${passed ? 'success' : 'error'}">
+                            <strong>Result:</strong> ${passed ? '✅ PASSED' : '❌ FAILED'}<br>
+                            <strong>Extracted ID:</strong> ${videoId || '(none)'}<br>
+                            <strong>Expected ID:</strong> ${test.expectedId || '(none)'}<br>
+                            <strong>Embed URL:</strong> ${embedUrl ? 'Generated ✓' : 'Not generated ✗'}
+                        </div>
+                        ${embedUrl && passed ? `
+                            <div class="video-preview">
+                                <iframe 
+                                    width="100%" 
+                                    height="315" 
+                                    src="${embedUrl}" 
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen>
+                                </iframe>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = `
+                <div class="result ${passedTests === testCases.length ? 'success' : 'error'}" style="margin-bottom: 20px;">
+                    <strong>Tests Passed: ${passedTests} / ${testCases.length}</strong>
+                </div>
+                ${html}
+            `;
+        }
+
+        function testCustomUrl() {
+            const input = document.getElementById('testInput');
+            const url = input.value.trim();
+            
+            if (!url) {
+                alert('Please enter a YouTube URL');
+                return;
+            }
+            
+            const videoId = extractYouTubeId(url);
+            const embedUrl = getYouTubeEmbedUrl(url);
+            const resultsDiv = document.getElementById('customResult');
+            
+            if (embedUrl) {
+                resultsDiv.innerHTML = `
+                    <div class="result success">
+                        <strong>✅ URL is valid!</strong><br>
+                        <strong>Video ID:</strong> ${videoId}<br>
+                        <strong>Embed URL:</strong> ${embedUrl}
+                    </div>
+                    <div class="video-preview">
+                        <iframe 
+                            width="100%" 
+                            height="315" 
+                            src="${embedUrl}" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Invalid YouTube URL</strong><br>
+                        The URL could not be parsed. Please check that it's a valid YouTube URL.
+                    </div>
+                `;
+            }
+        }
+
+        function clearTest() {
+            document.getElementById('testInput').value = '';
+            document.getElementById('customResult').innerHTML = '';
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', () => {
+            console.log('🧪 YouTube URL Parser Test Page Loaded');
+            console.log('📝 You can test URLs manually or run automated tests');
+        });
+    </script>
+</body>
+</html>

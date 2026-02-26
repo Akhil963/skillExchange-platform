@@ -1,0 +1,9 @@
+# Redirect all API calls to Netlify Functions
+/api/*  /.netlify/functions/api/:splat  200
+
+# Admin panel routes
+/admin              /admin/index.html           200
+/admin/             /admin/index.html           200
+
+# SPA fallback - redirect all other requests to index.html (must be last)
+/*    /index.html   200

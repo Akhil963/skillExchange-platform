@@ -1,0 +1,158 @@
+# ===================================
+# NETLIFY CONFIGURATION - SkillExchange
+# ===================================
+
+[build]
+  # Build command
+  command = "npm install"
+  
+  # Publish directory (your static files)
+  publish = "client"
+  
+  # Functions directory (for serverless API)
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_VERSION = "9"
+  # Performance optimization
+  FUNCTION_MEMORY = "1024"
+  AWS_LAMBDA_LOG_LEVEL = "error"
+  # Set your backend URL here for production
+  # BACKEND_URL = "https://your-backend-domain.com"
+
+# ===================================
+# REDIRECT RULES
+# ===================================
+
+# IMPORTANT: Configure your backend URL below
+# For local development: API_BASE in LearningDashboard.html will use http://localhost:5000
+# For production: Uncomment the redirect below and replace with your actual backend URL
+
+# Production Option 1: API requests to external Express backend (MODIFY THIS)
+# Uncomment and replace "https://your-backend-url.com" with your actual backend server URL
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://your-backend-url.com/api/:splat"
+#   status = 200
+#   force = true
+
+# CURRENT: API requests to serverless functions
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# SPA fallback - all other routes to index.html (must be last)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# ===================================
+# HEADERS FOR SECURITY AND CORS
+# ===================================
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # CORS headers for API responses
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Cache-Control = "max-age=300, public"
+
+# ===================================
+# CACHE HEADERS FOR STATIC ASSETS
+# ===================================
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.json"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, must-revalidate"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.gif"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ===================================
+# PERFORMANCE HEADERS
+# ===================================
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Let Netlify handle compression automatically
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# ===================================
+# DEVELOPMENT SETTINGS
+# ===================================
+
+[dev]
+  command = "npm run dev"
+  port = 5000
+  targetPort = 5000
+  autoLaunch = true
+
+# ===================================
+# CONTEXT-SPECIFIC SETTINGS
+# ===================================
+
+# Production settings
+[context.production.environment]
+  NODE_ENV = "production"
+
+# Deploy preview settings
+[context.deploy-preview.environment]
+  NODE_ENV = "development"
+
+# Branch deploy settings
+[context.branch-deploy.environment]
+  NODE_ENV = "development"

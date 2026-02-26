@@ -1,0 +1,557 @@
+[{
+  "_id": {
+    "$oid": "68f2cde694e3a49344c7a3cd"
+  },
+  "name": "Sarah Chen",
+  "email": "sarah@example.com",
+  "username": "sarah_chen",
+  "phone": "+1-555-0101",
+  "password": "password123",
+  "bio": "Full-stack developer passionate about teaching web technologies and learning design skills",
+  "location": "San Francisco, CA",
+  "avatar": "https://images.unsplash.com/photo-1494790108755-2616b612b5c0?w=150&h=150&fit=crop&crop=face",
+  "rating": 4.8,
+  "total_exchanges": 23,
+  "tokens_earned": 340,
+  "tokens_spent": 0,
+  "skills_offered": [
+    {
+      "name": "React Development",
+      "category": "Programming",
+      "experience_level": "Expert",
+      "description": "Building modern web applications with React, Redux, and hooks"
+    },
+    {
+      "name": "Node.js Backend",
+      "category": "Programming",
+      "experience_level": "Advanced",
+      "description": "Server-side development with Express, MongoDB, and APIs"
+    }
+  ],
+  "skills_wanted": [
+    {
+      "name": "UI/UX Design",
+      "category": "Design",
+      "experience_level": "Beginner",
+      "description": "Learning user interface and experience design principles"
+    },
+    {
+      "name": "Digital Marketing",
+      "category": "Marketing",
+      "experience_level": "Intermediate",
+      "description": "Social media marketing and SEO strategies"
+    }
+  ],
+  "badges": [
+    "First Exchange",
+    "5-Star Rating",
+    "Helpful Mentor",
+    "Quick Responder"
+  ],
+  "active_exchanges": 3,
+  "isActive": true,
+  "token_history": [],
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-10-17T23:14:46.879Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-17T23:14:46.879Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f2cde694e3a49344c7a3ce"
+  },
+  "name": "Miguel Rodriguez",
+  "email": "miguel@example.com",
+  "username": "miguel_dev",
+  "phone": "+1-555-0102",
+  "password": "password123",
+  "bio": "Graphic designer and digital artist looking to expand into web development",
+  "location": "Austin, TX",
+  "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+  "rating": 4.9,
+  "total_exchanges": 31,
+  "tokens_earned": 475,
+  "tokens_spent": 0,
+  "skills_offered": [
+    {
+      "name": "Graphic Design",
+      "category": "Design",
+      "experience_level": "Expert",
+      "description": "Logo design, branding, and visual identity creation"
+    },
+    {
+      "name": "Adobe Creative Suite",
+      "category": "Design",
+      "experience_level": "Expert",
+      "description": "Photoshop, Illustrator, InDesign mastery"
+    },
+    {
+      "name": "Digital Illustration",
+      "category": "Art",
+      "experience_level": "Advanced",
+      "description": "Character design and digital artwork"
+    }
+  ],
+  "skills_wanted": [
+    {
+      "name": "JavaScript",
+      "category": "Programming",
+      "experience_level": "Beginner",
+      "description": "Basic programming and web interactivity"
+    },
+    {
+      "name": "Python",
+      "category": "Programming",
+      "experience_level": "Beginner",
+      "description": "Data analysis and automation scripts"
+    }
+  ],
+  "badges": [
+    "First Exchange",
+    "5-Star Rating",
+    "Design Master",
+    "Community Helper",
+    "Top Contributor"
+  ],
+  "active_exchanges": 2,
+  "isActive": true,
+  "token_history": [],
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-10-17T23:14:46.882Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-17T23:14:46.882Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f2cde694e3a49344c7a3cf"
+  },
+  "name": "Dr. Priya Patel",
+  "email": "priya@example.com",
+  "username": "priya_data",
+  "phone": "+1-555-0103",
+  "password": "password123",
+  "bio": "Data scientist and researcher interested in creative skills and business strategy",
+  "location": "New York, NY",
+  "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&crop=face",
+  "rating": 4.7,
+  "total_exchanges": 18,
+  "tokens_earned": 290,
+  "tokens_spent": 0,
+  "skills_offered": [
+    {
+      "name": "Data Science",
+      "category": "Technology",
+      "experience_level": "Expert",
+      "description": "Machine learning, statistics, and data visualization"
+    },
+    {
+      "name": "Python Programming",
+      "category": "Programming",
+      "experience_level": "Expert",
+      "description": "Advanced Python for data analysis and automation"
+    },
+    {
+      "name": "Research Methods",
+      "category": "Academic",
+      "experience_level": "Expert",
+      "description": "Scientific research design and statistical analysis"
+    }
+  ],
+  "skills_wanted": [
+    {
+      "name": "Photography",
+      "category": "Art",
+      "experience_level": "Beginner",
+      "description": "Portrait and landscape photography techniques"
+    },
+    {
+      "name": "Business Strategy",
+      "category": "Business",
+      "experience_level": "Intermediate",
+      "description": "Strategic planning and market analysis"
+    }
+  ],
+  "badges": [
+    "First Exchange",
+    "Data Expert",
+    "Research Pro"
+  ],
+  "active_exchanges": 1,
+  "isActive": true,
+  "token_history": [],
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-10-17T23:14:46.883Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-17T23:14:46.883Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f2cde694e3a49344c7a3d0"
+  },
+  "name": "James Wilson",
+  "email": "james@example.com",
+  "username": "james_marketing",
+  "phone": "+1-555-0104",
+  "password": "password123",
+  "bio": "Marketing professional and photographer wanting to learn coding and design",
+  "location": "Seattle, WA",
+  "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+  "rating": 4.6,
+  "total_exchanges": 15,
+  "tokens_earned": 230,
+  "tokens_spent": 0,
+  "skills_offered": [
+    {
+      "name": "Digital Marketing",
+      "category": "Marketing",
+      "experience_level": "Expert",
+      "description": "SEO, social media marketing, and content strategy"
+    },
+    {
+      "name": "Photography",
+      "category": "Art",
+      "experience_level": "Advanced",
+      "description": "Portrait, event, and commercial photography"
+    },
+    {
+      "name": "Content Writing",
+      "category": "Writing",
+      "experience_level": "Advanced",
+      "description": "Blog posts, copy writing, and content strategy"
+    }
+  ],
+  "skills_wanted": [
+    {
+      "name": "Web Development",
+      "category": "Programming",
+      "experience_level": "Beginner",
+      "description": "HTML, CSS, and basic JavaScript"
+    },
+    {
+      "name": "Graphic Design",
+      "category": "Design",
+      "experience_level": "Intermediate",
+      "description": "Visual design and branding skills"
+    }
+  ],
+  "badges": [
+    "First Exchange",
+    "Marketing Master",
+    "Photo Pro"
+  ],
+  "active_exchanges": 2,
+  "isActive": true,
+  "token_history": [],
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-10-17T23:14:46.883Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-17T23:14:46.883Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f2cde694e3a49344c7a3d1"
+  },
+  "name": "Lisa Kim",
+  "email": "lisa@example.com",
+  "username": "lisa_teacher",
+  "phone": "+1-555-0105",
+  "password": "password123",
+  "bio": "Language teacher and cultural consultant passionate about technology and art",
+  "location": "Los Angeles, CA",
+  "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
+  "rating": 4.9,
+  "total_exchanges": 27,
+  "tokens_earned": 410,
+  "tokens_spent": 0,
+  "skills_offered": [
+    {
+      "name": "Korean Language",
+      "category": "Languages",
+      "experience_level": "Expert",
+      "description": "Native speaker offering conversational and business Korean"
+    },
+    {
+      "name": "English Tutoring",
+      "category": "Education",
+      "experience_level": "Expert",
+      "description": "ESL teaching and academic writing support"
+    },
+    {
+      "name": "Cultural Consulting",
+      "category": "Consulting",
+      "experience_level": "Advanced",
+      "description": "Cross-cultural communication and business etiquette"
+    }
+  ],
+  "skills_wanted": [
+    {
+      "name": "Mobile App Development",
+      "category": "Programming",
+      "experience_level": "Beginner",
+      "description": "iOS and Android app creation"
+    },
+    {
+      "name": "Video Editing",
+      "category": "Media",
+      "experience_level": "Intermediate",
+      "description": "Content creation and storytelling through video"
+    }
+  ],
+  "badges": [
+    "First Exchange",
+    "5-Star Rating",
+    "Language Expert",
+    "Cultural Bridge",
+    "Top Mentor"
+  ],
+  "active_exchanges": 4,
+  "isActive": true,
+  "token_history": [],
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-10-17T23:14:46.883Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-17T23:14:46.883Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f33cd35699d514906f41c7"
+  },
+  "name": "asdasd",
+  "email": "asd@gmail.com",
+  "password": "$2a$10$jRIWorYQM0tslIkN1pJVoebhM8RouZMvIz1qqj9Yr4zwmToFSII76",
+  "bio": "asdad",
+  "location": "asd",
+  "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face",
+  "rating": 0,
+  "total_exchanges": 1,
+  "tokens_earned": 60,
+  "tokens_spent": 0,
+  "badges": [
+    "New Member",
+    "First Exchange"
+  ],
+  "active_exchanges": 0,
+  "isActive": true,
+  "token_history": [
+    {
+      "amount": 10,
+      "type": "earned",
+      "reason": "Completed exchange: Taught node",
+      "exchange_id": {
+        "$oid": "68f3722cddfa8b413d14438a"
+      },
+      "date": {
+        "$date": "2025-10-18T10:57:10.041Z"
+      },
+      "_id": {
+        "$oid": "68f37286ddfa8b413d144444"
+      }
+    }
+  ],
+  "skills_offered": [
+    {
+      "name": "react",
+      "category": "Academic",
+      "experience_level": "Beginner",
+      "description": "asd"
+    }
+  ],
+  "skills_wanted": [],
+  "createdAt": {
+    "$date": "2025-10-18T07:08:03.720Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-18T15:39:42.128Z"
+  },
+  "__v": 2,
+  "lastLogin": {
+    "$date": "2025-10-18T15:39:42.090Z"
+  },
+  "emailNotifications": {
+    "exchangeAccepted": true,
+    "exchangeCompleted": true,
+    "exchangeRequests": true,
+    "marketingEmails": false,
+    "newMessages": true,
+    "newRatings": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68f33d185699d514906f41ea"
+  },
+  "name": "asdd",
+  "email": "asdd@gmail.com",
+  "password": "$2a$10$3e74UrOabgMcLQ/S7t6CJOUJnBM2V/DVQLn6ic9U6suRri9yP7deq",
+  "bio": "New SkillExchange member",
+  "location": "asd",
+  "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+  "rating": 0,
+  "total_exchanges": 0,
+  "tokens_earned": 50,
+  "tokens_spent": 0,
+  "badges": [
+    "New Member"
+  ],
+  "active_exchanges": 0,
+  "isActive": true,
+  "token_history": [],
+  "skills_offered": [],
+  "skills_wanted": [],
+  "createdAt": {
+    "$date": "2025-10-18T07:09:12.836Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-18T07:35:17.376Z"
+  },
+  "__v": 0,
+  "lastLogin": {
+    "$date": "2025-10-18T07:35:17.358Z"
+  },
+  "resetPasswordExpire": {
+    "$date": "2025-10-18T07:38:11.705Z"
+  },
+  "resetPasswordToken": "55e86a3881741d76f71d1bec31727049a64d976f1ab5d30b0f175a00ddef0770"
+},
+{
+  "_id": {
+    "$oid": "68f3434cdc12b111a207b5da"
+  },
+  "name": "ass",
+  "email": "ass@gmail.com",
+  "password": "$2a$10$bPu.PYS5YD2jJLUqhV70g.gWfi9XlxEKZHv7m4uu4z8dt5V5qBsr6",
+  "bio": "New SkillExchange member",
+  "location": "asd",
+  "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+  "rating": 0,
+  "total_exchanges": 0,
+  "tokens_earned": 50,
+  "tokens_spent": 0,
+  "badges": [
+    "New Member"
+  ],
+  "active_exchanges": 0,
+  "isActive": true,
+  "token_history": [],
+  "skills_offered": [],
+  "skills_wanted": [],
+  "createdAt": {
+    "$date": "2025-10-18T07:35:40.770Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-18T07:35:40.770Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68f349127f93caa0247bca30"
+  },
+  "name": "Test User Dashboard",
+  "email": "test-dashboard-1760774417942@example.com",
+  "password": "$2a$10$RZRXVH59KKih0Rk1VLcF9OrW1ynDHGovmOgqS6f7zQuhTBZMOOJDK",
+  "bio": "New SkillExchange member",
+  "location": "Test City",
+  "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+  "rating": 0,
+  "total_exchanges": 0,
+  "tokens_earned": 50,
+  "tokens_spent": 0,
+  "badges": [
+    "New Member"
+  ],
+  "active_exchanges": 0,
+  "isActive": true,
+  "token_history": [],
+  "skills_offered": [],
+  "skills_wanted": [],
+  "createdAt": {
+    "$date": "2025-10-18T08:00:18.140Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-18T08:00:18.689Z"
+  },
+  "__v": 0,
+  "lastLogin": {
+    "$date": "2025-10-18T08:00:18.684Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f3711bddfa8b413d144354"
+  },
+  "name": "Akhilesh",
+  "email": "akhileshbhandakkar@gmail.com",
+  "password": "$2a$10$y5ZhFu2RiyTadkMnG3.zjeKuoy846HOPu5AZEFUkyGOJ58vkEYiuq",
+  "bio": "New SkillExchange member",
+  "location": "Wardha",
+  "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+  "rating": 0,
+  "total_exchanges": 1,
+  "tokens_earned": 60,
+  "tokens_spent": 0,
+  "badges": [
+    "New Member",
+    "First Exchange"
+  ],
+  "active_exchanges": 0,
+  "isActive": true,
+  "emailNotifications": {
+    "exchangeRequests": true,
+    "exchangeAccepted": true,
+    "exchangeCompleted": true,
+    "newRatings": true,
+    "newMessages": true,
+    "marketingEmails": false
+  },
+  "token_history": [
+    {
+      "amount": 10,
+      "type": "earned",
+      "reason": "Completed exchange: Learned react",
+      "exchange_id": {
+        "$oid": "68f3722cddfa8b413d14438a"
+      },
+      "date": {
+        "$date": "2025-10-18T10:57:10.024Z"
+      },
+      "_id": {
+        "$oid": "68f37286ddfa8b413d144441"
+      }
+    }
+  ],
+  "skills_offered": [
+    {
+      "name": "node",
+      "category": "Languages",
+      "experience_level": "Expert",
+      "description": "asdf"
+    }
+  ],
+  "skills_wanted": [],
+  "createdAt": {
+    "$date": "2025-10-18T10:51:07.894Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-18T11:04:13.301Z"
+  },
+  "__v": 2,
+  "lastLogin": {
+    "$date": "2025-10-18T11:04:13.282Z"
+  }
+}]

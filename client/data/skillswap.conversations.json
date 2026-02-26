@@ -1,0 +1,135 @@
+[{
+  "_id": {
+    "$oid": "68f2cde694e3a49344c7a3db"
+  },
+  "participants": [
+    {
+      "$oid": "68f2cde694e3a49344c7a3cd"
+    },
+    {
+      "$oid": "68f2cde694e3a49344c7a3ce"
+    }
+  ],
+  "exchange_id": {
+    "$oid": "68f2cde694e3a49344c7a3d3"
+  },
+  "lastMessage": {
+    "content": "How about we start with a 1-hour session this weekend? I can show you React basics first.",
+    "sender": {
+      "$oid": "68f2cde694e3a49344c7a3cd"
+    },
+    "timestamp": {
+      "$date": "2024-10-10T10:50:00.000Z"
+    }
+  },
+  "unreadCount": {},
+  "isActive": true,
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-10-17T23:14:46.934Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-17T23:14:46.934Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f2cde694e3a49344c7a3dc"
+  },
+  "participants": [
+    {
+      "$oid": "68f2cde694e3a49344c7a3d0"
+    },
+    {
+      "$oid": "68f2cde694e3a49344c7a3cd"
+    }
+  ],
+  "exchange_id": {
+    "$oid": "68f2cde694e3a49344c7a3d8"
+  },
+  "lastMessage": {
+    "content": "Hi Sarah! I saw your React skills and would love to learn web development. I can teach digital marketing in return.",
+    "sender": {
+      "$oid": "68f2cde694e3a49344c7a3d0"
+    },
+    "timestamp": {
+      "$date": "2024-10-14T04:45:00.000Z"
+    }
+  },
+  "unreadCount": {},
+  "isActive": true,
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-10-17T23:14:46.935Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-17T23:14:46.935Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f370d0ddfa8b413d144334"
+  },
+  "participants": [
+    {
+      "$oid": "68f33cd35699d514906f41c7"
+    },
+    {
+      "$oid": "68f2cde694e3a49344c7a3cd"
+    }
+  ],
+  "exchange_id": {
+    "$oid": "68f370d0ddfa8b413d144330"
+  },
+  "lastMessage": {
+    "timestamp": {
+      "$date": "2025-10-18T10:49:52.203Z"
+    }
+  },
+  "unreadCount": {},
+  "isActive": true,
+  "createdAt": {
+    "$date": "2025-10-18T10:49:52.258Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-18T10:49:52.258Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68f3722cddfa8b413d14438e"
+  },
+  "participants": [
+    {
+      "$oid": "68f3711bddfa8b413d144354"
+    },
+    {
+      "$oid": "68f33cd35699d514906f41c7"
+    }
+  ],
+  "exchange_id": {
+    "$oid": "68f3722cddfa8b413d14438a"
+  },
+  "lastMessage": {
+    "content": "hii",
+    "sender": {
+      "$oid": "68f3711bddfa8b413d144354"
+    },
+    "timestamp": {
+      "$date": "2025-10-18T11:04:22.670Z"
+    }
+  },
+  "unreadCount": {
+    "68f33cd35699d514906f41c7": 1,
+    "68f3711bddfa8b413d144354": 0
+  },
+  "isActive": true,
+  "createdAt": {
+    "$date": "2025-10-18T10:55:40.777Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-18T11:04:22.673Z"
+  },
+  "__v": 0
+}]

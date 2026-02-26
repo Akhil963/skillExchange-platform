@@ -1,0 +1,227 @@
+[{
+  "_id": {
+    "$oid": "68f2cde694e3a49344c7a3d3"
+  },
+  "requester_id": {
+    "$oid": "68f2cde694e3a49344c7a3cd"
+  },
+  "provider_id": {
+    "$oid": "68f2cde694e3a49344c7a3ce"
+  },
+  "requested_skill": "Graphic Design",
+  "offered_skill": "React Development",
+  "status": "active",
+  "messages": [
+    {
+      "user_id": {
+        "$oid": "68f2cde694e3a49344c7a3cd"
+      },
+      "message": "Hi Miguel! I'd love to learn graphic design from you. I can teach you React in exchange.",
+      "timestamp": {
+        "$date": "2024-10-10T09:00:00.000Z"
+      },
+      "read": false,
+      "_id": {
+        "$oid": "68f2cde694e3a49344c7a3d4"
+      }
+    },
+    {
+      "user_id": {
+        "$oid": "68f2cde694e3a49344c7a3ce"
+      },
+      "message": "That sounds perfect Sarah! I've been wanting to learn React. When would you like to start?",
+      "timestamp": {
+        "$date": "2024-10-10T10:15:00.000Z"
+      },
+      "read": false,
+      "_id": {
+        "$oid": "68f2cde694e3a49344c7a3d5"
+      }
+    },
+    {
+      "user_id": {
+        "$oid": "68f2cde694e3a49344c7a3cd"
+      },
+      "message": "How about we start with a 1-hour session this weekend? I can show you React basics first.",
+      "timestamp": {
+        "$date": "2024-10-10T10:50:00.000Z"
+      },
+      "read": false,
+      "_id": {
+        "$oid": "68f2cde694e3a49344c7a3d6"
+      }
+    }
+  ],
+  "sessions_completed": 0,
+  "total_hours": 0,
+  "created_date": {
+    "$date": "2025-10-17T23:14:46.914Z"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-10-17T23:14:46.918Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-17T23:14:46.918Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f2cde694e3a49344c7a3d7"
+  },
+  "requester_id": {
+    "$oid": "68f2cde694e3a49344c7a3cf"
+  },
+  "provider_id": {
+    "$oid": "68f2cde694e3a49344c7a3d0"
+  },
+  "requested_skill": "Photography",
+  "offered_skill": "Data Science",
+  "status": "completed",
+  "completed_date": {
+    "$date": "2024-10-01T00:00:00.000Z"
+  },
+  "rating": 5,
+  "review": "James was an excellent photography teacher! Very patient and knowledgeable.",
+  "sessions_completed": 4,
+  "total_hours": 8,
+  "messages": [],
+  "created_date": {
+    "$date": "2025-10-17T23:14:46.915Z"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-10-17T23:14:46.918Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-17T23:14:46.918Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f2cde694e3a49344c7a3d8"
+  },
+  "requester_id": {
+    "$oid": "68f2cde694e3a49344c7a3d0"
+  },
+  "provider_id": {
+    "$oid": "68f2cde694e3a49344c7a3cd"
+  },
+  "requested_skill": "Web Development",
+  "offered_skill": "Digital Marketing",
+  "status": "pending",
+  "messages": [
+    {
+      "user_id": {
+        "$oid": "68f2cde694e3a49344c7a3d0"
+      },
+      "message": "Hi Sarah! I saw your React skills and would love to learn web development. I can teach digital marketing in return.",
+      "timestamp": {
+        "$date": "2024-10-14T04:45:00.000Z"
+      },
+      "read": false,
+      "_id": {
+        "$oid": "68f2cde694e3a49344c7a3d9"
+      }
+    }
+  ],
+  "sessions_completed": 0,
+  "total_hours": 0,
+  "created_date": {
+    "$date": "2025-10-17T23:14:46.915Z"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-10-17T23:14:46.918Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-17T23:14:46.918Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68f370d0ddfa8b413d144330"
+  },
+  "requester_id": {
+    "$oid": "68f33cd35699d514906f41c7"
+  },
+  "provider_id": {
+    "$oid": "68f2cde694e3a49344c7a3cd"
+  },
+  "requested_skill": "React Development",
+  "offered_skill": "react",
+  "status": "pending",
+  "sessions_completed": 0,
+  "total_hours": 0,
+  "messages": [],
+  "created_date": {
+    "$date": "2025-10-18T10:49:52.111Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-18T10:49:52.127Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-18T10:49:52.127Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68f3722cddfa8b413d14438a"
+  },
+  "requester_id": {
+    "$oid": "68f3711bddfa8b413d144354"
+  },
+  "provider_id": {
+    "$oid": "68f33cd35699d514906f41c7"
+  },
+  "requested_skill": "react",
+  "offered_skill": "node",
+  "status": "completed",
+  "sessions_completed": 0,
+  "total_hours": 0,
+  "messages": [
+    {
+      "user_id": {
+        "$oid": "68f33cd35699d514906f41c7"
+      },
+      "message": "hiii",
+      "timestamp": {
+        "$date": "2025-10-18T10:56:06.744Z"
+      },
+      "read": false,
+      "_id": {
+        "$oid": "68f37246ddfa8b413d1443c1"
+      }
+    },
+    {
+      "user_id": {
+        "$oid": "68f3711bddfa8b413d144354"
+      },
+      "message": "hii",
+      "timestamp": {
+        "$date": "2025-10-18T11:04:22.650Z"
+      },
+      "read": false,
+      "_id": {
+        "$oid": "68f37436f133c36c967c45a9"
+      }
+    }
+  ],
+  "created_date": {
+    "$date": "2025-10-18T10:55:40.756Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-18T10:55:40.758Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-18T11:04:22.657Z"
+  },
+  "__v": 2,
+  "accepted_date": {
+    "$date": "2025-10-18T10:55:59.285Z"
+  },
+  "completed_date": {
+    "$date": "2025-10-18T10:57:09.994Z"
+  }
+}]

@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="SkillExchange Admin Panel - Manage users, exchanges, skills, and platform analytics">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>SkillExchange Admin Panel</title>
+    <link rel="stylesheet" href="admin-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Floating Network Monitor -->
+    <div class="network-monitor" id="networkMonitor">
+        <div class="network-monitor-header">
+            <h3>
+                <span class="network-pulse"></span>
+                🌐 Network Monitor
+            </h3>
+            <button class="toggle-btn" onclick="toggleNetworkMonitor()">−</button>
+        </div>
+        <div class="network-monitor-body" id="networkMonitorBody">
+            <div class="network-status">
+                <div class="status-item">
+                    <span class="status-icon">✅</span>
+                    <span id="dbStatus">🔄 MongoDB: Connecting...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">📊</span>
+                    <span id="dbName">📊 Database: Loading...</span>
+                </div>
+            </div>
+            <div class="network-logs" id="networkLogs">
+                <div class="log-header">Recent API Calls</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">🛡️</span>
+                <span class="logo-text">Admin Panel</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" onclick="navigateToPage('dashboard'); return false;">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="#" class="nav-item" onclick="navigateToPage('users'); return false;">
+                <span class="nav-icon">👥</span>
+                <span class="nav-text">Users</span>
+                <span class="badge" id="userCount">0</span>
+            </a>
+            <a href="#" class="nav-item" onclick="navigateToPage('exchanges'); return false;">
+                <span class="nav-icon">🤝</span>
+                <span class="nav-text">Exchanges</span>
+                <span class="badge" id="exchangeCount">0</span>
+            </a>
+            <a href="#" class="nav-item" onclick="navigateToPage('skills'); return false;">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-text">Skills</span>
+            </a>
+            <a href="#" class="nav-item" onclick="navigateToPage('modules'); return false;">
+                <span class="nav-icon">🎓</span>
+                <span class="nav-text">Modules</span>
+                <span class="badge" id="moduleCount">0</span>
+            </a>
+            <a href="#" class="nav-item" onclick="navigateToPage('videos'); return false;">
+                <span class="nav-icon">🎥</span>
+                <span class="nav-text">Videos</span>
+                <span class="badge" id="videoCount">0</span>
+            </a>
+            <a href="#" class="nav-item" onclick="navigateToPage('analytics'); return false;">
+                <span class="nav-icon">📈</span>
+                <span class="nav-text">Analytics</span>
+            </a>
+            <a href="#" class="nav-item" onclick="navigateToPage('backup'); return false;">
+                <span class="nav-icon">💾</span>
+                <span class="nav-text">Backup</span>
+            </a>
+            <a href="#" class="nav-item" onclick="navigateToPage('settings'); return false;">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Settings</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="admin-info">
+                <div class="admin-avatar-circle">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div class="admin-details">
+                    <div class="admin-name" id="adminName">Loading...</div>
+                    <div class="admin-role" id="adminRole">Admin</div>
+                </div>
+            </div>
+            <button class="btn-logout" onclick="logout()">
+                <span><i class="fa-solid fa-right-from-bracket"></i></span>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <h1 class="page-title" id="pageTitle">Dashboard</h1>
+            <div class="topbar-actions">
+                <button class="btn-icon" onclick="refreshData()" title="Refresh">
+                    <span id="refreshIcon">🔄</span>
+                </button>
+                <div class="admin-profile">
+                    <div class="admin-avatar-topbar">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <span class="admin-name" id="adminNameTopbar">Admin</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Page -->
+        <section class="page active" id="dashboardPage">
+            <div class="stats-grid">
+                <div class="stat-card" id="totalUsers">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Users</div>
+                        <div class="stat-value">0</div>
+                        <div class="stat-change positive">+12% this month</div>
+                    </div>
+                </div>
+                <div class="stat-card" id="totalExchanges">
+                    <div class="stat-icon">🤝</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Exchanges</div>
+                        <div class="stat-value">0</div>
+                        <div class="stat-change positive">+8% this month</div>
+                    </div>
+                </div>
+                <div class="stat-card" id="avgRating">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Average Rating</div>
+                        <div class="stat-value">0.0</div>
+                        <div class="stat-change positive">+0.2 points</div>
+                    </div>
+                </div>
+                <div class="stat-card" id="successRate">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Success Rate</div>
+                        <div class="stat-value">0%</div>
+                        <div class="stat-change positive">+3% improvement</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Recent Users</h3>
+                        <button class="btn-sm" onclick="navigateToPage('users')">View All</button>
+                    </div>
+                    <div class="card-body" id="dashboardUsers">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Recent Exchanges</h3>
+                        <button class="btn-sm" onclick="navigateToPage('exchanges')">View All</button>
+                    </div>
+                    <div class="card-body" id="dashboardExchanges">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Users Page -->
+        <section class="page" id="usersPage">
+            <div class="page-header">
+                <h2>User Management</h2>
+                <div class="page-actions">
+                    <input type="text" class="search-input" id="userSearch" placeholder="🔍 Search users..." oninput="searchUsers()">
+                    <select class="filter-select" id="userFilter" onchange="filterUsers()">
+                        <option value="all">All Users</option>
+                        <option value="active">Active</option>
+                        <option value="verified">Verified</option>
+                        <option value="unverified">Unverified</option>
+                    </select>
+                    <select class="filter-select" id="userSort" onchange="sortUsersBy(this.value)">
+                        <option value="createdAt">Sort: Joined Date</option>
+                        <option value="name">Sort: Name</option>
+                        <option value="email">Sort: Email</option>
+                        <option value="location">Sort: Location</option>
+                        <option value="rating">Sort: Rating</option>
+                        <option value="exchanges">Sort: Exchanges</option>
+                        <option value="skills">Sort: Skills</option>
+                        <option value="status">Sort: Status</option>
+                    </select>
+                    <select class="filter-select" id="userSortOrder" onchange="toggleSortOrder()" style="width: auto;">
+                        <option value="desc">↓ Desc</option>
+                        <option value="asc">↑ Asc</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Location</th>
+                            <th>Skills</th>
+                            <th>Exchanges</th>
+                            <th>Rating</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                            <th>Reviews</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="10" class="loading">Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Exchanges Page -->
+        <section class="page" id="exchangesPage">
+            <div class="page-header">
+                <h2>Exchange Management</h2>
+                <div class="page-actions">
+                    <select class="filter-select" id="exchangeFilter" onchange="filterExchanges()">
+                        <option value="all">All Exchanges</option>
+                        <option value="pending">Pending</option>
+                        <option value="active">Active</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Requester</th>
+                            <th>Provider</th>
+                            <th>Skills</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="exchangesTableBody">
+                        <tr>
+                            <td colspan="7" class="loading">Loading exchanges...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Skills Page -->
+        <section class="page" id="skillsPage">
+            <div class="page-header">
+                <h2>Skills Management</h2>
+                <div class="page-actions">
+                    <input type="text" class="search-input" id="skillSearch" placeholder="🔍 Search skills..." oninput="searchSkills()">
+                    <select class="filter-select" id="categoryFilter" onchange="filterSkills()">
+                        <option value="all">All Categories</option>
+                        <option value="Programming & Development">Programming & Development</option>
+                        <option value="Design & Creative">Design & Creative</option>
+                        <option value="Business & Finance">Business & Finance</option>
+                        <option value="Marketing & Sales">Marketing & Sales</option>
+                        <option value="Writing & Translation">Writing & Translation</option>
+                        <option value="Music & Audio">Music & Audio</option>
+                        <option value="Video & Animation">Video & Animation</option>
+                        <option value="Photography">Photography</option>
+                        <option value="Health & Fitness">Health & Fitness</option>
+                        <option value="Teaching & Academics">Teaching & Academics</option>
+                        <option value="Lifestyle">Lifestyle</option>
+                        <option value="Data & Analytics">Data & Analytics</option>
+                        <option value="AI & Machine Learning">AI & Machine Learning</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <select class="filter-select" id="statusFilter" onchange="filterSkills()">
+                        <option value="all">All Status</option>
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="showAddSkillModal()">
+                        <i class="fas fa-plus"></i> Add Skill
+                    </button>
+                </div>
+            </div>
+            
+            <div class="stats-summary" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalSkillsCount">0</div>
+                    <div class="stat-label">Total Skills</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="activeSkillsCount">0</div>
+                    <div class="stat-label">Active Skills</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="categoriesCount">0</div>
+                    <div class="stat-label">Categories</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="popularSkillName">-</div>
+                    <div class="stat-label">Most Popular</div>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Skill Name</th>
+                            <th>Category</th>
+                            <th>Subcategory</th>
+                            <th>Tags</th>
+                            <th>Usage Count</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="skillsTableBody">
+                        <tr>
+                            <td colspan="8" class="loading">Loading skills...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Modules Page -->
+        <section class="page" id="modulesPage">
+            <div class="page-header">
+                <h2>Modules Management</h2>
+                <div class="page-actions">
+                    <input type="text" class="search-input" id="moduleSearch" placeholder="🔍 Search modules..." oninput="searchModules()">
+                    <select class="filter-select" id="moduleFilter" onchange="filterModules()">
+                        <option value="all">All Modules</option>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="showAddModuleModal()">
+                        <i class="fas fa-plus"></i> Add Module
+                    </button>
+                </div>
+            </div>
+            
+            <div class="stats-grid" style="margin-bottom: 30px;">
+                <div class="stat-card">
+                    <div class="stat-icon">🎓</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Modules</div>
+                        <div class="stat-value" id="totalModulesCount">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Avg Duration</div>
+                        <div class="stat-value" id="avgModuleDuration">0 min</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Completed</div>
+                        <div class="stat-value" id="completedModulesCount">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Learning Paths</div>
+                        <div class="stat-value" id="learningPathsCount">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modules-grid" id="modulesGrid">
+                <div class="loading">Loading modules...</div>
+            </div>
+        </section>
+
+        <!-- Videos Management Page -->
+        <section class="page" id="videosPage">
+            <div class="page-header">
+                <h2>Video Library Management</h2>
+                <div class="page-actions">
+                    <input type="text" class="search-input" id="videoSearch" placeholder="🔍 Search videos..." oninput="searchVideos()">
+                    <select class="filter-select" id="videoFilter" onchange="filterVideos()">
+                        <option value="all">All Videos</option>
+                        <option value="used">Used in Modules</option>
+                        <option value="unused">Unused</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="showAddVideoModal()">
+                        <i class="fas fa-plus"></i> Add Video
+                    </button>
+                </div>
+            </div>
+            
+            <div class="stats-grid" style="margin-bottom: 30px;">
+                <div class="stat-card">
+                    <div class="stat-icon">🎥</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Videos</div>
+                        <div class="stat-value" id="totalVideosCount">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Active Videos</div>
+                        <div class="stat-value" id="activeVideosCount">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Duration</div>
+                        <div class="stat-value" id="totalVideoDuration">0 min</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Used in Modules</div>
+                        <div class="stat-value" id="videosUsedCount">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="videos-grid" id="videosGrid">
+                <div class="loading">Loading videos...</div>
+            </div>
+        </section>
+
+        <!-- Analytics Page -->
+        <section class="page" id="analyticsPage">
+            <div class="page-header">
+                <h2>Analytics & Reports</h2>
+                <div class="page-actions">
+                    <button class="btn-sm" onclick="refreshAnalytics()">🔄 Refresh</button>
+                </div>
+            </div>
+            
+            <!-- Summary Stats -->
+            <div class="stats-grid" style="margin-bottom: 30px;">
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Activity</div>
+                        <div class="stat-value" id="analyticsActivity">0</div>
+                        <div class="stat-change">All time</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Growth Rate</div>
+                        <div class="stat-value" id="analyticsGrowth">+0%</div>
+                        <div class="stat-change">This month</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Completion Rate</div>
+                        <div class="stat-value" id="analyticsCompletion">0%</div>
+                        <div class="stat-change">Success metric</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Satisfaction</div>
+                        <div class="stat-value" id="analyticsSatisfaction">0.0</div>
+                        <div class="stat-change">Average rating</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Grid -->
+            <div class="analytics-grid">
+                <div class="chart-card">
+                    <h3>📈 User Growth Trend</h3>
+                    <div class="chart-container" id="userGrowthChart">
+                        <canvas id="userGrowthCanvas"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>📊 Exchange Statistics</h3>
+                    <div class="chart-container" id="exchangeStatsChart">
+                        <canvas id="exchangeStatsCanvas"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>🎯 Skills Distribution</h3>
+                    <div class="chart-container" id="skillsDistChart">
+                        <canvas id="skillsDistCanvas"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>⭐ Rating Distribution</h3>
+                    <div class="chart-container" id="ratingDistChart">
+                        <canvas id="ratingDistCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Detailed Reports -->
+            <div class="dashboard-grid" style="margin-top: 30px;">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Top Performing Users</h3>
+                    </div>
+                    <div class="card-body" id="topUsers">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Popular Skills</h3>
+                    </div>
+                    <div class="card-body" id="popularSkills">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Backup Page -->
+        <section class="page" id="backupPage">
+            <div class="page-header">
+                <h2>Backup & Data Management</h2>
+            </div>
+            
+            <div class="settings-container">
+                <!-- Backup Actions -->
+                <div class="settings-card">
+                    <h3>💾 Create Backup</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                        Create a complete backup of all platform data including users, exchanges, and skills.
+                    </p>
+                    <div class="backup-actions" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="createFullBackup()">
+                            💾 Full Backup
+                        </button>
+                        <button class="btn btn-secondary" onclick="createUsersBackup()">
+                            👥 Backup Users Only
+                        </button>
+                        <button class="btn btn-secondary" onclick="createExchangesBackup()">
+                            🤝 Backup Exchanges Only
+                        </button>
+                        <button class="btn btn-secondary" onclick="createSkillsBackup()">
+                            🎯 Backup Skills Only
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Backup History -->
+                <div class="settings-card">
+                    <h3>📜 Backup History</h3>
+                    <div class="info-grid" id="backupHistory">
+                        <div class="loading">Loading backup history...</div>
+                    </div>
+                </div>
+                
+                <!-- Export Options -->
+                <div class="settings-card">
+                    <h3>📤 Export Data</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                        Export data in various formats for analysis or migration.
+                    </p>
+                    <div class="export-options" style="display: grid; gap: 12px;">
+                        <button class="btn btn-secondary" onclick="exportToJSON()">
+                            📋 Export as JSON
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportToCSV()">
+                            📊 Export as CSV
+                        </button>
+                        <button class="btn btn-secondary" onclick="generateReport()">
+                            📄 Generate PDF Report
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Import Options -->
+                <div class="settings-card">
+                    <h3>📥 Import Data</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                        Restore data from a previous backup file.
+                    </p>
+                    <div class="import-options">
+                        <input type="file" id="backupFileInput" accept=".json,.zip" style="display: none;" onchange="handleBackupFile(event)">
+                        <button class="btn btn-warning" onclick="document.getElementById('backupFileInput').click()">
+                            📥 Select Backup File
+                        </button>
+                        <div id="importStatus" style="margin-top: 12px; color: var(--text-secondary);"></div>
+                    </div>
+                </div>
+                
+                <!-- Database Statistics -->
+                <div class="settings-card">
+                    <h3>📊 Database Statistics</h3>
+                    <div class="info-grid" id="dbStats">
+                        <div class="info-item">
+                            <span class="info-label">Total Records</span>
+                            <span class="info-value" id="totalRecords">0</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Database Size</span>
+                            <span class="info-value" id="dbSize">Calculating...</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Last Backup</span>
+                            <span class="info-value" id="lastBackup">Never</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Backup Status</span>
+                            <span class="info-value status-active" id="backupStatus">✅ Ready</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Page -->
+        <section class="page" id="settingsPage">
+            <div class="page-header">
+                <h2>System Settings</h2>
+            </div>
+            <div class="settings-container">
+                <div class="settings-card">
+                    <h3>Database Configuration</h3>
+                    <div class="setting-item">
+                        <label>MongoDB URI</label>
+                        <input type="text" class="form-control" id="mongoUri" value="***hidden***" readonly>
+                    </div>
+                    <div class="setting-item">
+                        <label>Database Name</label>
+                        <input type="text" class="form-control" id="dbNameSetting" value="skillExchange" readonly>
+                    </div>
+                </div>
+                <div class="settings-card">
+                    <h3>System Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Server Status</span>
+                            <span class="info-value status-active">🟢 Running</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">API Version</span>
+                            <span class="info-value">v1.0.0</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Last Backup</span>
+                            <span class="info-value">Never</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Edit User Modal -->
+    <div class="modal" id="editUserModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit User</h3>
+                <button class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="editUserForm">
+                <!-- Form will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3>Confirm Action</h3>
+                <button class="modal-close" onclick="closeModal('confirmModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage">Are you sure you want to proceed?</p>
+                <div class="modal-actions">
+                    <button class="btn btn-danger" id="confirmBtn">Confirm</button>
+                    <button class="btn btn-secondary" onclick="closeModal('confirmModal')">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Skill Modal -->
+    <div class="modal" id="skillModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="skillModalTitle">Add New Skill</h3>
+                <button class="modal-close" onclick="closeModal('skillModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="skillForm" onsubmit="saveSkill(event)">
+                    <input type="hidden" id="skillId">
+                    
+                    <div class="form-group">
+                        <label for="skillName">Skill Name *</label>
+                        <input type="text" id="skillName" class="form-control" required maxlength="100" 
+                               placeholder="e.g., JavaScript, Graphic Design, Digital Marketing">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="skillCategory">Category *</label>
+                        <select id="skillCategory" class="form-control" required>
+                            <option value="">Select Category</option>
+                            <option value="Programming & Development">Programming & Development</option>
+                            <option value="Design & Creative">Design & Creative</option>
+                            <option value="Business & Finance">Business & Finance</option>
+                            <option value="Marketing & Sales">Marketing & Sales</option>
+                            <option value="Writing & Translation">Writing & Translation</option>
+                            <option value="Music & Audio">Music & Audio</option>
+                            <option value="Video & Animation">Video & Animation</option>
+                            <option value="Photography">Photography</option>
+                            <option value="Health & Fitness">Health & Fitness</option>
+                            <option value="Teaching & Academics">Teaching & Academics</option>
+                            <option value="Lifestyle">Lifestyle</option>
+                            <option value="Data & Analytics">Data & Analytics</option>
+                            <option value="AI & Machine Learning">AI & Machine Learning</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="skillSubcategory">Subcategory (Optional)</label>
+                        <input type="text" id="skillSubcategory" class="form-control" maxlength="100" 
+                               placeholder="e.g., Frontend, UI/UX, SEO">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="skillDescription">Description (Optional)</label>
+                        <textarea id="skillDescription" class="form-control" rows="3" maxlength="500" 
+                                  placeholder="Brief description of this skill..."></textarea>
+                        <small class="form-text">Max 500 characters</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="skillTags">Tags (Optional)</label>
+                        <input type="text" id="skillTags" class="form-control" 
+                               placeholder="Separate tags with commas (e.g., web, coding, frontend)">
+                        <small class="form-text">Comma-separated tags for better searchability</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="skillIsActive" checked>
+                            <span>Active (visible to users)</span>
+                        </label>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Skill
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('skillModal')">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Module Modal -->
+    <div class="modal" id="editModuleModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="moduleModalTitle">Edit Module</h3>
+                <button class="modal-close" onclick="closeModal('editModuleModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editModuleForm" onsubmit="saveModuleChanges(event)">
+                    <input type="hidden" id="editLearningPathId">
+                    <input type="hidden" id="editModuleId">
+                    
+                    <div class="form-group" id="learningPathSelectGroup" style="display: none;">
+                        <label for="selectLearningPath">Learning Path *</label>
+                        <select id="selectLearningPath" class="form-control">
+                            <option value="">Select a learning path</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editModuleTitleInput">Module Title *</label>
+                        <input type="text" id="editModuleTitleInput" class="form-control" required maxlength="200" 
+                               placeholder="e.g., Introduction to JavaScript">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editModuleDescription">Description</label>
+                        <textarea id="editModuleDescription" class="form-control" rows="3" maxlength="500" 
+                                  placeholder="Brief description of this module..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editModuleDuration">Duration (minutes)</label>
+                        <input type="number" id="editModuleDuration" class="form-control" min="0" 
+                               placeholder="e.g., 30">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editModuleVideoUrl">YouTube Video URL *</label>
+                        <input type="url" id="editModuleVideoUrl" class="form-control" required
+                               placeholder="https://www.youtube.com/watch?v=...">
+                        <small class="form-text">Enter full YouTube video URL (e.g., https://youtube.com/watch?v=abc123)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editModuleOrder">Module Order</label>
+                        <input type="number" id="editModuleOrder" class="form-control" min="1" 
+                               placeholder="1">
+                        <small class="form-text">Position in the learning path</small>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button type="button" class="btn btn-danger" id="deleteModuleBtn" onclick="confirmDeleteModule()" style="display: none;">
+                            <i class="fas fa-trash"></i> Delete Module
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('editModuleModal')">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Video Modal -->
+    <div class="modal" id="videoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="videoModalTitle">Add Video</h3>
+                <button class="modal-close" onclick="closeModal('videoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="videoForm" onsubmit="saveVideo(event)">
+                    <input type="hidden" id="videoId">
+                    <input type="hidden" id="videoModuleId">
+                    <input type="hidden" id="videoLearningPathId">
+                    
+                    <div class="form-group">
+                        <label for="videoTitle">Video Title *</label>
+                        <input type="text" id="videoTitle" class="form-control" required maxlength="200" 
+                               placeholder="e.g., Introduction to JavaScript Basics">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="videoUrl">YouTube Video URL *</label>
+                        <input type="url" id="videoUrl" class="form-control" required
+                               placeholder="https://www.youtube.com/watch?v=...">
+                        <small class="form-text">Enter full YouTube video URL</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="videoDescription">Description</label>
+                        <textarea id="videoDescription" class="form-control" rows="3" maxlength="500" 
+                                  placeholder="Brief description of what this video covers..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="videoDuration">Duration (minutes)</label>
+                        <input type="number" id="videoDuration" class="form-control" min="1" 
+                               placeholder="e.g., 15">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="videoCategory">Category</label>
+                        <select id="videoCategory" class="form-control">
+                            <option value="">Select category</option>
+                            <option value="Programming">Programming</option>
+                            <option value="Design">Design</option>
+                            <option value="Business">Business</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Language">Language</option>
+                            <option value="Music">Music</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="videoTags">Tags (comma-separated)</label>
+                        <input type="text" id="videoTags" class="form-control" 
+                               placeholder="e.g., javascript, tutorial, beginner">
+                        <small class="form-text">Helps in searching and categorizing</small>
+                    </div>
+                    
+                    <!-- Video Preview -->
+                    <div class="form-group" id="videoPreviewGroup" style="display: none;">
+                        <label>Video Preview</label>
+                        <div class="video-preview-container">
+                            <iframe id="videoPreviewFrame" 
+                                    width="100%" 
+                                    height="300" 
+                                    frameborder="0" 
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                    
+                    <button type="button" class="btn btn-secondary" onclick="previewVideo()">
+                        <i class="fas fa-eye"></i> Preview Video
+                    </button>
+                    
+                    <div class="modal-actions" style="margin-top: 20px;">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Video
+                        </button>
+                        <button type="button" class="btn btn-danger" id="deleteVideoBtn" onclick="confirmDeleteVideo()" style="display: none;">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('videoModal')">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin-app.js"></script>
+    <!-- Font Awesome 6.5.1 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</body>
+</html>
+

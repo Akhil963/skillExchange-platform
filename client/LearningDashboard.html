@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#667eea">
+    <title>Learning Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        html {
+            font-size: clamp(13px, 2vw, 16px);
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: clamp(12px, 3vw, 20px);
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: clamp(280px, 95vw, 900px);
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .dashboard-header {
+            background: white;
+            padding: clamp(16px, 4vw, 30px);
+            border-radius: clamp(8px, 2vw, 10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: clamp(16px, 4vw, 30px);
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: clamp(12px, 2vw, 20px);
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            background: rgba(102, 126, 234, 0.1);
+            border: none;
+            cursor: pointer;
+            font-size: clamp(12px, 2vw, 14px);
+        }
+
+        .back-button:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateX(-2px);
+        }
+
+        .header-title {
+            font-size: clamp(20px, 6vw, 28px);
+            color: #333;
+            margin-bottom: clamp(8px, 2vw, 10px);
+            line-height: 1.2;
+        }
+
+        .header-skill {
+            font-size: clamp(14px, 3vw, 18px);
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: clamp(12px, 2vw, 20px);
+        }
+
+        /* Progress Bar */
+        .progress-section {
+            margin-bottom: clamp(16px, 4vw, 30px);
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: clamp(8px, 2vw, 10px);
+            font-size: clamp(12px, 2vw, 14px);
+            color: #666;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: clamp(8px, 2vw, 12px);
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: clamp(8px, 1.5vw, 10px);
+            font-weight: bold;
+            min-width: 30px;
+        }
+
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(clamp(120px, 25vw, 150px), 1fr));
+            gap: clamp(12px, 2vw, 15px);
+            margin-top: clamp(12px, 2vw, 20px);
+        }
+
+        .stat-card {
+            background: #f5f5f5;
+            padding: clamp(12px, 2vw, 15px);
+            border-radius: clamp(6px, 1.5vw, 8px);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: clamp(18px, 4vw, 24px);
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: clamp(10px, 1.5vw, 12px);
+            color: #999;
+            margin-top: clamp(3px, 1vw, 5px);
+            text-transform: uppercase;
+        }
+
+        /* Modules Section */
+        .modules-section {
+            background: white;
+            padding: clamp(16px, 4vw, 30px);
+            border-radius: clamp(8px, 2vw, 10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: clamp(16px, 4vw, 20px);
+            color: #333;
+            margin-bottom: clamp(16px, 3vw, 25px);
+            padding-bottom: clamp(12px, 2vw, 15px);
+            border-bottom: 2px solid #667eea;
+        }
+
+        .modules-list {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(12px, 2vw, 15px);
+        }
+
+        .module-card {
+            background: #f9f9f9;
+            border: 2px solid #e0e0e0;
+            border-radius: clamp(6px, 1.5vw, 8px);
+            padding: clamp(12px, 3vw, 20px);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .module-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .module-card.completed {
+            background: #f0f7ff;
+            border-color: #4caf50;
+        }
+
+        .module-header {
+            display: flex;
+            align-items: flex-start;
+            gap: clamp(10px, 2vw, 15px);
+            margin-bottom: clamp(12px, 2vw, 15px);
+            flex-wrap: wrap;
+        }
+
+        .module-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: clamp(36px, 8vw, 40px);
+            height: clamp(36px, 8vw, 40px);
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: clamp(16px, 3vw, 18px);
+            flex-shrink: 0;
+        }
+
+        .module-card.completed .module-number {
+            background: #4caf50;
+        }
+
+        .module-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .module-title {
+            font-size: clamp(14px, 2.5vw, 16px);
+            font-weight: 600;
+            color: #333;
+            margin-bottom: clamp(3px, 1vw, 5px);
+            word-break: break-word;
+        }
+
+        .module-description {
+            font-size: clamp(12px, 2vw, 13px);
+            color: #999;
+            margin-bottom: clamp(8px, 1.5vw, 10px);
+            line-height: 1.4;
+        }
+
+        .module-meta {
+            display: flex;
+            gap: clamp(12px, 2vw, 20px);
+            font-size: clamp(11px, 1.5vw, 12px);
+            color: #666;
+            flex-wrap: wrap;
+        }
+
+        .module-video-section {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: clamp(12px, 2vw, 16px);
+            margin: clamp(12px, 2vw, 16px) 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-title {
+            font-size: clamp(12px, 2vw, 14px);
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .module-video-section iframe {
+            border-radius: 8px;
+            max-width: 100%;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: clamp(8px, 2vw, 16px);
+            }
+
+            .dashboard-header {
+                padding: clamp(12px, 3vw, 20px);
+            }
+
+            .header-title {
+                font-size: clamp(18px, 5vw, 24px);
+            }
+
+            .back-button {
+                width: 100%;
+                justify-content: center;
+                margin-bottom: 16px;
+            }
+
+            .module-card {
+                padding: clamp(12px, 2vw, 16px);
+            }
+
+            .module-header {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .module-info {
+                text-align: center;
+                width: 100%;
+            }
+
+            .module-meta {
+                justify-content: center;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .dashboard-header {
+                padding: 30px;
+            }
+
+            .header-title {
+                font-size: 32px;
+                margin-bottom: 10px;
+            }
+
+            .progress-fill {
+                min-width: 40px;
+            }
+
+            .stat-card {
+                padding: 18px;
+            }
+
+            .module-card {
+                padding: 20px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                max-width: 900px;
+            }
+
+            .progress-stats {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 20px;
+            }
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .completion-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #4caf50;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .score-badge {
+            background: #ff9800;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .module-status {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* Video Player Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+
+        .completion-form {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .rating-input {
+            display: flex;
+            gap: 10px;
+            font-size: 24px;
+        }
+
+        .rating-input .star {
+            cursor: pointer;
+            color: #ddd;
+            transition: color 0.2s ease;
+        }
+
+        .rating-input .star:hover,
+        .rating-input .star.active {
+            color: #ff9800;
+        }
+
+        /* Complete Learning Section */
+        .complete-section {
+            background: #f0f7ff;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .complete-section.hidden {
+            display: none;
+        }
+
+        .complete-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .complete-section p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .complete-section .btn {
+            margin-top: 10px;
+        }
+
+        /* Loading State */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard-header {
+                padding: 20px;
+            }
+
+            .modules-section {
+                padding: 20px;
+            }
+
+            .module-card {
+                padding: 15px;
+            }
+
+            .module-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .progress-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .modal-content {
+                width: 95%;
+                max-height: 95vh;
+            }
+        }
+
+        .instructor-info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .instructor-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .instructor-details h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+
+        .instructor-details p {
+            margin: 0;
+            font-size: 13px;
+            color: #999;
+        }
+
+        /* Pulse Animation for Exchange Arrow */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Back Button Hover Effect */
+        button[onclick="goBack()"]:hover {
+            background: #5568d3 !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+        }
+
+        /* Mobile Responsive - Adjust Grid for Small Screens */
+        @media (max-width: 768px) {
+            .dashboard-header {
+                padding: 15px !important;
+            }
+
+            .progress-stats {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 12px !important;
+            }
+
+            .stat-card {
+                padding: 12px !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-header {
+                padding: 12px !important;
+            }
+
+            .progress-stats {
+                grid-template-columns: 1fr !important;
+            }
+
+            button[onclick="goBack()"] {
+                padding: 8px 12px !important;
+                font-size: 12px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" style="position: relative;">
+        <!-- Back Button -->
+        <button onclick="goBack()" style="position: absolute; top: 0; left: 0; background: #667eea; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: background 0.3s ease;">
+            ← Back to Exchanges
+        </button>
+
+        <div class="dashboard-header" style="margin-top: 50px;">
+            <div class="header-title" style="text-align: center; margin-bottom: 30px;">📚 Learning Dashboard</div>
+            
+            <!-- Bidirectional Exchange Display - Responsive Grid -->
+            <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: clamp(15px, 5vw, 25px); border-radius: 12px; margin-bottom: 25px; border: 2px solid #667eea;">
+                <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: clamp(10px, 4vw, 20px); align-items: center;">
+                    <!-- Left Side: Learner -->
+                    <div style="background: white; padding: clamp(12px, 4vw, 18px); border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s ease;">
+                        <div id="learnerAvatar" style="width: clamp(45px, 12vw, 60px); height: clamp(45px, 12vw, 60px); border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; font-size: clamp(18px, 6vw, 24px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">L</div>
+                        <h4 id="learnerName" style="margin: 0 0 5px 0; color: #333; font-size: clamp(14px, 4vw, 18px); font-weight: 700;">You</h4>
+                        <p style="margin: 0 0 12px 0; color: #999; font-size: clamp(11px, 3vw, 13px); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Learner</p>
+                        <!-- <div style="background: #e3f2fd; padding: clamp(8px, 3vw, 12px); border-radius: 8px; border-left: 4px solid #1565c0;">
+                            <p style="margin: 0; color: #1565c0; font-weight: 700; font-size: clamp(12px, 3.5vw, 15px);" id="learningSkill">Learning: ---</p>
+                        </div> -->
+                    </div>
+                    
+                    <!-- Center: Exchange Arrow -->
+                    <div style="text-align: center; font-size: clamp(24px, 8vw, 32px); color: #667eea; font-weight: bold; animation: pulse 2s infinite;">⇄</div>
+                    
+                    <!-- Right Side: Teacher -->
+                    <div style="background: white; padding: clamp(12px, 4vw, 18px); border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s ease;">
+                        <div id="teacherAvatar" style="width: clamp(45px, 12vw, 60px); height: clamp(45px, 12vw, 60px); border-radius: 50%; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; font-size: clamp(18px, 6vw, 24px); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);">T</div>
+                        <h4 id="teacherName" style="margin: 0 0 5px 0; color: #333; font-size: clamp(14px, 4vw, 18px); font-weight: 700;">Instructor</h4>
+                        <p style="margin: 0 0 12px 0; color: #999; font-size: clamp(11px, 3vw, 13px); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Teacher</p>
+                        <!-- <div style="background: #f1f8e9; padding: clamp(8px, 3vw, 12px); border-radius: 8px; border-left: 4px solid #558b2f;">
+                            <p style="margin: 0; color: #558b2f; font-weight: 700; font-size: clamp(12px, 3.5vw, 15px);" id="teachingSkill">Teaching: ---</p>
+                        </div> -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="progress-section">
+                <div class="progress-label">
+                    <span>Overall Progress</span>
+                    <span id="progressText" style="font-size: 14px; font-weight: 700; color: #667eea;">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%; transition: width 0.5s ease;">
+                        <span id="progressPercent"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workflow Flow -->
+            <div style="background: #f9f9f9; padding: clamp(15px, 4vw, 20px); border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #667eea;">
+                <div style="font-size: clamp(11px, 3vw, 13px); color: #999; margin-bottom: 10px; font-weight: 700; letter-spacing: 1px;">📋 LEARNING FLOW</div>
+                <div style="display: flex; align-items: center; gap: clamp(5px, 2vw, 10px); flex-wrap: wrap; font-size: clamp(11px, 3vw, 13px);">
+                    <span style="background: #e8f5e9; color: #2e7d32; padding: clamp(4px, 2vw, 8px) clamp(8px, 3vw, 12px); border-radius: 4px; font-weight: 600; white-space: nowrap;">1️⃣ Request</span>
+                    <span style="color: #999;">→</span>
+                    <span style="background: #e3f2fd; color: #1565c0; padding: clamp(4px, 2vw, 8px) clamp(8px, 3vw, 12px); border-radius: 4px; font-weight: 600; white-space: nowrap;">2️⃣ Approve</span>
+                    <span style="color: #999;">→</span>
+                    <span style="background: #f3e5f5; color: #6a1b9a; padding: clamp(4px, 2vw, 8px) clamp(8px, 3vw, 12px); border-radius: 4px; font-weight: 600; white-space: nowrap;">3️⃣ Learn</span>
+                    <span style="color: #999;">→</span>
+                    <span style="background: #fff3e0; color: #e65100; padding: clamp(4px, 2vw, 8px) clamp(8px, 3vw, 12px); border-radius: 4px; font-weight: 600; white-space: nowrap;">4️⃣ Complete</span>
+                    <span style="color: #999;">→</span>
+                    <span id="flowStatus" style="background: #f5f5f5; color: #666; padding: clamp(4px, 2vw, 8px) clamp(8px, 3vw, 12px); border-radius: 4px; font-weight: 600; white-space: nowrap;">5️⃣ Rate</span>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="progress-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: clamp(12px, 3vw, 16px); margin-bottom: 20px;">
+                <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: clamp(15px, 3vw, 20px); border-radius: 10px; text-align: center;">
+                    <div class="stat-number" id="completedCount" style="font-size: clamp(24px, 6vw, 32px); font-weight: 700; color: white;">0</div>
+                    <div class="stat-label" style="font-size: clamp(12px, 3vw, 14px); color: rgba(255,255,255,0.8); margin-top: 5px;">Completed</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; padding: clamp(15px, 3vw, 20px); border-radius: 10px; text-align: center;">
+                    <div class="stat-number" id="totalCount" style="font-size: clamp(24px, 6vw, 32px); font-weight: 700; color: white;">0</div>
+                    <div class="stat-label" style="font-size: clamp(12px, 3vw, 14px); color: rgba(255,255,255,0.8); margin-top: 5px;">Total Modules</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: clamp(15px, 3vw, 20px); border-radius: 10px; text-align: center;">
+                    <div class="stat-number" id="avgScore" style="font-size: clamp(24px, 6vw, 32px); font-weight: 700; color: white;">-</div>
+                    <div class="stat-label" style="font-size: clamp(12px, 3vw, 14px); color: rgba(255,255,255,0.8); margin-top: 5px;">Avg Score</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); color: white; padding: clamp(15px, 3vw, 20px); border-radius: 10px; text-align: center;">
+                    <div class="stat-number" id="statusDisplay" style="font-size: clamp(14px, 4vw, 18px); font-weight: 700; color: white;">Not Started</div>
+                    <div class="stat-label" style="font-size: clamp(12px, 3vw, 14px); color: rgba(255,255,255,0.8); margin-top: 5px;">Status</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modules Section -->
+        <div class="modules-section">
+            <div class="section-title">Learning Modules</div>
+            <div class="loading" id="loadingState">
+                <div class="spinner"></div>
+                <p>Loading modules...</p>
+            </div>
+            <div id="modulesContainer" class="modules-list"></div>
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <p>No modules available yet.</p>
+            </div>
+
+            <!-- Complete Learning Section (shown when 100% complete) -->
+            <div class="complete-section hidden" id="completeSection">
+                <h3>🎉 All Modules Complete!</h3>
+                <p style="margin-bottom: 15px;">You've successfully completed all learning modules!</p>
+                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: left; font-size: 13px;">
+                    <strong style="color: #4caf50;">✅ Learning Path Status:</strong><br>
+                    Your skill exchange is now COMPLETE and ready for final rating. The following will happen:
+                    <ol style="margin-top: 10px; margin-left: 20px;">
+                        <li>Exchange marked as COMPLETED</li>
+                        <li>You can now rate your instructor</li>
+                        <li>Your instructor can rate you</li>
+                        <li>Skills are considered EXCHANGED ✅</li>
+                    </ol>
+                </div>
+                <button class="btn btn-success" onclick="completeLearning()" style="font-size: 15px; padding: 12px 24px;">
+                    ✅ Mark Exchange as COMPLETED
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Modal -->
+    <div class="modal" id="videoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="videoTitle"></h2>
+                <button class="close-btn" onclick="closeVideoModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="video-container" id="videoContainer"></div>
+                <div id="videoDescription"></div>
+
+                <!-- Module Completion Form -->
+                <div class="completion-form">
+                    <h3>Mark Module as Complete</h3>
+
+                    <div class="form-group">
+                        <label>Score (0-100) - Optional</label>
+                        <input type="number" id="moduleScore" min="0" max="100" placeholder="Enter your score...">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes - Optional</label>
+                        <textarea id="moduleNotes" placeholder="Add any notes or reflections about this module..."></textarea>
+                    </div>
+
+                    <button class="btn btn-success" onclick="completeModule()">Mark as Complete</button>
+                    <button class="btn btn-secondary" onclick="closeVideoModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * PRODUCTION DEPLOYMENT GUIDE:
+         * 
+         * For Netlify Deployment:
+         * 1. If backend is on the SAME domain as frontend, no changes needed
+         * 2. If backend is on a DIFFERENT domain:
+         *    - Create a netlify.toml with a rewrite rule:
+         *      [[redirects]]
+         *      from = "/api/*"
+         *      to = "https://your-backend-url/api/:splat"
+         *      status = 200
+         *    - OR inject window.__API_BASE__ in Netlify build or test edge function
+         * 3. Ensure backend has CORS headers allowing Netlify domain
+         */
+        
+        // Global state
+        let learningPathData = null;
+        let exchangeData = null;
+        let currentModuleId = null;
+        let currentUserId = null;
+
+        // Determine API URL based on environment
+        function getAPIBase() {
+            const hostname = window.location.hostname;
+            const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0';
+            
+            if (isLocalhost) {
+                // Local development: use localhost
+                return 'http://localhost:5000/api';
+            } else if (window.location.protocol === 'https:') {
+                // Production (HTTPS): use relative path for same-origin or environment-specific URL
+                // For Netlify deployment, you'll need to configure a backend URL
+                // Option 1: Use relative path if backend is on same domain (e.g., /api)
+                // Option 2: Use environment variable (set in Netlify config)
+                const prodApiUrl = window.__API_BASE__ || '/api'; // Check for injected config first
+                return prodApiUrl;
+            } else {
+                // HTTP deployment: use relative path
+                return '/api';
+            }
+        }
+
+        const API_BASE = getAPIBase();
+        console.log('API Base URL:', API_BASE);
+
+        // Initialize dashboard
+        async function initDashboard() {
+            const learningPathId = getQueryParam('learningPath') || localStorage.getItem('currentLearningPathId') || localStorage.getItem('currentLearningPath');
+            const exchangeId = localStorage.getItem('currentExchangeId');
+            
+            console.log('=== Learning Dashboard Init ===');
+            console.log('Query Param (learningPath):', getQueryParam('learningPath'));
+            console.log('LocalStorage (currentLearningPathId):', localStorage.getItem('currentLearningPathId'));
+            console.log('LocalStorage (currentExchangeId):', exchangeId);
+            console.log('Final learningPathId:', learningPathId);
+            
+            if (!learningPathId) {
+                console.error('❌ No learningPathId found!');
+                showEmptyState('No learning path found. Please select a learning path from the dashboard.', false);
+                return;
+            }
+
+            try {
+                showLoading(true);
+                
+                // Check server connection first
+                const isServerAlive = await checkServerConnection();
+                if (!isServerAlive) {
+                    showEmptyState('Backend server is not responding. Please try again in a moment or contact support.', true);
+                    return;
+                }
+                
+                // Get current user info
+                const meResponse = await fetch(`${API_BASE}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (!meResponse.ok) {
+                    if (meResponse.status === 401) {
+                        showEmptyState('Your session has expired. Please log in again.', false);
+                        setTimeout(() => window.location.href = '/index.html', 2000);
+                        return;
+                    }
+                    throw new Error(`Server error: ${meResponse.status}`);
+                }
+                
+                const meData = await meResponse.json();
+                currentUserId = meData.userId;
+                
+                // Fetch learning path
+                const lpResponse = await fetch(`${API_BASE}/learning-paths/${learningPathId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!lpResponse.ok) {
+                    throw new Error('Failed to load learning path');
+                }
+
+                const responseData = await lpResponse.json();
+                
+                // Handle nested learningPath response from API
+                learningPathData = responseData.learningPath || responseData;
+                
+                console.log('Learning Path Data:', learningPathData);
+                console.log('Modules in learning path:', learningPathData.modules);
+                
+                // Fetch exchange data - use exchange ID from param if available
+                const eId = exchangeId || learningPathData.exchangeId;
+                if (eId) {
+                    const exResponse = await fetch(`${API_BASE}/exchanges/${eId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    
+                    if (exResponse.ok) {
+                        exchangeData = await exResponse.json();
+                        console.log('Exchange Data:', exchangeData);
+                    } else {
+                        console.warn('Could not load exchange data, continuing without it');
+                    }
+                } else {
+                    console.warn('No exchangeId in learning path data or localStorage');
+                }
+                
+                renderDashboard();
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                
+                // Provide specific error messages
+                let errorMessage = 'Failed to load dashboard. ';
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+                } else if (error.message.includes('Failed to load learning path')) {
+                    errorMessage = 'Could not load the learning path. It may have been deleted or you may not have access to it.';
+                } else if (error.message.includes('Unauthorized')) {
+                    errorMessage = 'You are not authorized to view this learning path.';
+                } else {
+                    errorMessage += error.message || 'Please try again or contact support.';
+                }
+                
+                showEmptyState(errorMessage, true);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Render dashboard
+        function renderDashboard() {
+            if (!learningPathData) return;
+
+            // Display bidirectional exchange
+            if (exchangeData) {
+                // Determine learner and teacher based on current user
+                const isRequester = exchangeData.requesterId === currentUserId;
+                const learnerData = isRequester ? exchangeData.requester : exchangeData.responder;
+                const teacherData = isRequester ? exchangeData.responder : exchangeData.requester;
+                
+                console.log('Is Requester:', isRequester);
+                console.log('Learner Data:', learnerData);
+                console.log('Teacher Data:', teacherData);
+                console.log('SkillRequested:', exchangeData.skillRequested);
+                console.log('SkillOffered:', exchangeData.skillOffered);
+                
+                // Extract skill names with multiple fallbacks
+                let learningSkillName = 'Unknown Skill';
+                let teachingSkillName = 'Unknown Skill';
+                
+                // Try different ways to get skill names
+                if (isRequester) {
+                    // Requester is learning skillRequested, teaching skillOffered
+                    if (exchangeData.skillRequested) {
+                        learningSkillName = exchangeData.skillRequested.name || exchangeData.skillRequested;
+                    } else if (exchangeData.skillRequestedName) {
+                        learningSkillName = exchangeData.skillRequestedName;
+                    }
+                    
+                    if (exchangeData.skillOffered) {
+                        teachingSkillName = exchangeData.skillOffered.name || exchangeData.skillOffered;
+                    } else if (exchangeData.skillOfferedName) {
+                        teachingSkillName = exchangeData.skillOfferedName;
+                    }
+                } else {
+                    // Responder is learning skillOffered, teaching skillRequested
+                    if (exchangeData.skillOffered) {
+                        learningSkillName = exchangeData.skillOffered.name || exchangeData.skillOffered;
+                    } else if (exchangeData.skillOfferedName) {
+                        learningSkillName = exchangeData.skillOfferedName;
+                    }
+                    
+                    if (exchangeData.skillRequested) {
+                        teachingSkillName = exchangeData.skillRequested.name || exchangeData.skillRequested;
+                    } else if (exchangeData.skillRequestedName) {
+                        teachingSkillName = exchangeData.skillRequestedName;
+                    }
+                }
+                
+                console.log('Final Skill Names - Learning:', learningSkillName, 'Teaching:', teachingSkillName);
+                
+                // Update learner side (YOU) - safely check if elements exist
+                const learnerNameEl = document.getElementById('learnerName');
+                const learnerAvatarEl = document.getElementById('learnerAvatar');
+                const learningSkillEl = document.getElementById('learningSkill');
+                
+                if (learnerNameEl) learnerNameEl.textContent = learnerData?.name || 'You';
+                if (learnerAvatarEl) learnerAvatarEl.textContent = (learnerData?.name || 'You').charAt(0).toUpperCase();
+                if (learningSkillEl) learningSkillEl.textContent = `Learning: ${learningSkillName}`;
+                
+                // Update teacher side (INSTRUCTOR) - safely check if elements exist
+                const teacherNameEl = document.getElementById('teacherName');
+                const teacherAvatarEl = document.getElementById('teacherAvatar');
+                const teachingSkillEl = document.getElementById('teachingSkill');
+                
+                if (teacherNameEl) teacherNameEl.textContent = teacherData?.name || 'Instructor';
+                if (teacherAvatarEl) teacherAvatarEl.textContent = (teacherData?.name || 'Instructor').charAt(0).toUpperCase();
+                if (teachingSkillEl) teachingSkillEl.textContent = `Teaching: ${teachingSkillName}`;
+            } else {
+                // Fallback to learning path data
+                let skillName = 'Unknown Skill';
+                
+                // Try different ways to get skill name from learning path
+                if (learningPathData.skillId) {
+                    skillName = learningPathData.skillId.name || learningPathData.skillId;
+                } else if (learningPathData.skillName) {
+                    skillName = learningPathData.skillName;
+                } else if (learningPathData.skill) {
+                    skillName = learningPathData.skill.name || learningPathData.skill;
+                }
+                
+                const learningSkillEl = document.getElementById('learningSkill');
+                if (learningSkillEl) {
+                    learningSkillEl.textContent = `Learning: ${skillName}`;
+                }
+                console.log('Using fallback skill name:', skillName);
+            }
+
+            // Progress
+            const progress = Math.round(learningPathData.progressPercentage) || 0;
+            document.getElementById('progressText').textContent = `${progress}%`;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            document.getElementById('progressPercent').textContent = progress > 10 ? `${progress}%` : '';
+
+            // Stats
+            document.getElementById('completedCount').textContent = learningPathData.completedModules || 0;
+            document.getElementById('totalCount').textContent = learningPathData.totalModules || 0;
+            document.getElementById('avgScore').textContent = learningPathData.averageScore 
+                ? `${learningPathData.averageScore}%` 
+                : '-';
+            document.getElementById('statusDisplay').textContent = capitalizeFirst(learningPathData.status || 'Not Started');
+
+            // Update workflow flow status
+            const flowStatus = document.getElementById('flowStatus');
+            if (learningPathData.status === 'completed') {
+                flowStatus.innerHTML = '5️⃣ <strong style="color: #4caf50;">Rate ✅</strong>';
+                flowStatus.style.background = '#e8f5e9';
+                flowStatus.style.color = '#2e7d32';
+            } else if (progress === 100) {
+                flowStatus.innerHTML = '5️⃣ <strong style="color: #ff9800;">Ready to Rate</strong>';
+                flowStatus.style.background = '#fff3e0';
+                flowStatus.style.color = '#e65100';
+            } else {
+                flowStatus.innerHTML = '5️⃣ Rate';
+                flowStatus.style.background = '#f5f5f5';
+                flowStatus.style.color = '#999';
+            }
+
+            // Modules
+            renderModules();
+
+            // Show complete section if 100%
+            if (progress === 100 && learningPathData.status !== 'completed') {
+                document.getElementById('completeSection').classList.remove('hidden');
+            }
+        }
+
+        // Render modules
+        function renderModules() {
+            const container = document.getElementById('modulesContainer');
+            container.innerHTML = '';
+
+            console.log('=== renderModules called ===');
+            console.log('learningPathData:', learningPathData);
+            console.log('modules:', learningPathData?.modules);
+
+            if (!learningPathData.modules || learningPathData.modules.length === 0) {
+                console.warn('No modules found, showing empty state');
+                showEmptyState();
+                return;
+            }
+
+            console.log(`Rendering ${learningPathData.modules.length} modules`);
+
+            // Progressive reveal: show 4-5 modules at a time
+            const maxVisibleModules = window.innerWidth <= 768 ? 4 : 5;
+            let visibleCount = 0;
+
+            learningPathData.modules.forEach((module, index) => {
+                console.log(`Module ${index}:`, module);
+                // Show completed modules + next available modules (up to max)
+                if (module.isCompleted || visibleCount < maxVisibleModules) {
+                    const moduleCard = createModuleCard(module, index + 1);
+                    container.appendChild(moduleCard);
+                    visibleCount++;
+                } else if (index === learningPathData.modules.findIndex(m => !m.isCompleted)) {
+                    // Always show the first incomplete module
+                    const moduleCard = createModuleCard(module, index + 1);
+                    container.appendChild(moduleCard);
+                }
+            });
+
+            console.log(`Visible modules: ${visibleCount}/${learningPathData.modules.length}`);
+
+            // Show load more button if there are more modules
+            if (visibleCount < learningPathData.modules.length) {
+                const loadMoreBtn = document.createElement('button');
+                loadMoreBtn.className = 'btn btn-primary';
+                loadMoreBtn.style.marginTop = '20px';
+                loadMoreBtn.style.width = '100%';
+                loadMoreBtn.innerHTML = '📚 Load More Modules';
+                loadMoreBtn.onclick = () => {
+                    // Show all modules
+                    renderAllModules();
+                };
+                container.parentElement.appendChild(loadMoreBtn);
+            }
+        }
+
+        function renderAllModules() {
+            const container = document.getElementById('modulesContainer');
+            container.innerHTML = '';
+
+            if (!learningPathData.modules || learningPathData.modules.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            learningPathData.modules.forEach((module, index) => {
+                const moduleCard = createModuleCard(module, index + 1);
+                container.appendChild(moduleCard);
+            });
+        }
+
+        // Create module card
+        function createModuleCard(module, moduleNumber) {
+            const card = document.createElement('div');
+            card.className = `module-card ${module.isCompleted ? 'completed' : ''}`;
+
+            const duration = module.duration ? `${module.duration} min` : 'No duration';
+            const completedBadge = module.isCompleted 
+                ? '<span class="completion-badge">✓ Completed</span>' 
+                : '';
+            const scoreBadge = module.score 
+                ? `<span class="score-badge">Score: ${module.score}%</span>` 
+                : '';
+
+            // Build video section
+            let videoSection = '';
+            if (module.videoUrl || module.videoTitle) {
+                videoSection = `
+                    <div class="module-video-section">
+                        <div class="video-title">📺 ${module.videoTitle || 'Video Lesson'}</div>
+                        ${module.videoUrl ? `
+                            <iframe width="100%" height="200" style="border-radius: 8px; margin: 10px 0;"
+                                src="${module.videoUrl}?rel=0" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen>
+                            </iframe>
+                            <a href="${module.videoUrl.replace('/embed/', '/watch?v=')}" target="_blank" class="btn btn-primary btn-small" style="margin-top: 8px;">
+                                🎬 Open in YouTube
+                            </a>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="module-header">
+                    <div class="module-number">${moduleNumber}</div>
+                    <div class="module-info">
+                        <div class="module-title">${module.title}</div>
+                        <div class="module-description">${module.description || 'No description'}</div>
+                        <div class="module-meta">
+                            <span>⏱️ ${duration}</span>
+                            <span>📍 Module ${module.order}</span>
+                        </div>
+                    </div>
+                </div>
+                ${videoSection}
+                <div class="module-status">
+                    ${completedBadge}
+                    ${scoreBadge}
+                </div>
+                <div class="module-actions">
+                    ${!module.isCompleted 
+                        ? `<button class="btn btn-success btn-small" onclick="openCompletionForm('${module.moduleId}')">
+                            ✓ Mark Complete
+                        </button>` 
+                        : `<button class="btn btn-secondary btn-small" onclick="incompleteModule('${module.moduleId}')">
+                            ↻ Mark Incomplete
+                        </button>`}
+                </div>
+            `;
+
+            return card;
+        }
+
+        // Watch video
+        async function watchVideo(moduleId) {
+            currentModuleId = moduleId;
+            const module = learningPathData.modules.find(m => m.moduleId === moduleId);
+            
+            if (!module || !module.videoUrl) {
+                alert('No video available for this module');
+                return;
+            }
+
+            // Video data is now embedded in the module, no need to fetch separately
+            showVideoModal(module);
+        }
+
+        // Show video modal
+        function showVideoModal(module) {
+            document.getElementById('videoTitle').textContent = module.title || 'Video Lesson';
+            document.getElementById('videoDescription').innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <p><strong>Duration:</strong> ${module.duration || 'N/A'} minutes</p>
+                    <p><strong>Description:</strong> ${module.description || 'No description available'}</p>
+                </div>
+            `;
+
+            // Create video embed
+            const videoContainer = document.getElementById('videoContainer');
+            videoContainer.innerHTML = '';
+            
+            const iframe = document.createElement('iframe');
+            iframe.src = module.videoUrl;
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+            iframe.allowFullscreen = true;
+            videoContainer.appendChild(iframe);
+
+            document.getElementById('videoModal').classList.add('active');
+        }
+
+        // Close video modal
+        function closeVideoModal() {
+            document.getElementById('videoModal').classList.remove('active');
+            currentModuleId = null;
+            document.getElementById('moduleScore').value = '';
+            document.getElementById('moduleNotes').value = '';
+        }
+
+        // Open completion form
+        function openCompletionForm(moduleId) {
+            currentModuleId = moduleId;
+            const module = learningPathData.modules.find(m => m.moduleId === moduleId);
+            
+            if (!module) {
+                console.error('Module not found:', moduleId);
+                return;
+            }
+
+            console.log('Opening completion form for module:', module);
+
+            // Clear previous form values
+            document.getElementById('moduleScore').value = '';
+            document.getElementById('moduleNotes').value = '';
+            document.getElementById('videoTitle').textContent = module.title || 'Module Completion';
+            document.getElementById('videoDescription').innerHTML = module.description || '';
+            
+            // Show video if available
+            const videoContainer = document.getElementById('videoContainer');
+            if (module.videoUrl) {
+                videoContainer.innerHTML = `
+                    <iframe width="100%" height="300"
+                        src="${module.videoUrl}?rel=0" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen style="border-radius: 8px;">
+                    </iframe>
+                `;
+            } else {
+                videoContainer.innerHTML = '<p>No video available for this module</p>';
+            }
+
+            // Show modal
+            document.getElementById('videoModal').classList.add('active');
+        }
+
+        // Complete module
+        async function completeModule() {
+            if (!currentModuleId) return;
+
+            const score = document.getElementById('moduleScore').value;
+            const notes = document.getElementById('moduleNotes').value;
+
+            try {
+                const response = await fetch(
+                    `${API_BASE}/learning-paths/${learningPathData._id}/modules/${currentModuleId}/complete`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({
+                            score: score ? parseInt(score) : undefined,
+                            notes: notes || undefined
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to complete module');
+                }
+
+                learningPathData = await response.json();
+                renderDashboard();
+                closeVideoModal();
+
+                // Show success message
+                alert('Module completed successfully!');
+            } catch (error) {
+                console.error('Error completing module:', error);
+                alert('Failed to complete module');
+            }
+        }
+
+        // Incomplete module
+        async function incompleteModule(moduleId) {
+            if (!confirm('Mark this module as incomplete?')) return;
+
+            try {
+                const response = await fetch(
+                    `${API_BASE}/learning-paths/${learningPathData._id}/modules/${moduleId}/incomplete`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to mark module as incomplete');
+                }
+
+                learningPathData = await response.json();
+                renderDashboard();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to mark module as incomplete');
+            }
+        }
+
+        // Complete entire learning path
+        async function completeLearning() {
+            if (learningPathData.progressPercentage !== 100) {
+                alert('Please complete all modules first');
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `${API_BASE}/learning-paths/${learningPathData._id}/complete`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to complete learning path');
+                }
+
+                const data = await response.json();
+                
+                // Show success message
+                alert(
+                    '✅ SUCCESS!\n\n' +
+                    'Exchange Status: COMPLETED\n' +
+                    'Learning Path: COMPLETE\n\n' +
+                    'You can now rate your instructor, and they can rate you.\n' +
+                    'Once both rate each other, the skill exchange is finalized!'
+                );
+                
+                // Reload the dashboard to show updated status
+                location.reload();
+            } catch (error) {
+                console.error('Error completing learning path:', error);
+                alert('Failed to complete learning path');
+            }
+        }
+
+        // Utility functions
+        
+        // Check if server is reachable
+        async function checkServerConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                // Server is reachable if we get any response (even 401)
+                return true;
+            } catch (error) {
+                console.warn('Server connection check failed:', error);
+                // Check if it's a CORS error or network error
+                if (error.message.includes('CORS') || error.message.includes('loopback')) {
+                    console.error('CORS Error detected - frontend and backend on different domains');
+                }
+                return false;
+            }
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loadingState').classList.toggle('active', show);
+        }
+
+        function showEmptyState(message = 'No modules available yet.', showRetry = false) {
+            const emptyStateEl = document.getElementById('emptyState');
+            emptyStateEl.style.display = 'block';
+            document.getElementById('modulesContainer').innerHTML = '';
+            
+            // Update the message
+            const messageEl = emptyStateEl.querySelector('p') || document.createElement('p');
+            messageEl.textContent = message;
+            
+            // Add retry button if needed
+            const existingRetryBtn = emptyStateEl.querySelector('button');
+            if (showRetry && !existingRetryBtn) {
+                const retryBtn = document.createElement('button');
+                retryBtn.textContent = 'Try Again';
+                retryBtn.style.cssText = `
+                    margin-top: 15px;
+                    padding: 8px 16px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 500;
+                    transition: transform 0.2s;
+                `;
+                retryBtn.onmouseover = () => retryBtn.style.transform = 'scale(1.05)';
+                retryBtn.onmouseout = () => retryBtn.style.transform = 'scale(1)';
+                retryBtn.addEventListener('click', () => {
+                    console.log('Retrying dashboard initialization...');
+                    initDashboard();
+                });
+                emptyStateEl.appendChild(retryBtn);
+            } else if (!showRetry && existingRetryBtn) {
+                existingRetryBtn.remove();
+            }
+        }
+
+        function getQueryParam(name) {
+            const url = new URL(window.location);
+            return url.searchParams.get(name);
+        }
+
+        function capitalizeFirst(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Go back to exchanges page
+        function goBack() {
+            // Navigate back to the My Skill Exchanges page
+            window.location.href = '/index.html#exchanges';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initDashboard);
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('videoModal');
+            if (event.target === modal) {
+                closeVideoModal();
+            }
+        };
+    </script>
+</body>
+</html>

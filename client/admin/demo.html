@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Monitor Demo - SkillExchange Admin</title>
+    <link rel="stylesheet" href="admin-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 100vh;
+        }
+        
+        .demo-container {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .demo-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .demo-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+        
+        .demo-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .demo-btn {
+            padding: 15px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .demo-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+        
+        .demo-btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-icon {
+            font-size: 24px;
+        }
+        
+        .demo-info {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: var(--radius);
+            border-left: 4px solid var(--primary);
+        }
+        
+        .demo-info h3 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+        
+        .demo-info ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .demo-info li {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .demo-info li:last-child {
+            border-bottom: none;
+        }
+        
+        .highlight {
+            color: var(--primary);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Network Monitor -->
+    <div class="network-monitor" id="networkMonitor">
+        <div class="network-monitor-header">
+            <h3>
+                <span class="network-pulse"></span>
+                🌐 Network Monitor
+            </h3>
+            <button class="toggle-btn" onclick="toggleNetworkMonitor()">−</button>
+        </div>
+        <div class="network-monitor-body" id="networkMonitorBody">
+            <div class="network-status">
+                <div class="status-item">
+                    <span class="status-icon">✅</span>
+                    <span id="dbStatus">🟢 MongoDB: Connected</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">📊</span>
+                    <span id="dbName">📊 Database: skillExchange</span>
+                </div>
+            </div>
+            <div class="network-logs" id="networkLogs">
+                <div class="log-header">Recent API Calls</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-container">
+        <h1 class="demo-title">🌐 Network Monitor Demo</h1>
+        <p class="demo-subtitle">Click the buttons below to simulate API calls and see live logs in the bottom-right floating panel</p>
+        
+        <div class="demo-buttons">
+            <button class="demo-btn" onclick="simulateGetUsers()">
+                <span class="btn-icon">👥</span>
+                <span>GET Users</span>
+            </button>
+            
+            <button class="demo-btn" onclick="simulateGetStats()">
+                <span class="btn-icon">📊</span>
+                <span>GET Stats</span>
+            </button>
+            
+            <button class="demo-btn" onclick="simulatePostExchange()">
+                <span class="btn-icon">🤝</span>
+                <span>POST Exchange</span>
+            </button>
+            
+            <button class="demo-btn" onclick="simulatePutUser()">
+                <span class="btn-icon">✏️</span>
+                <span>PUT Update</span>
+            </button>
+            
+            <button class="demo-btn" onclick="simulateDeleteUser()">
+                <span class="btn-icon">🗑️</span>
+                <span>DELETE User</span>
+            </button>
+            
+            <button class="demo-btn" onclick="simulateError()">
+                <span class="btn-icon">❌</span>
+                <span>Simulate Error</span>
+            </button>
+        </div>
+        
+        <div class="demo-info">
+            <h3>📖 How It Works:</h3>
+            <ul>
+                <li>✅ <span class="highlight">Real-time tracking</span> - All API calls are automatically logged</li>
+                <li>🎨 <span class="highlight">Color-coded methods</span> - GET (blue), POST (green), PUT (yellow), DELETE (red)</li>
+                <li>⏱️ <span class="highlight">Response time</span> - Shows exact milliseconds for each request</li>
+                <li>📊 <span class="highlight">Status codes</span> - 200, 304, 404, 500 displayed with colors</li>
+                <li>💾 <span class="highlight">Database status</span> - Live MongoDB connection monitoring</li>
+                <li>📝 <span class="highlight">Last 50 calls</span> - Automatically keeps recent history</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Network monitoring state
+        let networkLogs = [];
+        let networkMonitorCollapsed = false;
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            displayNetworkLogs();
+            // Add some initial example logs
+            setTimeout(() => {
+                logAPICall('GET', '/api/admin/status', 200, 45, 'success');
+                logAPICall('GET', '/api/admin/stats', 200, 128, 'success');
+                logAPICall('GET', '/api/admin/users', 304, 89, 'success');
+            }, 500);
+        });
+        
+        // Toggle network monitor
+        function toggleNetworkMonitor() {
+            const monitor = document.getElementById('networkMonitor');
+            const toggleBtn = monitor.querySelector('.toggle-btn');
+            
+            monitor.classList.toggle('collapsed');
+            networkMonitorCollapsed = !networkMonitorCollapsed;
+            
+            toggleBtn.textContent = networkMonitorCollapsed ? '+' : '−';
+        }
+        
+        // Log API call
+        function logAPICall(method, url, status, duration, type) {
+            const log = {
+                method,
+                url,
+                status,
+                duration,
+                type,
+                timestamp: new Date().toISOString()
+            };
+            
+            networkLogs.unshift(log);
+            
+            // Keep only last 50 logs
+            if (networkLogs.length > 50) {
+                networkLogs.pop();
+            }
+            
+            displayNetworkLogs();
+        }
+        
+        // Display network logs
+        function displayNetworkLogs() {
+            const logsContainer = document.getElementById('networkLogs');
+            
+            if (!logsContainer) return;
+            
+            // Clear existing logs but keep structure
+            logsContainer.innerHTML = '<div class="log-header">Recent API Calls</div>';
+            
+            // If no logs yet, show waiting message
+            if (networkLogs.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'log-item';
+                emptyMessage.style.justifyContent = 'center';
+                emptyMessage.style.color = 'var(--text-secondary)';
+                emptyMessage.innerHTML = '⏳ Waiting for API calls...';
+                logsContainer.appendChild(emptyMessage);
+                return;
+            }
+            
+            // Display logs (most recent first)
+            networkLogs.forEach(log => {
+                const logItem = document.createElement('div');
+                logItem.className = 'log-item';
+                
+                logItem.innerHTML = `
+                    <span class="log-method ${log.method}">${log.method}</span>
+                    <span class="log-url" title="${log.url}">${log.url}</span>
+                    <span class="log-status ${log.type}">${log.status}</span>
+                    <span class="log-time">${log.duration}ms</span>
+                `;
+                
+                logsContainer.appendChild(logItem);
+            });
+        }
+        
+        // Simulate API calls
+        function simulateGetUsers() {
+            const duration = Math.floor(Math.random() * 150) + 50;
+            logAPICall('GET', '/api/admin/users?page=1', 200, duration, 'success');
+        }
+        
+        function simulateGetStats() {
+            const duration = Math.floor(Math.random() * 200) + 80;
+            logAPICall('GET', '/api/admin/stats', 200, duration, 'success');
+        }
+        
+        function simulatePostExchange() {
+            const duration = Math.floor(Math.random() * 180) + 100;
+            logAPICall('POST', '/api/exchanges', 201, duration, 'success');
+        }
+        
+        function simulatePutUser() {
+            const duration = Math.floor(Math.random() * 160) + 70;
+            const userId = Math.random().toString(36).substr(2, 9);
+            logAPICall('PUT', `/api/admin/users/${userId}`, 200, duration, 'success');
+        }
+        
+        function simulateDeleteUser() {
+            const duration = Math.floor(Math.random() * 120) + 60;
+            const userId = Math.random().toString(36).substr(2, 9);
+            logAPICall('DELETE', `/api/admin/users/${userId}`, 200, duration, 'success');
+        }
+        
+        function simulateError() {
+            const duration = Math.floor(Math.random() * 100) + 30;
+            const errors = [
+                { url: '/api/admin/users/invalid', status: 404 },
+                { url: '/api/admin/exchanges', status: 500 },
+                { url: '/api/unauthorized', status: 401 },
+                { url: '/api/forbidden', status: 403 }
+            ];
+            const error = errors[Math.floor(Math.random() * errors.length)];
+            logAPICall('GET', error.url, error.status, duration, 'error');
+        }
+    </script>
+</body>
+</html>
