@@ -1,31 +1,25 @@
 const nodemailer = require('nodemailer');
+const sgTransport = require('nodemailer-sendgrid-transport');
 
-// Create email transporter
+// Create email transporter (using SendGrid)
 const createTransporter = () => {
-  // Check if email is configured (try both SMTP_ and EMAIL_ prefixes)
-  const emailUser = process.env.SMTP_EMAIL || process.env.EMAIL_USER;
-  const emailPass = process.env.SMTP_PASSWORD || process.env.EMAIL_PASS;
+  const sendGridApiKey = process.env.SENDGRID_API_KEY;
   
-  if (!emailUser || !emailPass) {
-    console.log('⚠️  Email not configured. Set SMTP_EMAIL and SMTP_PASSWORD in .env file');
+  if (!sendGridApiKey) {
+    console.log('⚠️  SendGrid not configured. Set SENDGRID_API_KEY in environment variables');
     return null;
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT) || 587,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: emailUser,
-        pass: emailPass
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
+    const transporter = nodemailer.createTransport(
+      sgTransport({
+        auth: {
+          api_key: sendGridApiKey
+        }
+      })
+    );
 
-    console.log('✅ Email transporter configured with:', emailUser);
+    console.log('✅ Email transporter configured with SendGrid');
     return transporter;
   } catch (err) {
     console.error('❌ Error creating email transporter:', err.message);
@@ -479,7 +473,7 @@ const sendEmail = async (to, template, data) => {
 
     // Send email
     const info = await transporter.sendMail({
-      from: `${process.env.FROM_NAME || 'SkillExchange'} <${process.env.SMTP_EMAIL}>`,
+      from: process.env.FROM_EMAIL || 'noreply@skillexchange.com',
       to,
       subject: emailContent.subject,
       html: emailContent.html
