@@ -399,32 +399,33 @@ exports.resetPassword = async (req, res, next) => {
       });
     }
 
-    console.log(`Reset password initiated for user: ${user.email}`);
+    console.log(`[Reset Password] Initiated for user: ${user.email}`);
 
-    // EXPLICITLY hash the password to ensure it's properly encrypted before saving
+    // Hash the password explicitly
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Update user with hashed password directly
+    // Update user with hashed password directly (pre-save hook will detect it's already hashed and skip)
     user.password = hashedPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     
-    // Save without triggering pre-save hook (password is already hashed)
+    // Save - pre-save hook will skip hashing since password is already hashed
     const savedUser = await user.save({ validateBeforeSave: true });
     
     if (!savedUser) {
       throw new Error('Failed to save user with new password');
     }
 
-    console.log(`✓ Password reset successful for user: ${savedUser.email}`);
+    console.log(`[Reset Password] ✓ Password reset successful for user: ${savedUser.email}`);
     
-    // Verify the password was actually saved by attempting comparison
+    // Verify the password works by attempting comparison
     const testCompare = await savedUser.comparePassword(password);
     if (testCompare) {
-      console.log(`✓ Password verification successful - new password can be used to login`);
+      console.log(`[Reset Password] ✓ Password verification successful - user can now login`);
     } else {
-      console.error(`✗ Password verification FAILED - password may not have been saved correctly`);
+      console.error(`[Reset Password] ✗ Password verification FAILED`);
+      throw new Error('Password verification failed after reset');
     }
 
     res.status(200).json({
@@ -432,8 +433,7 @@ exports.resetPassword = async (req, res, next) => {
       message: 'Password reset successful. You can now login with your new password.'
     });
   } catch (error) {
-    console.error('Reset password error:', error.message);
-    console.error('Stack:', error.stack);
+    console.error('[Reset Password] Error:', error.message);
     next(error);
   }
 };
