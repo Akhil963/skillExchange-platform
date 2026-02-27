@@ -373,7 +373,7 @@ userSchema.statics.findByResetToken = async function(resetToken) {
   return await this.findOne({
     resetPasswordToken: hashedToken,
     resetPasswordExpire: { $gt: Date.now() }
-  });
+  }).select('+password');
 };
 
 // Find user by email, username, or phone

@@ -383,7 +383,7 @@ exports.resetPassword = async (req, res, next) => {
       });
     }
 
-    // Find user by reset token
+    // Find user by reset token (with password field selected)
     const user = await User.findByResetToken(resetToken);
 
     if (!user) {
@@ -393,17 +393,31 @@ exports.resetPassword = async (req, res, next) => {
       });
     }
 
-    // Set new password
+    // Verify password is in the document
+    if (!user.password) {
+      console.warn('Warning: User found but password field not loaded');
+    }
+
+    // Set new password (this will trigger pre-save middleware to hash it)
     user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
-    await user.save();
+    
+    // Save with validation enabled
+    const savedUser = await user.save({ validateBeforeSave: true });
+    
+    if (!savedUser) {
+      throw new Error('Failed to save user with new password');
+    }
+
+    console.log(`Password reset successful for user: ${savedUser.email}`);
 
     res.status(200).json({
       success: true,
       message: 'Password reset successful. You can now login with your new password.'
     });
   } catch (error) {
+    console.error('Reset password error:', error.message);
     next(error);
   }
 };
