@@ -367,19 +367,34 @@ exports.forgotPassword = async (req, res, next) => {
           message: 'Email service not configured. Use this reset link:',
           resetUrl: clientResetUrl,
           resetToken: resetToken,
-          note: 'In development mode - configure SendGrid API key for production'
+          note: 'In development mode - configure SendGrid for production'
         });
       }
 
-      // Return 503 Service Unavailable instead of 500 for transient email errors
-      const isTransientError = emailError.message.includes('timeout') || 
-                               emailError.message.includes('connection');
+      // Check error type and return appropriate status
+      let statusCode = 500;
+      let message = 'Email could not be sent. Please contact support.';
       
-      return res.status(isTransientError ? 503 : 500).json({
+      if (emailError.message.includes('Sender Identity') || emailError.message.includes('verified')) {
+        statusCode = 503;
+        message = 'Email service configuration error. The support team has been notified.';
+        console.error('🔴 CRITICAL: SendGrid sender email not verified!');
+        console.error('📧 Fix: Set SENDGRID_FROM_EMAIL to a verified sender in your Render environment');
+        console.error('📖 Steps:');
+        console.error('   1. Go to SendGrid → Settings → Sender Authentication');
+        console.error('   2. Verify an email (e.g., support@yourdomain.com)');
+        console.error('   3. Add to Render env vars: SENDGRID_FROM_EMAIL=verified-email@yourdomain.com');
+      } else if (emailError.message.includes('timeout') || emailError.message.includes('connection')) {
+        statusCode = 503;
+        message = 'Email service temporarily unavailable. Please try again later.';
+      } else if (emailError.message.includes('not configured')) {
+        statusCode = 503;
+        message = 'Email service not properly configured. Please try again later.';
+      }
+      
+      return res.status(statusCode).json({
         success: false,
-        message: isTransientError 
-          ? 'Email service temporarily unavailable. Please try again later.'
-          : 'Email could not be sent. Please contact support.'
+        message: message
       });
     }
   } catch (error) {

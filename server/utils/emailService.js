@@ -1,6 +1,24 @@
 const nodemailer = require('nodemailer');
 const sgTransport = require('nodemailer-sendgrid-transport');
 
+// ✅ Validate sender email is configured in environment
+const validateSenderEmail = () => {
+  const senderEmail = process.env.SENDGRID_FROM_EMAIL;
+  
+  if (!senderEmail) {
+    console.error('❌ SENDGRID_FROM_EMAIL not configured!');
+    console.error('💡 Fix: Set SENDGRID_FROM_EMAIL to your verified sender in SendGrid account');
+    console.error('📖 Steps:');
+    console.error('   1. Log in to SendGrid at https://app.sendgrid.com/');
+    console.error('   2. Go to Settings → Sender Authentication');
+    console.error('   3. Verify a sender email (e.g., support@yourcompany.com)');
+    console.error('   4. Add SENDGRID_FROM_EMAIL=verified-email@yourcompany.com to .env');
+    return null;
+  }
+  
+  return senderEmail;
+};
+
 // Create email transporter (using SendGrid)
 const createTransporter = () => {
   const sendGridApiKey = process.env.SENDGRID_API_KEY;
@@ -515,12 +533,19 @@ const sendEmail = async (to, template, data) => {
       throw new Error('Invalid email address: ' + to);
     }
 
+    // ✅ Validate sender email is configured
+    const senderEmail = validateSenderEmail();
+    if (!senderEmail) {
+      throw new Error('SendGrid sender email not configured. Check environment variables.');
+    }
+
     const transporter = createTransporter();
     
     if (!transporter) {
       console.warn('⚠️  Email service not configured, skipping email send');
       if (process.env.NODE_ENV === 'development') {
         console.log(`📧 [EMAIL SIMULATION] To: ${to}`);
+        console.log(`   From: ${senderEmail}`);
         console.log(`   Template: ${template}`);
         console.log(`   Data:`, JSON.stringify(data, null, 2));
       }
@@ -541,10 +566,12 @@ const sendEmail = async (to, template, data) => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`📧 Sending email via SendGrid (attempt ${attempt}/${maxRetries})...`);
+        console.log(`   From: ${senderEmail}`);
+        console.log(`   To: ${to}`);
         
         // Create timeout promise
         const sendPromise = transporter.sendMail({
-          from: process.env.FROM_EMAIL || 'noreply@skillexchange.com',
+          from: senderEmail,
           to,
           subject: emailContent.subject,
           html: emailContent.html
@@ -564,8 +591,13 @@ const sendEmail = async (to, template, data) => {
         lastError = error;
         console.error(`❌ Attempt ${attempt} failed:`, error.message);
 
-        // Don't retry for auth errors or template errors
-        if (error.message.includes('Invalid email') || error.message.includes('template')) {
+        // ✅ Don't retry for permanent errors (not configured, invalid sender, template errors)
+        if (error.message.includes('Sender Identity') || 
+            error.message.includes('verified') ||
+            error.message.includes('Invalid email') || 
+            error.message.includes('template') ||
+            error.message.includes('not configured')) {
+          console.error('💡 This is a configuration error. Fix it before retrying.');
           throw error;
         }
 
