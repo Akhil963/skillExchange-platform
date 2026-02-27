@@ -313,34 +313,14 @@ exports.forgotPassword = async (req, res, next) => {
     }
 
     try {
+      const { sendEmail, getResetPasswordEmail } = require('../config/email');
+      
       if (contactInfo.method === 'email') {
-        // ✅ USE SENDGRID (more reliable) instead of Gmail SMTP
-        const { sendEmail: sendEmailViaSendGrid } = require('../utils/emailService');
-        
-        try {
-          // Add timeout to email sending operation
-          const emailSendPromise = sendEmailViaSendGrid(
-            user.email,
-            'passwordReset',
-            {
-              name: user.name,
-              resetUrl: clientResetUrl
-            }
-          );
-
-          // 20 second timeout for SendGrid operation
-          const emailWithTimeout = Promise.race([
-            emailSendPromise,
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Email sending timeout')), 20000)
-            )
-          ]);
-
-          await emailWithTimeout;
-        } catch (emailTimeoutError) {
-          console.error('Email timeout/error:', emailTimeoutError.message);
-          throw emailTimeoutError;
-        }
+        await sendEmail({
+          email: user.email,
+          subject: 'Password Reset Request - SkillExchange',
+          html: getResetPasswordEmail(clientResetUrl, user.name)
+        });
       }
 
       res.status(200).json({
@@ -367,34 +347,13 @@ exports.forgotPassword = async (req, res, next) => {
           message: 'Email service not configured. Use this reset link:',
           resetUrl: clientResetUrl,
           resetToken: resetToken,
-          note: 'In development mode - configure SendGrid for production'
+          note: 'In development mode - configure SMTP for production'
         });
       }
 
-      // Check error type and return appropriate status
-      let statusCode = 500;
-      let message = 'Email could not be sent. Please contact support.';
-      
-      if (emailError.message.includes('Sender Identity') || emailError.message.includes('verified')) {
-        statusCode = 503;
-        message = 'Email service configuration error. The support team has been notified.';
-        console.error('🔴 CRITICAL: SendGrid sender email not verified!');
-        console.error('📧 Fix: Set SENDGRID_FROM_EMAIL to a verified sender in your Render environment');
-        console.error('📖 Steps:');
-        console.error('   1. Go to SendGrid → Settings → Sender Authentication');
-        console.error('   2. Verify an email (e.g., support@yourdomain.com)');
-        console.error('   3. Add to Render env vars: SENDGRID_FROM_EMAIL=verified-email@yourdomain.com');
-      } else if (emailError.message.includes('timeout') || emailError.message.includes('connection')) {
-        statusCode = 503;
-        message = 'Email service temporarily unavailable. Please try again later.';
-      } else if (emailError.message.includes('not configured')) {
-        statusCode = 503;
-        message = 'Email service not properly configured. Please try again later.';
-      }
-      
-      return res.status(statusCode).json({
+      return res.status(500).json({
         success: false,
-        message: message
+        message: 'Email could not be sent. Please contact support.'
       });
     }
   } catch (error) {

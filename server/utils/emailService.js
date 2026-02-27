@@ -1,24 +1,6 @@
 const nodemailer = require('nodemailer');
 const sgTransport = require('nodemailer-sendgrid-transport');
 
-// ✅ Validate sender email is configured in environment
-const validateSenderEmail = () => {
-  const senderEmail = process.env.SENDGRID_FROM_EMAIL;
-  
-  if (!senderEmail) {
-    console.error('❌ SENDGRID_FROM_EMAIL not configured!');
-    console.error('💡 Fix: Set SENDGRID_FROM_EMAIL to your verified sender in SendGrid account');
-    console.error('📖 Steps:');
-    console.error('   1. Log in to SendGrid at https://app.sendgrid.com/');
-    console.error('   2. Go to Settings → Sender Authentication');
-    console.error('   3. Verify a sender email (e.g., support@yourcompany.com)');
-    console.error('   4. Add SENDGRID_FROM_EMAIL=verified-email@yourcompany.com to .env');
-    return null;
-  }
-  
-  return senderEmail;
-};
-
 // Create email transporter (using SendGrid)
 const createTransporter = () => {
   const sendGridApiKey = process.env.SENDGRID_API_KEY;
@@ -457,69 +439,6 @@ const emailTemplates = {
         </div>
       </div>
     `
-  }),
-
-  passwordReset: (data) => ({
-    subject: '🔐 Password Reset Request - SkillExchange',
-    html: `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
-        <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="margin: 0; font-size: 28px;">🔐 Password Reset Request</h1>
-        </div>
-        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
-          <p style="font-size: 16px; margin: 0 0 20px 0;">Hi ${data.name || 'there'},</p>
-          
-          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
-            You requested to reset your password for your SkillExchange account.
-          </p>
-          
-          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
-            Click the button below to reset your password:
-          </p>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${data.resetUrl}" style="display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-              Reset Password
-            </a>
-          </div>
-          
-          <p style="font-size: 14px; color: #666; line-height: 1.6; margin: 0 0 20px 0;">
-            Or copy and paste this link into your browser:
-          </p>
-          
-          <p style="word-break: break-all; background: white; padding: 15px; border-radius: 5px; font-size: 13px; color: #0066cc; margin: 0 0 20px 0;">
-            <a href="${data.resetUrl}" style="color: #0066cc; text-decoration: none;">${data.resetUrl}</a>
-          </p>
-          
-          <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
-            <strong style="color: #92400e;">⚠️ Important:</strong>
-            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #92400e;">
-              <li>This link expires in <strong>15 minutes</strong></li>
-              <li>If you didn't request this, please ignore this email</li>
-              <li>Your password won't change until you access the link above</li>
-              <li>Never share this link with anyone</li>
-            </ul>
-          </div>
-          
-          <p style="font-size: 14px; color: #666; line-height: 1.6; margin: 20px 0 0 0;">
-            If you have any questions, please contact our support team.
-          </p>
-          
-          <p style="font-size: 14px; margin: 20px 0 0 0;">
-            Best regards,<br><strong>The SkillExchange Team</strong>
-          </p>
-        </div>
-        
-        <div style="text-align: center; padding: 20px;">
-          <p style="font-size: 12px; color: #888; margin: 5px 0;">
-            © 2024 SkillExchange. All rights reserved.
-          </p>
-          <p style="font-size: 11px; color: #aaa; margin: 5px 0;">
-            This is an automated email, please do not reply.
-          </p>
-        </div>
-      </div>
-    `
   })
 };
 
@@ -533,19 +452,12 @@ const sendEmail = async (to, template, data) => {
       throw new Error('Invalid email address: ' + to);
     }
 
-    // ✅ Validate sender email is configured
-    const senderEmail = validateSenderEmail();
-    if (!senderEmail) {
-      throw new Error('SendGrid sender email not configured. Check environment variables.');
-    }
-
     const transporter = createTransporter();
     
     if (!transporter) {
       console.warn('⚠️  Email service not configured, skipping email send');
       if (process.env.NODE_ENV === 'development') {
         console.log(`📧 [EMAIL SIMULATION] To: ${to}`);
-        console.log(`   From: ${senderEmail}`);
         console.log(`   Template: ${template}`);
         console.log(`   Data:`, JSON.stringify(data, null, 2));
       }
@@ -559,58 +471,16 @@ const sendEmail = async (to, template, data) => {
       throw new Error(`Email template '${template}' not found`);
     }
 
-    // ✅ Add timeout wrapper with retry logic
-    const maxRetries = 3;
-    let lastError;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`📧 Sending email via SendGrid (attempt ${attempt}/${maxRetries})...`);
-        console.log(`   From: ${senderEmail}`);
-        console.log(`   To: ${to}`);
-        
-        // Create timeout promise
-        const sendPromise = transporter.sendMail({
-          from: senderEmail,
-          to,
-          subject: emailContent.subject,
-          html: emailContent.html
-        });
+    // Send email
+    const info = await transporter.sendMail({
+      from: process.env.FROM_EMAIL || 'noreply@skillexchange.com',
+      to,
+      subject: emailContent.subject,
+      html: emailContent.html
+    });
 
-        // 15 second timeout for SendGrid (usually faster, but can vary)
-        const info = await Promise.race([
-          sendPromise,
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Email sending timeout (SendGrid)')), 15000)
-          )
-        ]);
-
-        console.log('✅ Email sent successfully to', to, 'Message ID:', info.messageId);
-        return { success: true, messageId: info.messageId };
-      } catch (error) {
-        lastError = error;
-        console.error(`❌ Attempt ${attempt} failed:`, error.message);
-
-        // ✅ Don't retry for permanent errors (not configured, invalid sender, template errors)
-        if (error.message.includes('Sender Identity') || 
-            error.message.includes('verified') ||
-            error.message.includes('Invalid email') || 
-            error.message.includes('template') ||
-            error.message.includes('not configured')) {
-          console.error('💡 This is a configuration error. Fix it before retrying.');
-          throw error;
-        }
-
-        // Wait before retrying (except on last attempt)
-        if (attempt < maxRetries) {
-          const delay = 1000 * Math.pow(2, attempt - 1); // Exponential backoff: 1s, 2s, 4s
-          console.log(`⏳ Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-    }
-
-    throw lastError;
+    console.log('✅ Email sent successfully to', to, 'Message ID:', info.messageId);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ Error sending email:', error.message);
     throw error;
