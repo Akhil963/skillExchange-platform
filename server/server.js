@@ -228,6 +228,13 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
+// Handle password reset link from email
+// Redirect /reset-password/:token to /?reset=token
+app.get('/reset-password/:token', (req, res) => {
+  const { token } = req.params;
+  res.redirect(`/?reset=${token}`);
+});
+
 // Serve frontend for all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/index.html'));
