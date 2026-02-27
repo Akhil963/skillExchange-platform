@@ -226,7 +226,7 @@ async function initializeApp() {
     
     if (resetToken) {
       // Show reset password page if reset token present
-      navigateToPage('resetPasswordPage');
+      navigateToPage('resetPassword');
       return;
     }
 
@@ -653,6 +653,9 @@ function renderPage(userId = null) {
       break;
     case 'login':
       loadRememberedEmail();
+      break;
+    case 'resetPassword':
+      // Password reset form is displayed, no additional rendering needed
       break;
     case 'forgotPassword':
       renderForgotPassword();
