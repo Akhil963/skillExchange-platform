@@ -111,6 +111,7 @@ exports.login = async (req, res, next) => {
     const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password');
 
     if (!user) {
+      console.warn(`Login attempt with non-existent email: ${email}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -121,11 +122,14 @@ exports.login = async (req, res, next) => {
     const isPasswordMatch = await user.comparePassword(password);
 
     if (!isPasswordMatch) {
+      console.warn(`Login failed - password mismatch for user: ${email}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
     }
+
+    console.log(`✓ Login successful for user: ${email}`);
 
     // Update last login
     user.lastLogin = new Date();
@@ -141,6 +145,7 @@ exports.login = async (req, res, next) => {
       user: user.getPublicProfile()
     });
   } catch (error) {
+    console.error('Login error:', error.message);
     next(error);
   }
 };
@@ -393,15 +398,15 @@ exports.resetPassword = async (req, res, next) => {
       });
     }
 
-    // Verify password is in the document
-    if (!user.password) {
-      console.warn('Warning: User found but password field not loaded');
-    }
+    console.log(`Reset password initiated for user: ${user.email}`);
 
     // Set new password (this will trigger pre-save middleware to hash it)
     user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
+    
+    // Mark password as modified explicitly to ensure pre-save hook runs
+    user.markModified('password');
     
     // Save with validation enabled
     const savedUser = await user.save({ validateBeforeSave: true });
@@ -410,7 +415,15 @@ exports.resetPassword = async (req, res, next) => {
       throw new Error('Failed to save user with new password');
     }
 
-    console.log(`Password reset successful for user: ${savedUser.email}`);
+    console.log(`✓ Password reset successful for user: ${savedUser.email}`);
+    
+    // Verify the password was actually hashed by attempting comparison
+    const testCompare = await savedUser.comparePassword(password);
+    if (testCompare) {
+      console.log(`✓ Password verification successful - new password can be used to login`);
+    } else {
+      console.error(`✗ Password verification FAILED - password may not have been hashed correctly`);
+    }
 
     res.status(200).json({
       success: true,
@@ -418,6 +431,7 @@ exports.resetPassword = async (req, res, next) => {
     });
   } catch (error) {
     console.error('Reset password error:', error.message);
+    console.error('Stack:', error.stack);
     next(error);
   }
 };

@@ -281,15 +281,19 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
+  // Only hash if password is modified
   if (!this.isModified('password')) {
     return next();
   }
   
   try {
+    console.log(`[Pre-save hook] Hashing password for user: ${this.email}`);
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    console.log(`[Pre-save hook] ✓ Password hashed successfully for user: ${this.email}`);
     next();
   } catch (error) {
+    console.error(`[Pre-save hook] Error hashing password: ${error.message}`);
     next(error);
   }
 });
