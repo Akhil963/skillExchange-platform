@@ -313,14 +313,34 @@ exports.forgotPassword = async (req, res, next) => {
     }
 
     try {
-      const { sendEmail, getResetPasswordEmail } = require('../config/email');
-      
       if (contactInfo.method === 'email') {
-        await sendEmail({
-          email: user.email,
-          subject: 'Password Reset Request - SkillExchange',
-          html: getResetPasswordEmail(clientResetUrl, user.name)
-        });
+        // ✅ USE SENDGRID (more reliable) instead of Gmail SMTP
+        const { sendEmail: sendEmailViaSendGrid } = require('../utils/emailService');
+        
+        try {
+          // Add timeout to email sending operation
+          const emailSendPromise = sendEmailViaSendGrid(
+            user.email,
+            'passwordReset',
+            {
+              name: user.name,
+              resetUrl: clientResetUrl
+            }
+          );
+
+          // 20 second timeout for SendGrid operation
+          const emailWithTimeout = Promise.race([
+            emailSendPromise,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Email sending timeout')), 20000)
+            )
+          ]);
+
+          await emailWithTimeout;
+        } catch (emailTimeoutError) {
+          console.error('Email timeout/error:', emailTimeoutError.message);
+          throw emailTimeoutError;
+        }
       }
 
       res.status(200).json({
@@ -347,13 +367,19 @@ exports.forgotPassword = async (req, res, next) => {
           message: 'Email service not configured. Use this reset link:',
           resetUrl: clientResetUrl,
           resetToken: resetToken,
-          note: 'In development mode - configure SMTP for production'
+          note: 'In development mode - configure SendGrid API key for production'
         });
       }
 
-      return res.status(500).json({
+      // Return 503 Service Unavailable instead of 500 for transient email errors
+      const isTransientError = emailError.message.includes('timeout') || 
+                               emailError.message.includes('connection');
+      
+      return res.status(isTransientError ? 503 : 500).json({
         success: false,
-        message: 'Email could not be sent. Please contact support.'
+        message: isTransientError 
+          ? 'Email service temporarily unavailable. Please try again later.'
+          : 'Email could not be sent. Please contact support.'
       });
     }
   } catch (error) {

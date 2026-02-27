@@ -1,24 +1,88 @@
 const nodemailer = require('nodemailer');
 
-// Email configuration
-const sendEmail = async (options) => {
+// Reuse transporter instance for better performance
+let transporter = null;
+
+// Initialize transporter once
+const initializeTransporter = () => {
+  if (transporter) return transporter;
+
   // Validate environment variables
   if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
     console.error('❌ Email configuration missing! Check SMTP_EMAIL and SMTP_PASSWORD in .env');
-    throw new Error('Email service not configured. Please contact administrator.');
+    return null;
   }
 
-  // Create transporter with improved configuration
-  const transporter = nodemailer.createTransport({
-    service: 'gmail', // Use service instead of host for better compatibility
+  // Create transporter with optimized configuration for production
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
     auth: {
       user: process.env.SMTP_EMAIL,
       pass: process.env.SMTP_PASSWORD
     },
-    // Add these for better debugging
+    // ✅ CRITICAL: Add timeout configuration to prevent hanging
+    connectionTimeout: 10000,  // 10 seconds to establish connection
+    socketTimeout: 10000,      // 10 seconds for socket operations
+    // Pool for reuse
+    pool: {
+      maxConnections: 5,
+      maxMessages: 100,
+      rateDelta: 1000,
+      rateLimit: 10
+    },
+    // TLS settings for better security and compatibility
+    secure: true,
+    tls: {
+      rejectUnauthorized: false  // For Render environment compatibility
+    },
+    // Disable verification to avoid unnecessary verification timeout
+    requireTLS: true,
     debug: process.env.NODE_ENV === 'development',
     logger: process.env.NODE_ENV === 'development'
   });
+
+  return transporter;
+};
+
+// Retry logic for failed email sends
+const sendEmailWithRetry = async (mailOptions, maxRetries = 3, retryDelay = 2000) => {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`📧 Sending email (attempt ${attempt}/${maxRetries})...`);
+      const info = await transporter.sendMail(mailOptions);
+      console.log('✅ Email sent successfully:', info.messageId);
+      return info;
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Attempt ${attempt} failed:`, error.message);
+      
+      // Don't retry for auth errors
+      if (error.code === 'EAUTH') {
+        throw new Error('Email authentication failed. Please check SMTP credentials.');
+      }
+      
+      // Wait before retrying (except on last attempt)
+      if (attempt < maxRetries) {
+        const delay = retryDelay * Math.pow(2, attempt - 1); // Exponential backoff
+        console.log(`⏳ Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError;
+};
+
+// Email configuration
+const sendEmail = async (options) => {
+  // Initialize transporter if not already done
+  const transporter = initializeTransporter();
+  
+  if (!transporter) {
+    throw new Error('Email service not configured. Please contact administrator.');
+  }
 
   // Email options
   const mailOptions = {
@@ -29,12 +93,8 @@ const sendEmail = async (options) => {
   };
 
   try {
-    // Verify connection before sending
-    await transporter.verify();
-    
-    // Send email
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully:', info.messageId);
+    // Send with retry logic
+    const info = await sendEmailWithRetry(mailOptions);
     return info;
   } catch (error) {
     console.error('❌ Email error:', error.message);
@@ -43,8 +103,12 @@ const sendEmail = async (options) => {
     if (error.code === 'EAUTH') {
       console.error('💡 Fix: Generate a new Gmail App Password at https://myaccount.google.com/apppasswords');
       throw new Error('Email authentication failed. Please contact administrator to update email credentials.');
-    } else if (error.code === 'ECONNECTION') {
-      throw new Error('Cannot connect to email server. Please check your internet connection.');
+    } else if (error.code === 'ECONNECTION' || error.message.includes('Connection timeout')) {
+      console.error('💡 Fix: Check your firewall settings and SMTP credentials');
+      throw new Error('Cannot connect to email server. Please check your internet connection and email configuration.');
+    } else if (error.message.includes('timeout')) {
+      console.error('💡 Fix: Connection timed out. Verify SMTP server is accessible.');
+      throw new Error('Email server connection timed out. Please try again later.');
     } else {
       throw new Error('Email could not be sent: ' + error.message);
     }
