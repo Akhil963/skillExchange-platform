@@ -208,7 +208,7 @@ const sendPasswordResetEmail = async (admin, resetToken) => {
         // Send email via SendGrid
         const msg = {
             to: admin.email,
-            from: process.env.FROM_EMAIL || 'noreply@skillexchange.com',
+            from: process.env.FROM_EMAIL || 'noreply@sendgrid.net',
             subject: '🔐 Admin Password Reset Request - SkillExchange',
             html: htmlContent
         };
@@ -367,7 +367,7 @@ const sendWelcomeEmail = async (admin) => {
         // Send email via SendGrid
         const msg = {
             to: admin.email,
-            from: process.env.FROM_EMAIL || 'noreply@skillexchange.com',
+            from: process.env.FROM_EMAIL || 'noreply@sendgrid.net',
             subject: '🎉 Welcome to SkillExchange Admin Panel!',
             html: htmlContent
         };

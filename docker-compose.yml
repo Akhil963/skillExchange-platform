@@ -53,7 +53,7 @@ services:
       SMTP_PORT: 587
       SMTP_EMAIL: your-email@gmail.com
       SMTP_PASSWORD: your-app-password
-      FROM_EMAIL: noreply@SkillExchange.com
+      FROM_EMAIL: noreply@sendgrid.net
       FROM_NAME: SkillExchange Platform
     ports:
       - "5000:5000"

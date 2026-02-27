@@ -83,19 +83,12 @@ const config = {
   // ===================================
   email: {
     enabled: parseBoolean(process.env.EMAIL_ENABLED, true),
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT, 10) || 587,
-    secure: parseBoolean(process.env.SMTP_SECURE, false),
-    auth: {
-      user: process.env.SMTP_EMAIL,
-      pass: process.env.SMTP_PASSWORD,
-    },
     from: {
-      email: process.env.FROM_EMAIL || 'noreply@SkillExchange.com',
+      email: process.env.FROM_EMAIL || 'noreply@sendgrid.net',
       name: process.env.FROM_NAME || 'SkillExchange Platform',
     },
-    // Check if email is properly configured
-    isConfigured: !!(process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD),
+    // Check if SendGrid is properly configured
+    isConfigured: !!process.env.SENDGRID_API_KEY,
   },
 
   // ===================================

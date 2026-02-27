@@ -467,7 +467,7 @@ const sendEmail = async (to, template, data) => {
     // Send email via SendGrid
     const msg = {
       to,
-      from: process.env.FROM_EMAIL || 'noreply@skillexchange.com',
+      from: process.env.FROM_EMAIL || 'noreply@sendgrid.net',
       subject: emailContent.subject,
       html: emailContent.html
     };
