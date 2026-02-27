@@ -217,6 +217,38 @@ const userSchema = new mongoose.Schema({
   resetPasswordExpire: {
     type: Date
   },
+  // OTP for 2FA during password reset
+  resetOTP: {
+    type: String // 6-digit code
+  },
+  resetOTPExpire: {
+    type: Date // 10 minutes
+  },
+  resetOTPAttempts: {
+    type: Number,
+    default: 0 // Track failed OTP attempts
+  },
+  // Email verification
+  emailVerificationToken: {
+    type: String
+  },
+  emailVerificationExpire: {
+    type: Date // 30 minutes
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  // SMS reset preferences
+  smsResetEnabled: {
+    type: Boolean,
+    default: false
+  },
+  resetMethod: {
+    type: String,
+    enum: ['email', 'sms'],
+    default: 'email'
+  },
   emailNotifications: {
     exchangeRequests: {
       type: Boolean,
@@ -363,6 +395,71 @@ userSchema.statics.findByIdentifier = async function(identifier) {
   }
   
   return await this.findOne(query);
+};
+
+// Generate 6-digit OTP for 2FA
+userSchema.methods.generateResetOTP = function() {
+  // Generate 6-digit OTP (random number from 100000 to 999999)
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Store OTP (in production, consider hashing this too)
+  this.resetOTP = otp;
+  this.resetOTPExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+  this.resetOTPAttempts = 0; // Reset attempts counter
+  
+  return otp;
+};
+
+// Verify OTP
+userSchema.methods.verifyResetOTP = function(otp) {
+  // Check if OTP is expired
+  if (Date.now() > this.resetOTPExpire) {
+    return { success: false, message: 'OTP has expired' };
+  }
+  
+  // Check maximum attempts (max 5 attempts)
+  if (this.resetOTPAttempts >= 5) {
+    return { success: false, message: 'Maximum OTP attempts exceeded. Request a new one.' };
+  }
+  
+  // Verify OTP
+  if (this.resetOTP === otp) {
+    return { success: true, message: 'OTP verified successfully' };
+  }
+  
+  // Increment failed attempts
+  this.resetOTPAttempts += 1;
+  return { success: false, message: `Invalid OTP. ${5 - this.resetOTPAttempts} attempts remaining.` };
+};
+
+// Generate email verification token
+userSchema.methods.generateEmailVerificationToken = function() {
+  const crypto = require('crypto');
+  const token = crypto.randomBytes(20).toString('hex');
+  
+  this.emailVerificationToken = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+  
+  this.emailVerificationExpire = Date.now() + 30 * 60 * 1000; // 30 minutes
+  
+  return token;
+};
+
+// Verify email token
+userSchema.statics.findByEmailVerificationToken = async function(token) {
+  const crypto = require('crypto');
+  
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+  
+  return await this.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationExpire: { $gt: Date.now() }
+  });
 };
 
 // Virtual for full profile URL

@@ -144,8 +144,113 @@ const getWelcomeEmail = (name) => {
   `;
 };
 
+// OTP Email template for 2FA
+const getOTPEmail = (otp, name) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+        .otp-box { background: white; padding: 30px; text-align: center; border-radius: 10px; margin: 20px 0; border: 2px solid #f59e0b; }
+        .otp-value { font-size: 48px; font-weight: 700; letter-spacing: 10px; color: #f59e0b; font-family: 'Courier New', monospace; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔐 Your Verification Code</h1>
+        </div>
+        <div class="content">
+          <h2>Hi ${name || 'there'},</h2>
+          <p>You requested a password reset for your SkillExchange account. Use the verification code below to proceed:</p>
+          
+          <div class="otp-box">
+            <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">Your Code</p>
+            <div class="otp-value">${otp}</div>
+          </div>
+          
+          <div class="warning">
+            <strong>⚠️ Important:</strong>
+            <ul style="margin: 10px 0 0 0;">
+              <li>This code expires in <strong>10 minutes</strong></li>
+              <li>Never share this code with anyone</li>
+              <li>If you didn't request this, please ignore this email</li>
+            </ul>
+          </div>
+          
+          <p>Best regards,<br><strong>The SkillExchange Team</strong></p>
+        </div>
+        <div class="footer">
+          <p>© 2024 SkillExchange. All rights reserved.</p>
+          <p>This is an automated email, please do not reply.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+// Email Verification template
+const getEmailVerificationEmail = (verificationUrl, name) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+        .button { display: inline-block; padding: 12px 30px; background: #3b82f6; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        .info { background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✅ Verify Your Email</h1>
+        </div>
+        <div class="content">
+          <h2>Hi ${name || 'there'},</h2>
+          <p>Before we can reset your password, please verify your email address:</p>
+          
+          <div style="text-align: center;">
+            <a href="${verificationUrl}" class="button">Verify Email</a>
+          </div>
+          
+          <p>Or copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; background: white; padding: 10px; border-radius: 5px;">
+            <a href="${verificationUrl}">${verificationUrl}</a>
+          </p>
+          
+          <div class="info">
+            <strong>ℹ️ What's next?</strong><br>
+            After verifying your email, you'll receive a password reset link in a separate email.
+          </div>
+          
+          <p>Best regards,<br><strong>The SkillExchange Team</strong></p>
+        </div>
+        <div class="footer">
+          <p>© 2024 SkillExchange. All rights reserved.</p>
+          <p>This is an automated email, please do not reply.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 module.exports = { 
   sendEmail, 
   getResetPasswordEmail,
-  getWelcomeEmail 
+  getWelcomeEmail,
+  getOTPEmail,
+  getEmailVerificationEmail
 };

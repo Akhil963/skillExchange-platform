@@ -7,13 +7,25 @@ const {
   updateProfile,
   changePassword,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  requestEmailVerification,
+  verifyEmail,
+  verifyOTP,
+  resendOTP
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
 // Public routes
 router.post('/register', register);
 router.post('/login', login);
+
+// Password reset with 2FA flow
+router.post('/request-email-verification', requestEmailVerification);
+router.post('/verify-email/:token', verifyEmail);
+router.post('/verify-otp', verifyOTP);
+router.post('/resend-otp', resendOTP);
+
+// Legacy password reset (direct)
 router.post('/forgot-password', forgotPassword);
 router.put('/reset-password/:resetToken', resetPassword);
 

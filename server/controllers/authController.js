@@ -407,3 +407,237 @@ exports.resetPassword = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Request email verification before password reset
+// @route   POST /api/auth/request-email-verification
+// @access  Public
+exports.requestEmailVerification = async (req, res, next) => {
+  try {
+    const { identifier } = req.body;
+
+    if (!identifier) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide email, username, or phone'
+      });
+    }
+
+    // Find user
+    const user = await User.findByIdentifier(identifier);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with that information'
+      });
+    }
+
+    // Generate email verification token
+    const verificationToken = user.generateEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+
+    // Create verification URL
+    const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:5000'}/verify-email/${verificationToken}`;
+
+    try {
+      const { getEmailVerificationEmail } = require('../config/email');
+      await sendEmail({
+        email: user.email,
+        subject: 'Verify Your Email - SkillExchange Password Reset',
+        html: getEmailVerificationEmail(verificationUrl, user.name)
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Verification email sent. Please check your inbox.',
+        maskedEmail: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+      });
+    } catch (emailError) {
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+      throw emailError;
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify email and generate reset OTP
+// @route   POST /api/auth/verify-email/:token
+// @access  Public
+exports.verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const { method = 'email' } = req.body; // 'email' or 'sms'
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification token is required'
+      });
+    }
+
+    // Find user by email verification token
+    const user = await User.findByEmailVerificationToken(token);
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification link'
+      });
+    }
+
+    // Mark email as verified
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpire = undefined;
+
+    // Generate OTP
+    const otp = user.generateResetOTP();
+    user.resetMethod = method;
+    await user.save({ validateBeforeSave: false });
+
+    try {
+      if (method === 'sms' && user.phone) {
+        // Send OTP via SMS
+        const { sendOTPSMS } = require('../utils/smsService');
+        await sendOTPSMS(user.phone, otp);
+        
+        res.status(200).json({
+          success: true,
+          message: 'OTP sent to your phone',
+          method: 'sms',
+          maskedPhone: user.phone.replace(/(.{2})(.*)(.{2})/, '$1***$3')
+        });
+      } else {
+        // Send OTP via email
+        const { getOTPEmail } = require('../config/email');
+        await sendEmail({
+          email: user.email,
+          subject: '🔐 Your SkillExchange Password Reset Code',
+          html: getOTPEmail(otp, user.name)
+        });
+
+        res.status(200).json({
+          success: true,
+          message: 'OTP sent to your email',
+          method: 'email',
+          maskedEmail: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+        });
+      }
+    } catch (otpError) {
+      user.resetOTP = undefined;
+      user.resetOTPExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+      throw otpError;
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify OTP and generate reset password token
+// @route   POST /api/auth/verify-otp
+// @access  Public
+exports.verifyOTP = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and OTP are required'
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Verify OTP
+    const verification = user.verifyResetOTP(otp);
+    if (!verification.success) {
+      await user.save({ validateBeforeSave: false });
+      return res.status(400).json({
+        success: false,
+        message: verification.message
+      });
+    }
+
+    // Generate reset token for password reset
+    const resetToken = user.getResetPasswordToken();
+    user.resetOTP = undefined;
+    user.resetOTPExpire = undefined;
+    user.resetOTPAttempts = 0;
+    await user.save({ validateBeforeSave: false });
+
+    const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5000'}/reset-password/${resetToken}`;
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified. You can now reset your password.',
+      resetUrl: process.env.NODE_ENV === 'development' ? resetUrl : undefined,
+      resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Request OTP resend
+// @route   POST /api/auth/resend-otp
+// @access  Public
+exports.resendOTP = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || !user.emailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please verify your email first'
+      });
+    }
+
+    // Generate new OTP
+    const otp = user.generateResetOTP();
+    await user.save({ validateBeforeSave: false });
+
+    try {
+      if (user.resetMethod === 'sms' && user.phone) {
+        const { sendOTPSMS } = require('../utils/smsService');
+        await sendOTPSMS(user.phone, otp);
+      } else {
+        const { getOTPEmail } = require('../config/email');
+        await sendEmail({
+          email: user.email,
+          subject: '🔐 Your SkillExchange Password Reset Code (Resend)',
+          html: getOTPEmail(otp, user.name)
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `OTP resent to your ${user.resetMethod}`
+      });
+    } catch (error) {
+      user.resetOTP = undefined;
+      user.resetOTPExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+      throw error;
+    }
+  } catch (error) {
+    next(error);
+  }
+};
