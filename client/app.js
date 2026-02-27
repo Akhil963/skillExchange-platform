@@ -3412,8 +3412,6 @@ async function handleResetPasswordSubmit(e) {
     }
   }
 }
-  }
-}
 
 // ======================
 // SKILL MANAGEMENT
