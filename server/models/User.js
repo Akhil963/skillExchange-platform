@@ -33,6 +33,11 @@ const skillSchema = new mongoose.Schema({
     trim: true,
     maxlength: [500, 'Description cannot exceed 500 characters']
   },
+  thumbnail: {
+    type: String,
+    trim: true,
+    default: null
+  },
   tags: [{
     type: String,
     trim: true

@@ -728,8 +728,113 @@ function updateNavigation() {
 }
 
 // ======================
-// HOME PAGE
+// SKILL IMAGE & UTILITY FUNCTIONS
 // ======================
+
+// Category colors mapping for gradient backgrounds
+const CATEGORY_COLORS = {
+  'Programming': { primary: '#667eea', secondary: '#764ba2' },
+  'Design': { primary: '#f093fb', secondary: '#f5576c' },
+  'Languages': { primary: '#4facfe', secondary: '#00f2fe' },
+  'Music': { primary: '#fa709a', secondary: '#fee140' },
+  'Business': { primary: '#30cfd0', secondary: '#330867' },
+  'Marketing': { primary: '#a8edea', secondary: '#fed6e3' },
+  'Writing': { primary: '#ff9a9e', secondary: '#fecfef' },
+  'Photography': { primary: '#ffecd2', secondary: '#fcb69f' },
+  'Video': { primary: '#ff6e7f', secondary: '#bfe9ff' },
+  'Teaching': { primary: '#a1c4fd', secondary: '#c2e9fb' },
+  'Fitness': { primary: '#fa709a', secondary: '#fee140' },
+  'Data': { primary: '#30cfd0', secondary: '#330867' },
+  'AI': { primary: '#667eea', secondary: '#764ba2' },
+  'Other': { primary: '#667eea', secondary: '#764ba2' }
+};
+
+// Category emojis
+const CATEGORY_EMOJIS = {
+  'Programming': '💻',
+  'Design': '🎨',
+  'Languages': '🌍',
+  'Music': '🎵',
+  'Business': '💼',
+  'Marketing': '📢',
+  'Writing': '✍️',
+  'Photography': '📷',
+  'Video': '🎬',
+  'Teaching': '📚',
+  'Fitness': '💪',
+  'Data': '📊',
+  'AI': '🤖',
+  'Other': '⭐',
+  'Academic': '🎓',
+  'Arts & Crafts': '🎭',
+  'Management': '📈'
+};
+
+// Get gradient colors for a category
+function getCategoryGradient(category) {
+  // Normalize category name
+  const normalizedCategory = Object.keys(CATEGORY_COLORS).find(cat => 
+    category?.toLowerCase().includes(cat.toLowerCase()) || cat.toLowerCase().includes(category?.toLowerCase())
+  ) || 'Other';
+  
+  const colors = CATEGORY_COLORS[normalizedCategory];
+  return `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`;
+}
+
+// Get emoji icon for a category
+function getCategoryEmoji(category) {
+  const normalizedCategory = Object.keys(CATEGORY_EMOJIS).find(cat => 
+    category?.toLowerCase().includes(cat.toLowerCase()) || cat.toLowerCase().includes(category?.toLowerCase())
+  ) || 'Other';
+  
+  return CATEGORY_EMOJIS[normalizedCategory];
+}
+
+// Get skill image or fallback gradient
+function getSkillImage(skill) {
+  // If skill has a custom thumbnail, use it
+  if (skill.thumbnail && skill.thumbnail.trim() !== '') {
+    return {
+      type: 'image',
+      value: skill.thumbnail,
+      fallback: getCategoryGradient(skill.category)
+    };
+  }
+  
+  // Check if there's a video thumbnail from first video
+  if (skill.videos && skill.videos.length > 0 && skill.videos[0].url) {
+    const videoUrl = skill.videos[0].url;
+    let thumbnailUrl = null;
+    
+    // Extract YouTube thumbnail
+    if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+      const videoId = videoUrl.includes('youtu.be') 
+        ? videoUrl.split('/').pop().split('?')[0]
+        : new URL(videoUrl).searchParams.get('v');
+      if (videoId) {
+        thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+      }
+    }
+    
+    if (thumbnailUrl) {
+      return {
+        type: 'image',
+        value: thumbnailUrl,
+        fallback: getCategoryGradient(skill.category)
+      };
+    }
+  }
+  
+  // Fallback to category-based gradient
+  return {
+    type: 'gradient',
+    value: getCategoryGradient(skill.category),
+    emoji: getCategoryEmoji(skill.category)
+  };
+}
+
+// ======================
+
 
 async function renderHomePage() {
   try {
@@ -740,16 +845,32 @@ async function renderHomePage() {
     const featuredSkillsGrid = document.getElementById('featuredSkillsGrid');
     if (featuredSkillsGrid) {
       if (AppState.featuredSkills.length > 0) {
-        featuredSkillsGrid.innerHTML = AppState.featuredSkills.map(skill => `
-          <div class="skill-card">
-            <div class="skill-image" style="background: linear-gradient(135deg, var(--color-primary), var(--color-teal-700));"></div>
-            <div class="skill-info">
-              <h3 class="skill-name">${skill.name}</h3>
-              <p class="skill-provider">by ${skill.user.name}</p>
-              <div class="skill-rating">⭐ ${skill.user.rating.toFixed(1)}</div>
+        featuredSkillsGrid.innerHTML = AppState.featuredSkills.map(skill => {
+          const skillImage = getSkillImage(skill);
+          const imageStyle = skillImage.type === 'image' 
+            ? `background-image: url('${skillImage.value}'); background-size: cover; background-position: center;`
+            : `background: ${skillImage.value}; display: flex; align-items: center; justify-content: center; font-size: 48px;`;
+          
+          const imageContent = skillImage.type === 'gradient' 
+            ? `<div style="font-size: 48px;">${skillImage.emoji}</div>` 
+            : '';
+
+          return `
+            <div class="skill-card">
+              <div class="skill-image" style="${imageStyle}">
+                ${imageContent}
+              </div>
+              <div class="skill-info">
+                <h3 class="skill-name">${skill.name}</h3>
+                <p class="skill-provider">by ${skill.user.name}</p>
+                <div class="skill-category" style="margin-top: 8px; font-size: 12px; color: var(--color-text-secondary);">
+                  ${getCategoryEmoji(skill.category)} ${skill.category}
+                </div>
+                <div class="skill-rating">⭐ ${skill.user.rating.toFixed(1)}</div>
+              </div>
             </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       } else {
         featuredSkillsGrid.innerHTML = `
           <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--color-text-secondary);">
@@ -862,15 +983,33 @@ function renderDashboardSkills() {
     return;
   }
 
-  dashboardSkills.innerHTML = skills.map(skill => `
-    <div class="dashboard-skill-item">
-      <div class="dashboard-skill-info">
-        <div class="dashboard-skill-name">${skill.name}</div>
-        <div class="dashboard-skill-level">${skill.experience_level}</div>
-        <span class="dashboard-skill-category">📚 ${skill.category}</span>
+  dashboardSkills.innerHTML = skills.map(skill => {
+    const skillImage = getSkillImage(skill);
+    const imageStyle = skillImage.type === 'image' 
+      ? `background-image: url('${skillImage.value}'); background-size: cover; background-position: center;`
+      : `background: ${skillImage.value}; display: flex; align-items: center; justify-content: center;`;
+    
+    const imageContent = skillImage.type === 'gradient' 
+      ? `<span style="font-size: 32px;">${skillImage.emoji}</span>` 
+      : '';
+
+    return `
+      <div class="dashboard-skill-item" style="display: flex; gap: 12px; background: var(--color-surface); padding: 12px; border-radius: var(--radius-lg); border: 1px solid var(--color-card-border); transition: all 0.2s;">
+        <div class="dashboard-skill-thumbnail" style="${imageStyle}; width: 80px; height: 80px; border-radius: var(--radius-md); flex-shrink: 0;">
+          ${imageContent}
+        </div>
+        <div class="dashboard-skill-info" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+          <div class="dashboard-skill-name" style="font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px;">${skill.name}</div>
+          <div class="dashboard-skill-category" style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px;">
+            ${getCategoryEmoji(skill.category)} ${skill.category}
+          </div>
+          <div class="dashboard-skill-level" style="display: inline-block; background: var(--color-primary-light); color: var(--color-primary); padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; width: fit-content;">
+            ${skill.experience_level}
+          </div>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // Render profile completion widget
@@ -1398,61 +1537,48 @@ function renderSkillsGrid(skills) {
   }
 
   skillsMarketplace.innerHTML = filteredSkills.map(skill => {
-    const categoryColors = {
-      'Programming': '#4f46e5',
-      'Design': '#ec4899',
-      'Marketing': '#f59e0b',
-      'Business': '#10b981',
-      'Writing': '#8b5cf6',
-      'Data Science': '#06b6d4',
-      'AI & Machine Learning': '#ef4444',
-      'Video Editing': '#6366f1',
-      'Music': '#f97316',
-      'Photography': '#14b8a6',
-      'Teaching': '#a855f7',
-      'Health & Fitness': '#059669',
-      'Lifestyle': '#d946ef',
-      'Other': '#6b7280'
-    };
+    const skillImage = getSkillImage(skill);
+    const imageStyle = skillImage.type === 'image' 
+      ? `background-image: url('${skillImage.value}'); background-size: cover; background-position: center;`
+      : `background: ${skillImage.value};`;
     
-    const categoryColor = categoryColors[skill.category] || '#6b7280';
     const userRating = skill.user?.rating || 0;
     const userName = skill.user?.name || 'Unknown User';
     const userAvatar = skill.user?.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userName);
     const userId = skill.user?._id;
     
     return `
-      <div class="marketplace-skill-card" style="border-left: 4px solid ${categoryColor};">
-        <div class="skill-header" style="cursor: pointer;" onclick="navigateToPage('profile', '${userId}')">
-          <img src="${userAvatar}" 
-               alt="${userName}" 
-               class="skill-avatar"
-               onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}'">
-          <div class="skill-meta">
-            <h3 class="skill-title">${skill.name}</h3>
-            <p class="skill-user" style="display: flex; align-items: center; gap: 6px;">
-              <span>by ${userName}</span>
-              <span style="color: var(--color-warning); font-size: 12px;">⭐ ${userRating.toFixed(1)}</span>
-            </p>
+      <div class="marketplace-skill-card" style="overflow: hidden; border: 1px solid var(--color-card-border); border-radius: var(--radius-lg); transition: all 0.3s ease;">
+        <div class="skill-thumbnail" style="${imageStyle}; height: 160px; display: flex; align-items: flex-end; justify-content: flex-start; padding: 12px; background-color: var(--color-surface);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <img src="${userAvatar}" 
+                 alt="${userName}" 
+                 class="skill-avatar"
+                 style="width: 48px; height: 48px; border-radius: 50%; border: 3px solid white; background: white;"
+                 onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}'">
+            <div>
+              <div style="color: white; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${userName}</div>
+              <div style="color: rgba(255,255,255,0.9); font-size: 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">⭐ ${userRating.toFixed(1)}</div>
+            </div>
           </div>
         </div>
-        <div class="skill-category" style="background: ${categoryColor}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-block; margin: 8px 0;">
-          ${skill.category}
+        <div style="padding: 16px;">
+          <h3 class="skill-title" style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: var(--color-text-primary);">${skill.name}</h3>
+          <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+            <span class="skill-category" style="background: var(--color-primary); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+              ${getCategoryEmoji(skill.category)} ${skill.category}
+            </span>
+            <span class="skill-level" style="background: var(--color-bg-1); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 500;">
+              📚 ${skill.experience_level}
+            </span>
+          </div>
+          <p class="skill-description" style="margin: 0 0 12px 0; color: var(--color-text-secondary); font-size: 14px; line-height: 1.5;">
+            ${skill.description || 'No description available'}
+          </p>
+          <button class="btn btn--primary btn--sm" style="width: 100%; margin-top: 12px;" onclick="openExchangeModal('${userId}', '${skill.name}')">
+            🤝 Request Exchange
+          </button>
         </div>
-        <p class="skill-description" style="margin: 12px 0; color: var(--color-text-secondary); font-size: 14px; line-height: 1.5;">
-          ${skill.description || 'No description available'}
-        </p>
-        <div class="skill-footer" style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding-top: 12px; border-top: 1px solid var(--color-card-border);">
-          <span class="skill-level" style="background: var(--color-bg-1); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 500;">
-            📚 ${skill.experience_level}
-          </span>
-          <span style="font-size: 12px; color: var(--color-text-secondary);">
-            User ID: ${userId.slice(-6)}
-          </span>
-        </div>
-        <button class="btn btn--primary btn--sm" style="width: 100%; margin-top: 12px;" onclick="openExchangeModal('${userId}', '${skill.name}')">
-          🤝 Request Exchange
-        </button>
       </div>
     `;
   }).join('');
