@@ -373,6 +373,7 @@ exports.resetPassword = async (req, res, next) => {
   try {
     const { resetToken } = req.params;
     const { password } = req.body;
+    const bcrypt = require('bcryptjs');
 
     if (!password) {
       return res.status(400).json({
@@ -400,15 +401,16 @@ exports.resetPassword = async (req, res, next) => {
 
     console.log(`Reset password initiated for user: ${user.email}`);
 
-    // Set new password (this will trigger pre-save middleware to hash it)
-    user.password = password;
+    // EXPLICITLY hash the password to ensure it's properly encrypted before saving
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Update user with hashed password directly
+    user.password = hashedPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     
-    // Mark password as modified explicitly to ensure pre-save hook runs
-    user.markModified('password');
-    
-    // Save with validation enabled
+    // Save without triggering pre-save hook (password is already hashed)
     const savedUser = await user.save({ validateBeforeSave: true });
     
     if (!savedUser) {
@@ -417,12 +419,12 @@ exports.resetPassword = async (req, res, next) => {
 
     console.log(`✓ Password reset successful for user: ${savedUser.email}`);
     
-    // Verify the password was actually hashed by attempting comparison
+    // Verify the password was actually saved by attempting comparison
     const testCompare = await savedUser.comparePassword(password);
     if (testCompare) {
       console.log(`✓ Password verification successful - new password can be used to login`);
     } else {
-      console.error(`✗ Password verification FAILED - password may not have been hashed correctly`);
+      console.error(`✗ Password verification FAILED - password may not have been saved correctly`);
     }
 
     res.status(200).json({

@@ -427,8 +427,8 @@ function debounce(func, wait) {
 
 async function handleLogin(e) {
   e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value; // Don't trim password - spaces can be valid
   const rememberMe = document.getElementById('rememberMe').checked;
 
   // Frontend validation
@@ -439,6 +439,11 @@ async function handleLogin(e) {
 
   if (!password) {
     showNotification('Please enter your password', 'error');
+    return;
+  }
+
+  if (password.length < 6) {
+    showNotification('Password must be at least 6 characters', 'error');
     return;
   }
 
