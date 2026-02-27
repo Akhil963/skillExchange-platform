@@ -1,31 +1,26 @@
-const nodemailer = require('nodemailer');
-const sgTransport = require('nodemailer-sendgrid-transport');
+const sgMail = require('@sendgrid/mail');
 
-// Create email transporter (using SendGrid)
-const createTransporter = () => {
+// Initialize SendGrid
+const initializeSendGrid = () => {
   const sendGridApiKey = process.env.SENDGRID_API_KEY;
   
   if (!sendGridApiKey) {
     console.log('⚠️  SendGrid not configured. Set SENDGRID_API_KEY in environment variables');
-    return null;
+    return false;
   }
 
   try {
-    const transporter = nodemailer.createTransport(
-      sgTransport({
-        auth: {
-          api_key: sendGridApiKey
-        }
-      })
-    );
-
-    console.log('✅ Email transporter configured with SendGrid');
-    return transporter;
+    sgMail.setApiKey(sendGridApiKey);
+    console.log('✅ SendGrid configured successfully');
+    return true;
   } catch (err) {
-    console.error('❌ Error creating email transporter:', err.message);
-    return null;
+    console.error('❌ Error configuring SendGrid:', err.message);
+    return false;
   }
 };
+
+// Initialize on module load
+initializeSendGrid();
 
 // ========================================
 // EMAIL TEMPLATES (DEFINED BEFORE sendEmail)
@@ -452,9 +447,7 @@ const sendEmail = async (to, template, data) => {
       throw new Error('Invalid email address: ' + to);
     }
 
-    const transporter = createTransporter();
-    
-    if (!transporter) {
+    if (!process.env.SENDGRID_API_KEY) {
       console.warn('⚠️  Email service not configured, skipping email send');
       if (process.env.NODE_ENV === 'development') {
         console.log(`📧 [EMAIL SIMULATION] To: ${to}`);
@@ -464,23 +457,24 @@ const sendEmail = async (to, template, data) => {
       return { success: false, message: 'Email service not configured' };
     }
 
-    // Get email template (now available since emailTemplates is defined above)
+    // Get email template
     const emailContent = emailTemplates[template]?.(data);
     
     if (!emailContent) {
       throw new Error(`Email template '${template}' not found`);
     }
 
-    // Send email
-    const info = await transporter.sendMail({
-      from: process.env.FROM_EMAIL || 'noreply@skillexchange.com',
+    // Send email via SendGrid
+    const msg = {
       to,
+      from: process.env.FROM_EMAIL || 'noreply@skillexchange.com',
       subject: emailContent.subject,
       html: emailContent.html
-    });
+    };
 
-    console.log('✅ Email sent successfully to', to, 'Message ID:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    const result = await sgMail.send(msg);
+    console.log('✅ Email sent successfully to', to, 'Message ID:', result[0]?.messageId || 'Success');
+    return { success: true, messageId: result[0]?.messageId || 'sent' };
   } catch (error) {
     console.error('❌ Error sending email:', error.message);
     throw error;

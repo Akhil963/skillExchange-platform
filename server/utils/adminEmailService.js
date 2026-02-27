@@ -1,36 +1,35 @@
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 require('dotenv').config(); // Use main .env file
 
-// Create reusable transporter - ALWAYS use main SMTP credentials
-const createTransporter = () => {
-    // ONLY use SMTP_ variables from main .env (ignore ADMIN_EMAIL_ variables)
-    const emailUser = process.env.SMTP_EMAIL;
-    const emailPass = process.env.SMTP_PASSWORD;
-
-    console.log('📧 Admin Email Config:', {
-        emailUser: emailUser || 'NOT SET',
-        hasPassword: !!emailPass
-    });
-
-    if (!emailUser || !emailPass) {
-        console.error('❌ SMTP credentials not configured in main .env file!');
-        console.error('Please set SMTP_EMAIL and SMTP_PASSWORD');
-        throw new Error('Email service not configured');
+// Initialize SendGrid
+const initializeSendGrid = () => {
+    const apiKey = process.env.SENDGRID_API_KEY;
+    
+    if (!apiKey) {
+        console.error('❌ SENDGRID_API_KEY not configured in .env file!');
+        return false;
     }
 
-    return nodemailer.createTransport({
-        service: 'gmail', // Use service for better Gmail compatibility
-        auth: {
-            user: emailUser,
-            pass: emailPass
-        }
-    });
+    try {
+        sgMail.setApiKey(apiKey);
+        console.log('✅ Admin email service configured with SendGrid');
+        return true;
+    } catch (err) {
+        console.error('❌ Error configuring SendGrid:', err.message);
+        return false;
+    }
 };
+
+// Initialize on module load
+initializeSendGrid();
 
 // Send password reset email
 const sendPasswordResetEmail = async (admin, resetToken) => {
     try {
-        const transporter = createTransporter();
+        if (!process.env.SENDGRID_API_KEY) {
+            console.warn('⚠️  SendGrid not configured, skipping email');
+            return { success: false, message: 'Email service not configured' };
+        }
         
         // Create reset URL
         const resetUrl = `${process.env.ADMIN_FRONTEND_URL || 'http://localhost:5000'}/admin/admin-reset-password.html?token=${resetToken}`;
@@ -206,16 +205,17 @@ const sendPasswordResetEmail = async (admin, resetToken) => {
             </html>
         `;
         
-        // Send email
-        const info = await transporter.sendMail({
-            from: `"SkillExchange Admin" <${process.env.ADMIN_EMAIL_USER}>`,
+        // Send email via SendGrid
+        const msg = {
             to: admin.email,
+            from: process.env.FROM_EMAIL || 'noreply@skillexchange.com',
             subject: '🔐 Admin Password Reset Request - SkillExchange',
             html: htmlContent
-        });
-        
-        console.log('✅ Password reset email sent:', info.messageId);
-        return { success: true, messageId: info.messageId };
+        };
+
+        const result = await sgMail.send(msg);
+        console.log('✅ Password reset email sent:', result[0]?.messageId || 'Success');
+        return { success: true, messageId: result[0]?.messageId || 'sent' };
         
     } catch (error) {
         console.error('❌ Error sending password reset email:', error);
@@ -226,7 +226,10 @@ const sendPasswordResetEmail = async (admin, resetToken) => {
 // Send welcome email on signup
 const sendWelcomeEmail = async (admin) => {
     try {
-        const transporter = createTransporter();
+        if (!process.env.SENDGRID_API_KEY) {
+            console.warn('⚠️  SendGrid not configured, skipping email');
+            return;
+        }
         
         const htmlContent = `
             <!DOCTYPE html>
@@ -361,13 +364,15 @@ const sendWelcomeEmail = async (admin) => {
             </html>
         `;
         
-        await transporter.sendMail({
-            from: `"SkillExchange Admin" <${process.env.ADMIN_EMAIL_USER}>`,
+        // Send email via SendGrid
+        const msg = {
             to: admin.email,
+            from: process.env.FROM_EMAIL || 'noreply@skillexchange.com',
             subject: '🎉 Welcome to SkillExchange Admin Panel!',
             html: htmlContent
-        });
-        
+        };
+
+        await sgMail.send(msg);
         console.log('✅ Welcome email sent to:', admin.email);
         
     } catch (error) {
@@ -377,16 +382,14 @@ const sendWelcomeEmail = async (admin) => {
 };
 
 // Verify email configuration
-const verifyEmailConfig = async () => {
-    try {
-        const transporter = createTransporter();
-        await transporter.verify();
+const verifyEmailConfig = () => {
+    const hasApiKey = !!process.env.SENDGRID_API_KEY;
+    if (hasApiKey) {
         console.log('✅ Admin email service is ready');
-        return true;
-    } catch (error) {
-        console.error('❌ Admin email service error:', error.message);
-        return false;
+    } else {
+        console.warn('⚠️  SendGrid not configured');
     }
+    return hasApiKey;
 };
 
 module.exports = {
