@@ -434,6 +434,66 @@ const emailTemplates = {
         </div>
       </div>
     `
+  }),
+
+  // Password reset confirmation email
+  passwordResetConfirm: (data) => ({
+    subject: '✓ Your Password Has Been Reset Successfully',
+    html: `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">✓ Password Reset Successful</h1>
+          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Your account is secure</p>
+        </div>
+        
+        <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Hi <strong>${data.userName}</strong>,</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6;">
+            Great news! Your password has been successfully reset on <strong>${data.timestamp}</strong>.
+          </p>
+          
+          <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; color: #065f46; font-size: 15px; line-height: 1.6;">
+              <strong>🔒 What this means:</strong><br>
+              Your account is now secured with your new password. You can log in immediately with your new credentials.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${data.loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+              Go to Login
+            </a>
+          </div>
+          
+          <p style="font-size: 14px; color: #666; line-height: 1.6; margin: 20px 0;">
+            <strong>Didn't reset your password?</strong><br>
+            If you didn't request this password reset, please <a href="${data.loginUrl}" style="color: #10b981;">change your password immediately</a> or contact our support team.
+          </p>
+          
+          <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; color: #7f1d1d; font-size: 14px; line-height: 1.6;">
+              <strong>⚠️ Security Tips:</strong><br>
+              • Never share your password with anyone<br>
+              • SkillExchange will never ask for your password via email<br>
+              • Use a strong, unique password for better security
+            </p>
+          </div>
+          
+          <div style="border-top: 1px solid #e5e7eb; margin-top: 30px; padding-top: 20px;">
+            <p style="font-size: 13px; color: #888; margin: 0; line-height: 1.6;">
+              📧 Have questions? Email us at <a href="mailto:support@skillexchange.com" style="color: #10b981;">support@skillexchange.com</a>
+            </p>
+          </div>
+        </div>
+        
+        <div style="text-align: center; padding: 20px;">
+          <p style="font-size: 12px; color: #888; margin: 5px 0;">
+            SkillExchange Platform - Exchange Skills, Build Connections
+          </p>
+        </div>
+      </div>
+    `
   })
 };
 

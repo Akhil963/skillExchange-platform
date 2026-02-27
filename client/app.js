@@ -3219,20 +3219,136 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// ========== PASSWORD STRENGTH INDICATOR ==========
+function updatePasswordStrength() {
+  const password = document.getElementById('newPassword').value;
+  const indicator = document.getElementById('passwordStrengthIndicator');
+  
+  if (!password) {
+    indicator.style.display = 'none';
+    return;
+  }
+  
+  indicator.style.display = 'block';
+
+  // Check requirements
+  const requirements = {
+    length: password.length >= 6,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password)
+  };
+
+  // Update requirement checks
+  document.getElementById('req-length').textContent = requirements.length ? '✓' : '✗';
+  document.getElementById('req-length').style.color = requirements.length ? '#10b981' : '#9ca3af';
+  
+  document.getElementById('req-uppercase').textContent = requirements.uppercase ? '✓' : '✗';
+  document.getElementById('req-uppercase').style.color = requirements.uppercase ? '#10b981' : '#9ca3af';
+  
+  document.getElementById('req-lowercase').textContent = requirements.lowercase ? '✓' : '✗';
+  document.getElementById('req-lowercase').style.color = requirements.lowercase ? '#10b981' : '#9ca3af';
+  
+  document.getElementById('req-number').textContent = requirements.number ? '✓' : '✗';
+  document.getElementById('req-number').style.color = requirements.number ? '#10b981' : '#9ca3af';
+
+  // Calculate strength
+  const metRequirements = Object.values(requirements).filter(Boolean).length;
+  const strengthText = document.getElementById('strengthText');
+  const strength1 = document.getElementById('strength-1');
+  const strength2 = document.getElementById('strength-2');
+  const strength3 = document.getElementById('strength-3');
+
+  // Reset colors
+  strength1.style.background = '#e5e7eb';
+  strength2.style.background = '#e5e7eb';
+  strength3.style.background = '#e5e7eb';
+
+  if (metRequirements <= 1) {
+    strengthText.textContent = '❌ Weak';
+    strengthText.style.color = '#ef4444';
+    strength1.style.background = '#ef4444';
+  } else if (metRequirements === 2) {
+    strengthText.textContent = '⚠️ Fair';
+    strengthText.style.color = '#f97316';
+    strength1.style.background = '#f97316';
+    strength2.style.background = '#f97316';
+  } else if (metRequirements === 3) {
+    strengthText.textContent = '✓ Good';
+    strengthText.style.color = '#eab308';
+    strength1.style.background = '#eab308';
+    strength2.style.background = '#eab308';
+    strength3.style.background = '#eab308';
+  } else if (metRequirements === 4) {
+    strengthText.textContent = '✓✓ Strong';
+    strengthText.style.color = '#10b981';
+    strength1.style.background = '#10b981';
+    strength2.style.background = '#10b981';
+    strength3.style.background = '#10b981';
+  }
+}
+
+// ========== PASSWORD MATCH CHECKER ==========
+function checkPasswordMatch() {
+  const password = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  const matchIndicator = document.getElementById('passwordMatchIndicator');
+  const matchText = document.getElementById('matchText');
+
+  if (!confirmPassword) {
+    matchIndicator.style.display = 'none';
+    return;
+  }
+
+  matchIndicator.style.display = 'block';
+
+  if (password === confirmPassword) {
+    matchText.textContent = '✓ Passwords match';
+    matchIndicator.style.background = 'rgba(16, 185, 129, 0.1)';
+    matchIndicator.style.color = '#10b981';
+    matchIndicator.style.borderLeft = '3px solid #10b981';
+  } else {
+    matchText.textContent = '✗ Passwords do not match';
+    matchIndicator.style.background = 'rgba(239, 68, 68, 0.1)';
+    matchIndicator.style.color = '#ef4444';
+    matchIndicator.style.borderLeft = '3px solid #ef4444';
+  }
+}
+
 async function handleResetPasswordSubmit(e) {
   e.preventDefault();
   const newPassword = document.getElementById('newPassword').value;
   const confirmPassword = document.getElementById('confirmPassword').value;
   
+  // ========== VALIDATION ==========
+  // Check if fields are empty
+  if (!newPassword || !confirmPassword) {
+    showNotification('Please enter both password and confirmation', 'error');
+    return;
+  }
+  
   // Validate passwords match
   if (newPassword !== confirmPassword) {
-    showNotification('Passwords do not match!', 'error');
+    showNotification('❌ Passwords do not match!', 'error');
     return;
   }
   
   // Validate password length
   if (newPassword.length < 6) {
-    showNotification('Password must be at least 6 characters long', 'error');
+    showNotification('❌ Password must be at least 6 characters long', 'error');
+    return;
+  }
+
+  // Validate password strength (at least 1 uppercase, 1 lowercase, 1 number)
+  const hasUpperCase = /[A-Z]/.test(newPassword);
+  const hasLowerCase = /[a-z]/.test(newPassword);
+  const hasNumbers = /[0-9]/.test(newPassword);
+
+  if (!hasUpperCase || !hasLowerCase || !hasNumbers) {
+    showNotification(
+      '❌ Password must contain uppercase letter, lowercase letter, and number\nExample: MyPassword123',
+      'error'
+    );
     return;
   }
   
@@ -3241,21 +3357,34 @@ async function handleResetPasswordSubmit(e) {
   const resetToken = urlParams.get('reset');
   
   if (!resetToken) {
-    showNotification('Invalid or missing reset token', 'error');
+    showNotification('❌ Invalid or missing reset token', 'error');
     return;
   }
   
   try {
+    // Show loading state
+    const submitBtn = document.querySelector('#resetPasswordForm button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '⏳ Resetting password...';
+    }
+
     const response = await fetch(`${API_URL}/auth/reset-password/${resetToken}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: newPassword })
+      body: JSON.stringify({ 
+        password: newPassword,
+        confirmPassword: confirmPassword
+      })
     });
     
     const data = await response.json();
     
     if (response.ok) {
       showNotification('✅ Password reset successful! Redirecting to login...', 'success');
+      
+      // Clear form fields
+      document.getElementById('resetPasswordForm').reset();
       
       // Clear reset token from URL and redirect to login
       setTimeout(() => {
@@ -3264,10 +3393,25 @@ async function handleResetPasswordSubmit(e) {
       }, 2000);
     } else {
       showNotification(data.message || 'Failed to reset password', 'error');
+      
+      // Re-enable submit button on error
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Reset Password';
+      }
     }
   } catch (error) {
     console.error('Reset password error:', error);
-    showNotification('Failed to reset password. Please try again.', 'error');
+    showNotification('❌ Failed to reset password. Please try again.', 'error');
+    
+    // Re-enable submit button on error
+    const submitBtn = document.querySelector('#resetPasswordForm button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Reset Password';
+    }
+  }
+}
   }
 }
 

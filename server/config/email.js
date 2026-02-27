@@ -247,10 +247,65 @@ const getEmailVerificationEmail = (verificationUrl, name) => {
   `;
 };
 
+// Password reset confirmation email
+const getPasswordResetConfirmEmail = (userName, loginUrl, timestamp) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: white; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb; border-top: none; }
+        .button { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; }
+        .info { background: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-radius: 0 0 10px 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin: 0; font-size: 28px;">✓ Password Reset Successful</h1>
+        </div>
+        <div class="content">
+          <h2>Hi ${userName},</h2>
+          <p>Great news! Your password has been successfully reset on <strong>${timestamp}</strong>.</p>
+          
+          <div class="info">
+            <strong>🔒 What this means:</strong><br>
+            Your account is now secured with your new password. You can log in immediately with your new credentials.
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${loginUrl}" class="button">Go to Login</a>
+          </div>
+          
+          <p><strong>Didn't reset your password?</strong><br>
+          If you didn't request this password reset, please <a href="${loginUrl}">change your password immediately</a> or contact our support team.</p>
+          
+          <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <strong>⚠️ Security Tip:</strong><br>
+            Never share your password with anyone. SkillExchange team will never ask for your password via email.
+          </div>
+          
+          <p>Best regards,<br><strong>The SkillExchange Team</strong></p>
+        </div>
+        <div class="footer">
+          <p>© 2024 SkillExchange. All rights reserved.</p>
+          <p>This is an automated email, please do not reply.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 module.exports = { 
   sendEmail, 
   getResetPasswordEmail,
   getWelcomeEmail,
   getOTPEmail,
-  getEmailVerificationEmail
+  getEmailVerificationEmail,
+  getPasswordResetConfirmEmail
 };

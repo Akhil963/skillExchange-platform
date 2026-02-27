@@ -418,9 +418,25 @@
                             </label>
                             <div style="position: relative;">
                                 <input type="password" class="form-control" id="newPassword" required 
-                                       minlength="6" placeholder="At least 6 characters"
-                                       style="font-size: 16px; padding-left: 45px; height: 54px; border: 2px solid var(--color-border); transition: all 0.3s;">
+                                       minlength="6" placeholder="At least 6 characters (with uppercase, lowercase, number)"
+                                       style="font-size: 16px; padding-left: 45px; height: 54px; border: 2px solid var(--color-border); transition: all 0.3s;"
+                                       oninput="updatePasswordStrength()">
                                 <span style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-size: 18px; opacity: 0.5;">🔐</span>
+                            </div>
+                            <!-- Password Strength Indicator -->
+                            <div id="passwordStrengthIndicator" style="margin-top: 12px; display: none;">
+                                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                                    <div id="strength-1" style="flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; transition: background 0.3s;"></div>
+                                    <div id="strength-2" style="flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; transition: background 0.3s;"></div>
+                                    <div id="strength-3" style="flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; transition: background 0.3s;"></div>
+                                </div>
+                                <p id="strengthText" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--color-text-secondary);">Weak</p>
+                                <ul id="strengthRequirements" style="margin: 8px 0 0 0; padding-left: 20px; font-size: 12px; color: var(--color-text-secondary); line-height: 1.6;">
+                                    <li><span id="req-length" style="color: #9ca3af;">✗</span> At least 6 characters</li>
+                                    <li><span id="req-uppercase" style="color: #9ca3af;">✗</span> One uppercase letter (A-Z)</li>
+                                    <li><span id="req-lowercase" style="color: #9ca3af;">✗</span> One lowercase letter (a-z)</li>
+                                    <li><span id="req-number" style="color: #9ca3af;">✗</span> One number (0-9)</li>
+                                </ul>
                             </div>
                         </div>
                         
@@ -432,8 +448,13 @@
                             <div style="position: relative;">
                                 <input type="password" class="form-control" id="confirmPassword" required 
                                        minlength="6" placeholder="Re-enter your password"
-                                       style="font-size: 16px; padding-left: 45px; height: 54px; border: 2px solid var(--color-border); transition: all 0.3s;">
+                                       style="font-size: 16px; padding-left: 45px; height: 54px; border: 2px solid var(--color-border); transition: all 0.3s;"
+                                       oninput="checkPasswordMatch()">
                                 <span style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-size: 18px; opacity: 0.5;">✔️</span>
+                            </div>
+                            <!-- Password Match Indicator -->
+                            <div id="passwordMatchIndicator" style="margin-top: 8px; display: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600;">
+                                <span id="matchText">✓ Passwords match</span>
                             </div>
                         </div>
                         

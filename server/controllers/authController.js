@@ -366,74 +366,134 @@ exports.forgotPassword = async (req, res, next) => {
   }
 };
 
-// @desc    Reset password
+// @desc    Reset password with validation
 // @route   PUT /api/auth/reset-password/:resetToken
 // @access  Public
 exports.resetPassword = async (req, res, next) => {
   try {
     const { resetToken } = req.params;
-    const { password } = req.body;
-    const bcrypt = require('bcryptjs');
+    const { password, confirmPassword } = req.body;
 
-    if (!password) {
+    // ========== INPUT VALIDATION ==========
+    if (!password || !confirmPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide new password'
+        message: 'Password and confirmation are required'
       });
     }
 
+    // Check passwords match
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Passwords do not match'
+      });
+    }
+
+    // Validate password length
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters'
+        message: 'Password must be at least 6 characters long'
       });
     }
 
-    // Find user by reset token (with password field selected)
-    const user = await User.findByResetToken(resetToken);
-
-    if (!user) {
+    // Validate password strength (at least 1 uppercase, 1 lowercase, 1 number)
+    const passwordStrengthRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+    if (!passwordStrengthRegex.test(password)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid or expired reset token'
+        message: 'Password must contain uppercase, lowercase, and numbers',
+        hint: 'Example: MyPassword123'
       });
     }
 
-    console.log(`[Reset Password] Initiated for user: ${user.email}`);
+    // ========== FIND USER BY RESET TOKEN ==========
+    const crypto = require('crypto');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
 
-    // Hash the password explicitly
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    }).select('+password');
+
+    if (!user) {
+      console.warn(`[Reset Password] Invalid or expired reset token: ${resetToken.substring(0, 10)}...`);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token. Please request a new password reset.'
+      });
+    }
+
+    console.log(`[Reset Password] Processing reset for user: ${user.email}`);
+
+    // ========== HASH PASSWORD ==========
+    const bcrypt = require('bcryptjs');
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Update user with hashed password directly (pre-save hook will detect it's already hashed and skip)
-    user.password = hashedPassword;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
-    
-    // Save - pre-save hook will skip hashing since password is already hashed
-    const savedUser = await user.save({ validateBeforeSave: true });
-    
-    if (!savedUser) {
-      throw new Error('Failed to save user with new password');
+    console.log(`[Reset Password] Password hashed successfully`);
+
+    // ========== UPDATE USER DOCUMENT ==========
+    // Use direct update to avoid pre-save hook complications
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id,
+      {
+        $set: {
+          password: hashedPassword,
+          resetPasswordToken: undefined,
+          resetPasswordExpire: undefined,
+          lastPasswordChange: new Date()
+        }
+      },
+      { new: true, runValidators: false } // new: true returns updated doc, runValidators: false to avoid double-hashing
+    ).select('+password');
+
+    if (!updatedUser) {
+      console.error(`[Reset Password] Failed to update user: ${user.email}`);
+      throw new Error('Failed to reset password');
     }
 
-    console.log(`[Reset Password] ✓ Password reset successful for user: ${savedUser.email}`);
+    console.log(`[Reset Password] User document updated successfully`);
+
+    // ========== VERIFICATION ==========
+    const passwordsMatch = await updatedUser.comparePassword(password);
     
-    // Verify the password works by attempting comparison
-    const testCompare = await savedUser.comparePassword(password);
-    if (testCompare) {
-      console.log(`[Reset Password] ✓ Password verification successful - user can now login`);
-    } else {
-      console.error(`[Reset Password] ✗ Password verification FAILED`);
-      throw new Error('Password verification failed after reset');
+    if (!passwordsMatch) {
+      console.error(`[Reset Password] ✗ Password verification failed for user: ${user.email}`);
+      throw new Error('Password verification failed - password may not be stored correctly');
     }
 
+    console.log(`[Reset Password] ✓ Password verification passed - password can be used to login`);
+
+    // ========== SEND CONFIRMATION EMAIL ==========
+    sendEmail(updatedUser.email, 'passwordResetConfirm', {
+      userName: updatedUser.name,
+      loginUrl: `${getBaseUrl()}/#login`,
+      timestamp: new Date().toLocaleString()
+    }).catch(err => console.error('[Reset Password] Confirmation email error:', err.message));
+
+    console.log(`[Reset Password] ✓ Password reset successful for user: ${updatedUser.email}`);
+
+    // ========== SUCCESS RESPONSE ==========
     res.status(200).json({
       success: true,
-      message: 'Password reset successful. You can now login with your new password.'
+      message: 'Password reset successful. You can now login with your new password.',
+      user: {
+        email: updatedUser.email,
+        name: updatedUser.name
+      }
     });
+
   } catch (error) {
     console.error('[Reset Password] Error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred during password reset. Please try again.'
+    });
     next(error);
   }
 };
