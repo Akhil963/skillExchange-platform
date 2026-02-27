@@ -10,11 +10,16 @@ const sendEmail = async (options) => {
 
   // Create transporter with improved configuration
   const transporter = nodemailer.createTransport({
-    service: 'gmail', // Use service instead of host for better compatibility
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // true for 465, false for other ports
     auth: {
       user: process.env.SMTP_EMAIL,
       pass: process.env.SMTP_PASSWORD
     },
+    // Critical: Add timeout settings to prevent connection timeout
+    connectionTimeout: 5000, // 5 seconds
+    socketTimeout: 5000,     // 5 seconds
     // Add these for better debugging
     debug: process.env.NODE_ENV === 'development',
     logger: process.env.NODE_ENV === 'development'
@@ -29,10 +34,7 @@ const sendEmail = async (options) => {
   };
 
   try {
-    // Verify connection before sending
-    await transporter.verify();
-    
-    // Send email
+    // Send email directly (skip verify to avoid timeout issues)
     const info = await transporter.sendMail(mailOptions);
     console.log('✅ Email sent successfully:', info.messageId);
     return info;
