@@ -1,52 +1,38 @@
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
 // Email configuration
 const sendEmail = async (options) => {
   // Validate environment variables
-  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
-    console.error('❌ Email configuration missing! Check SMTP_EMAIL and SMTP_PASSWORD in .env');
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('❌ Email configuration missing! Check SENDGRID_API_KEY in .env');
     throw new Error('Email service not configured. Please contact administrator.');
   }
 
-  // Create transporter with improved configuration
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_EMAIL,
-      pass: process.env.SMTP_PASSWORD
-    },
-    // Critical: Add timeout settings to prevent connection timeout
-    connectionTimeout: 5000, // 5 seconds
-    socketTimeout: 5000,     // 5 seconds
-    // Add these for better debugging
-    debug: process.env.NODE_ENV === 'development',
-    logger: process.env.NODE_ENV === 'development'
-  });
+  // Initialize SendGrid
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-  // Email options
-  const mailOptions = {
-    from: `${process.env.FROM_NAME || 'SkillExchange'} <${process.env.SMTP_EMAIL}>`,
+  // Email message
+  const msg = {
     to: options.email,
+    from: process.env.FROM_EMAIL || 'noreply@skillexchange.com',
     subject: options.subject,
     html: options.html || options.message
   };
 
   try {
-    // Send email directly (skip verify to avoid timeout issues)
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully:', info.messageId);
+    // Send email via SendGrid
+    const info = await sgMail.send(msg);
+    console.log('✅ Email sent successfully:', info[0]?.messageId || 'Success');
     return info;
   } catch (error) {
     console.error('❌ Email error:', error.message);
     
     // Provide helpful error messages
-    if (error.code === 'EAUTH') {
-      console.error('💡 Fix: Generate a new Gmail App Password at https://myaccount.google.com/apppasswords');
+    if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+      console.error('💡 Fix: Verify your SENDGRID_API_KEY is correct at https://app.sendgrid.com/settings/api_keys');
       throw new Error('Email authentication failed. Please contact administrator to update email credentials.');
-    } else if (error.code === 'ECONNECTION') {
-      throw new Error('Cannot connect to email server. Please check your internet connection.');
+    } else if (error.message.includes('Invalid email')) {
+      throw new Error('Invalid email address provided.');
     } else {
       throw new Error('Email could not be sent: ' + error.message);
     }
