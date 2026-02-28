@@ -2303,7 +2303,7 @@ a:hover {
 
 .search-input::placeholder {
   color: var(--color-text-secondary);
-  opacity: 0.7;
+  opacity: 0.9;
 }
 
 .conversations-list {
@@ -2347,8 +2347,9 @@ a:hover {
 }
 
 .conversation-item.active {
-  background: linear-gradient(to right, rgba(var(--color-teal-500-rgb), 0.12), rgba(var(--color-teal-500-rgb), 0.05));
+  background: var(--color-surface);
   border-left-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05); /* Slight shadow to distinguish it */
 }
 
 .conversation-item.has-unread {
@@ -2437,11 +2438,12 @@ a:hover {
 
 .conversation-preview {
   font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  color: var(--color-text); /* Higher contrast against surface/background */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.4;
+  opacity: 0.8;
 }
 
 .conversation-preview.unread {
@@ -2728,6 +2730,7 @@ a:hover {
   align-items: flex-end;
   animation: slideIn 0.3s ease;
   width: 100%;
+  flex-shrink: 0;
 }
 
 @keyframes slideIn {
@@ -2756,7 +2759,7 @@ a:hover {
 }
 
 .message-content {
-  max-width: 70%;
+  max-width: 85%;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -2776,17 +2779,16 @@ a:hover {
   padding: var(--space-12) var(--space-16);
   border-radius: 18px 18px 18px 6px; /* bubble corner style */
   border: 1px solid var(--color-card-border);
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  overflow-wrap: anywhere;
   word-break: break-word;
-  hyphens: auto;
   line-height: 1.5;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   position: relative;
   transition: all 0.2s ease;
   color: var(--color-text);
-  font-size: var(--font-size-sm);
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .message-bubble:hover {
@@ -2798,21 +2800,24 @@ a:hover {
   color: var(--color-btn-primary-text);
   border-color: var(--color-primary);
   border-radius: 18px 18px 6px 18px; /* mirrored corner style */
-<<<<<<< HEAD
 }
 
-/* Inline (mobile) time + status container. Hidden by default; shown on mobile */
+/* Inline (mobile+desktop) time + status container below bubble content */
 .message-meta {
-  display: none;
-  position: absolute;
-  right: 8px;
-  bottom: 6px;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: var(--font-size-xs);
+  justify-content: flex-end;
+  gap: 4px;
+  font-size: 10px;
   opacity: 0.85;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+  align-self: flex-end;
 }
-.message.own .message-meta { opacity: 0.9; }
+.message.own .message-meta { 
+  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.8);
+}
 
 .msg-status {
   font-size: 11px;
@@ -2836,22 +2841,12 @@ a:hover {
 .msg-status[data-status="read"] { 
   color: #10b981;
   font-weight: var(--font-weight-bold);
-=======
->>>>>>> 670d8e4520f73a68c508922b0581693cd5de094d
 }
 
 /* Inline (mobile) time + status container. Hidden by default; shown on mobile */
-.message-meta {
-  display: none;
-  position: absolute;
-  right: 8px;
-  bottom: 6px;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--font-size-xs);
-  opacity: 0.85;
+.message-time {
+  display: none; /* Hide the external time below the bubble now that we have inline time */
 }
-.message.own .message-meta { opacity: 0.9; }
 
 .msg-status {
   font-size: 11px;
@@ -2940,7 +2935,7 @@ a:hover {
   display: flex;
   align-items: flex-end;
   gap: var(--space-10);
-  background: var(--color-background);
+  background: var(--color-surface);
   border: 1px solid var(--color-card-border);
   border-radius: 24px;
   padding: var(--space-8) var(--space-12);
@@ -3181,22 +3176,7 @@ a:hover {
   }
 }
 
-/* Responsive: Messages layout */
-@media (max-width: 900px) {
-  .messages-container {
-    grid-template-columns: 1fr;
-    height: calc(100dvh - 56px);
-  }
-
-  .messages-sidebar {
-    border-right: none;
-    border-bottom: 1px solid var(--color-card-border);
-    padding: var(--space-16);
-  }
-
-  .messages-sidebar.hidden {
-    display: none;
-  }
+/* Responsive: Messages layout mobile styles handled above */
 
   .messages-main {
     display: none; /* hidden by default on mobile until conversation is selected */
@@ -3242,7 +3222,6 @@ a:hover {
     min-width: 88px;
     height: 42px;
   }
-}
 
 /* Exchanges Page */
 .exchanges-container {
