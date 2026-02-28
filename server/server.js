@@ -71,11 +71,41 @@ app.use(helmet({
   xssFilter: true
 }));
 
-// CORS configuration
-app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
-  credentials: true
-}));
+// CORS configuration - Allow localhost, 127.0.0.1, and CLIENT_URL
+const corsOptions = {
+  origin: function(origin, callback) {
+    // Get the base URL from CLIENT_URL or default to localhost:5000
+    const allowedBaseUrl = process.env.CLIENT_URL || 'http://localhost:5000';
+    const allowedPort = allowedBaseUrl.split(':').pop();
+    
+    // Allow these origins:
+    // 1. No origin (same-origin requests, mobile apps, Postman, etc.)
+    // 2. localhost with matching port
+    // 3. 127.0.0.1 with matching port
+    // 4. Exact CLIENT_URL match
+    // 5. Any whitelisted domains in production
+    
+    if (!origin || 
+        origin === `http://localhost:${allowedPort}` || 
+        origin === `http://127.0.0.1:${allowedPort}` ||
+        origin === `https://localhost:${allowedPort}` ||
+        origin === `https://127.0.0.1:${allowedPort}` ||
+        origin === allowedBaseUrl ||
+        process.env.CORS_WHITELIST?.split(',').includes(origin)) {
+      callback(null, true);
+    } else if (process.env.NODE_ENV === 'development') {
+      // Allow all in development for testing
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
 
 // Rate limiting - Different limits for dev vs production
 const limiter = rateLimit({

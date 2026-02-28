@@ -701,6 +701,25 @@ select.form-control {
   background-image: var(--select-caret-light);
 }
 
+/* Modal select styling - ensure visibility */
+.modal-content select.form-control {
+  background-image: var(--select-caret-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  .modal-content select.form-control {
+    background-image: var(--select-caret-dark);
+  }
+}
+
+[data-color-scheme="dark"] .modal-content select.form-control {
+  background-image: var(--select-caret-dark);
+}
+
+[data-color-scheme="light"] .modal-content select.form-control {
+  background-image: var(--select-caret-light);
+}
+
 .form-control:focus {
   border-color: var(--color-primary);
   outline: var(--focus-outline);
@@ -3751,6 +3770,45 @@ a:hover {
 
 .modal-body {
   padding: var(--space-20);
+  color: var(--color-text);
+}
+
+/* Ensure modal content has proper text color for light mode */
+.modal-content,
+.modal-header,
+.modal-body {
+  color: var(--color-text);
+}
+
+.modal-content h1,
+.modal-content h2,
+.modal-content h3,
+.modal-content h4,
+.modal-content h5,
+.modal-content h6 {
+  color: var(--color-text);
+}
+
+.modal-content label,
+.modal-content .form-label {
+  color: var(--color-text);
+}
+
+.modal-content .form-control {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+}
+
+.modal-content .form-control::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.modal-content select.form-control {
+  color: var(--color-text);
+}
+
+.modal-content button {
+  color: inherit;
 }
 
 /* Profile Page */
@@ -4580,9 +4638,28 @@ a:hover {
   }
 
   /* Dashboard - Mobile */
+  .dashboard-profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-16);
+  }
+
+  .dashboard-quick-actions {
+    flex-direction: column;
+    width: 100%;
+    margin-top: var(--space-8);
+  }
+
+  .dashboard-quick-actions .btn {
+    width: 100%;
+  }
+
   .dashboard-stats {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: var(--space-12);
+    width: 100%;
   }
 
   .stat-card {
@@ -4606,6 +4683,15 @@ a:hover {
   .marketplace-grid {
     grid-template-columns: 1fr;
     gap: var(--space-16);
+  }
+
+  .marketplace-header .search-filters,
+  .search-filters {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: var(--space-12);
   }
 
   .marketplace-filters {
@@ -4652,11 +4738,25 @@ a:hover {
     grid-template-columns: 1fr;
     gap: var(--space-8);
     width: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
   .stat-item {
     padding: var(--space-12);
     text-align: left;
+    width: 100%;
+  }
+
+  /* Profile buttons */
+  .skills-section h3 {
+    margin-bottom: var(--space-8);
+    width: 100%;
+  }
+
+  .skills-section .btn {
+    width: 100%;
+    margin-bottom: var(--space-12);
   }
 
   /* Forms - Mobile */
@@ -4687,6 +4787,12 @@ a:hover {
   .btn-sm {
     min-height: 40px;
     padding: var(--space-10) var(--space-14);
+    width: auto;
+  }
+
+  .dashboard-section > div[style*="display: flex"] .btn {
+    width: auto;
+    margin-left: auto;
   }
 
   /* Sidebar - Mobile */
@@ -4744,6 +4850,11 @@ a:hover {
   /* Hero - Mobile */
   .hero {
     padding: var(--space-32) 0;
+  }
+
+  .hero-stats {
+    grid-template-columns: 1fr;
+    gap: var(--space-12);
   }
 
   .hero-title {
@@ -5276,6 +5387,17 @@ html {
   to {
     transform: translateX(400px);
     opacity: 0;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 

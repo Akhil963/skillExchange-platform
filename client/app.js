@@ -43,6 +43,7 @@ const AppState = {
   requestTimings: {}, // Track request timings for optimization
   batchRequests: [], // Batch multiple requests
   batchTimeout: null,
+  notifiedExchanges: new Set(), // Track exchanges that have shown completion notification
   useBatching: true // Enable request batching
 };
 
@@ -552,7 +553,45 @@ function navigateToPage(page, userId = null) {
   // Scroll to top of page
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
+  // Start auto-refresh for exchanges tab to detect completion
+  startExchangeAutoRefresh(page);
+
   renderPage(userId);
+}
+
+// Auto-refresh exchanges to detect when both complete
+let exchangeRefreshInterval = null;
+function startExchangeAutoRefresh(page) {
+  // Clear existing interval if switching away
+  if (page !== 'exchanges' && exchangeRefreshInterval) {
+    clearInterval(exchangeRefreshInterval);
+    exchangeRefreshInterval = null;
+    return;
+  }
+  
+  // Start auto-refresh only on exchanges page
+  if (page === 'exchanges' && !exchangeRefreshInterval) {
+    console.log('🔄 Starting auto-refresh for exchanges (only for active exchanges)');
+    exchangeRefreshInterval = setInterval(() => {
+      // Only refresh if exchanges are visible
+      const exchangesList = document.getElementById('exchangesList');
+      if (exchangesList && AppState.currentPage === 'exchanges') {
+        // Check if there are any active (non-completed) exchanges
+        const hasActiveExchanges = AppState.exchanges.some(ex => ex.status !== 'completed');
+        
+        if (hasActiveExchanges) {
+          // Only refresh active exchanges, not completed ones with ratings
+          console.log('🔄 Refreshing active exchanges...');
+          renderExchanges();
+        } else {
+          // Stop auto-refresh if all exchanges are completed
+          console.log('✅ All exchanges completed - stopping auto-refresh');
+          clearInterval(exchangeRefreshInterval);
+          exchangeRefreshInterval = null;
+        }
+      }
+    }, 5000); // Refresh every 5 seconds (only for active exchanges)
+  }
 }
 
 function navigateToLearningDashboard(learningPathId, exchangeId) {
@@ -1921,14 +1960,16 @@ async function renderExchanges() {
         return '';
       }
 
-      // Check and show completion notification asynchronously
-      if (exchange.status === 'active' || exchange.status === 'completed') {
+      // Check and show completion notification asynchronously (only once per exchange)
+      if (!AppState.notifiedExchanges.has(exchange._id) && (exchange.status === 'active' || exchange.status === 'completed')) {
         (async () => {
           const completion = await checkLearningCompletion(exchange._id);
           if (completion && completion.bothCompleted && !exchange.requester_rating && !exchange.provider_rating) {
             // Only show if current user hasn't rated yet
             const hasUserRated = isRequester ? exchange.requester_rating : exchange.provider_rating;
             if (!hasUserRated) {
+              // Mark this exchange as notified to prevent repeated notifications
+              AppState.notifiedExchanges.add(exchange._id);
               showCompletionNotification(completion, exchange._id, otherUser.name);
             }
           }
@@ -1936,7 +1977,7 @@ async function renderExchanges() {
       }
 
       return `
-        <div class="exchange-item">
+        <div class="exchange-item" data-exchange-id="${exchange._id}">
           <div class="exchange-header">
             <div class="exchange-user-info">
               <img src="${otherUser.avatar || '/assets/default-avatar.png'}" alt="${otherUser.name || 'User'}" class="exchange-avatar">
@@ -2164,6 +2205,9 @@ function renderExchangeActions(exchange, isRequester) {
       <button class="btn btn--outline" onclick="navigateToPage('messages')">
         💬 View Messages
       </button>
+      <button class="btn btn--outline" onclick="checkAndRefreshExchange('${exchangeId}')" title="Refresh to see if other user completed">
+        🔄 Check Status
+      </button>
     `);
   }
 
@@ -2174,8 +2218,14 @@ function renderExchangeActions(exchange, isRequester) {
     
     if (!hasUserRated) {
       buttons.push(`
-        <button class="btn btn--primary" onclick="showRatingModal('${exchange._id}', '${exchange.requester_id._id === AppState.currentUser._id ? exchange.provider_id.name : exchange.requester_id.name}')">
+        <button class="btn btn--primary" onclick="showEnhancedRatingModal('${exchange._id}', '${exchange.requester_id._id === AppState.currentUser._id ? exchange.provider_id.name : exchange.requester_id.name}')">
           ⭐ Rate ${exchange.requester_id._id === AppState.currentUser._id ? 'Instructor' : 'Learner'}
+        </button>
+      `);
+    } else {
+      buttons.push(`
+        <button class="btn btn--outline" onclick="navigateToPage('messages')">
+          💬 View Messages
         </button>
       `);
     }
@@ -2193,6 +2243,60 @@ function renderExchangeActions(exchange, isRequester) {
   }
 
   return buttons.join('');
+}
+
+// Check exchange status and refresh if completed
+async function checkAndRefreshExchange(exchangeId) {
+  try {
+    showNotification('Checking exchange status...', 'info');
+    
+    const data = await apiRequest(`/exchanges/${exchangeId}/completion-status`);
+    const status = data.completionStatus;
+    
+    if (status.bothCompleted && status.readyForRating) {
+      showNotification('🎉 Both completed! Rating section ready...', 'success');
+      setTimeout(() => renderExchanges(), 300);
+    } else if (status.bothCompleted) {
+      // Both paths are complete but exchange status hasn't updated yet
+      // Force update the exchange status to 'completed'
+      showNotification('⏳ Marking exchange as complete...', 'info');
+      
+      try {
+        await apiRequest(`/exchanges/${exchangeId}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'completed' })
+        });
+        
+        showNotification('🎉 Complete! Opening rating section...', 'success');
+        // Refresh with a slight delay to ensure DB updated
+        setTimeout(() => {
+          renderExchanges();
+          // Scroll to the exchange card
+          setTimeout(() => {
+            const exchangeCard = document.querySelector(`[data-exchange-id="${exchangeId}"]`);
+            if (exchangeCard) {
+              exchangeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Highlight the rating section
+              const ratingSection = exchangeCard.querySelector('.exchange-ratings-section');
+              if (ratingSection) {
+                ratingSection.style.animation = 'pulse 0.5s ease';
+              }
+            }
+          }, 100);
+        }, 500);
+      } catch (error) {
+        console.error('Error updating exchange status:', error);
+        showNotification('⚠️ Exchange marked complete locally. Refreshing...', 'warning');
+        setTimeout(() => renderExchanges(), 1000);
+      }
+    } else {
+      const message = `${status.requesterProgress?.percentage || 0}% (You) • ${status.providerProgress?.percentage || 0}% (Them)`;
+      showNotification(`Progress: ${message}`, 'info');
+    }
+  } catch (error) {
+    showNotification('Error checking status', 'error');
+    console.error(error);
+  }
 }
 
 function switchExchangeTab(filter) {
@@ -2493,9 +2597,17 @@ async function submitRating(exchangeId) {
 function closeRatingModal() {
   const modal = document.getElementById('ratingModal');
   if (modal) {
+    // Properly hide modal using both class and display style
     modal.classList.remove('show');
+    modal.style.display = 'none';
   }
   AppState.selectedRating = 0;
+  
+  // Clear review text for next time
+  const reviewInput = document.getElementById('reviewText');
+  if (reviewInput) {
+    reviewInput.value = '';
+  }
 }
 
 // ======================

@@ -377,7 +377,7 @@ exports.updateExchangeStatus = async (req, res, next) => {
 
           const requesterPath = new LearningPath({
             exchangeId: exchange._id,
-            skillId: skill ? skill._id : new mongoose.Types.ObjectId(),
+            skillId: skill ? skill._id : null,  // Set to null instead of orphaned ObjectId
             learner: exchange.requester_id._id,
             instructor: exchange.provider_id._id,
             modules: modules,
@@ -463,7 +463,7 @@ exports.updateExchangeStatus = async (req, res, next) => {
 
           const providerPath = new LearningPath({
             exchangeId: exchange._id,
-            skillId: skill ? skill._id : new mongoose.Types.ObjectId(),
+            skillId: skill ? skill._id : null,  // Set to null instead of orphaned ObjectId
             learner: exchange.provider_id._id,
             instructor: exchange.requester_id._id,
             modules: modules,
@@ -813,6 +813,15 @@ exports.deleteExchange = async (req, res, next) => {
       });
     }
 
+    // Delete associated learning paths to avoid orphaned records
+    if (exchange.requester_learningPathId) {
+      await LearningPath.deleteOne({ _id: exchange.requester_learningPathId });
+    }
+    if (exchange.provider_learningPathId) {
+      await LearningPath.deleteOne({ _id: exchange.provider_learningPathId });
+    }
+
+    // Delete the exchange
     await exchange.deleteOne();
 
     // Delete associated conversation

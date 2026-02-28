@@ -119,6 +119,15 @@ exports.getUserLearningPaths = async (req, res) => {
   try {
     const userId = req.params.userId;
     const role = req.query.role; // 'learner' or 'instructor'
+    const currentUserId = req.user._id.toString();
+
+    // SECURITY: Only allow users to fetch their own learning paths (unless admin)
+    if (userId !== currentUserId && !req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to view these learning paths'
+      });
+    }
 
     let query = {};
     if (role === 'learner') {
@@ -216,7 +225,7 @@ async function createLearningPathForExchange(exchangeId, learner, instructor, sk
 
     const lp = new LearningPath({
       exchangeId: exchangeId,
-      skillId: skill ? skill._id : new mongoose.Types.ObjectId(),
+      skillId: skill ? skill._id : null,  // Set to null instead of orphaned ObjectId
       skillName: skill ? skill.name : skillName, // Store actual skill name for reference
       learner: learner,
       instructor: instructor,
@@ -603,45 +612,57 @@ exports.completeModule = async (req, res) => {
       learningPath.actualDuration = Math.round((new Date() - startTime) / 60000); // in minutes
       
       console.log(`✅ User completed their learning path: ${learningPath._id}`);
-      
-      // Check if BOTH learning paths are completed before marking exchange as complete
-      const exchange = await Exchange.findById(learningPath.exchangeId)
-        .populate('requester_learningPathId')
-        .populate('provider_learningPathId');
-      
-      if (exchange) {
-        const requesterComplete = exchange.requester_learningPathId?.status === 'completed';
-        const providerComplete = exchange.provider_learningPathId?.status === 'completed';
+    }
+
+    // Save the current learning path FIRST
+    await learningPath.save();
+
+    // THEN check if BOTH learning paths are completed (after saving)
+    if (learningPath.progressPercentage === 100) {
+      try {
+        const exchange = await Exchange.findById(learningPath.exchangeId)
+          .populate('requester_learningPathId')
+          .populate('provider_learningPathId');
         
-        console.log(`   Checking exchange ${exchange._id} completion status:`);
-        console.log(`   - Requester path: ${requesterComplete ? '✅ Complete' : '⏳ In progress'}`);
-        console.log(`   - Provider path: ${providerComplete ? '✅ Complete' : '⏳ In progress'}`);
-        
-        // Only mark exchange as completed if BOTH paths are done
-        if (requesterComplete && providerComplete) {
-          exchange.status = 'completed';
-          exchange.learningCompleted = true;
-          exchange.learningCompletedAt = new Date();
-          exchange.completed_date = new Date();
-          await exchange.save();
+        if (exchange) {
+          // Fetch fresh data from database to ensure accuracy
+          const requesterPath = await LearningPath.findById(exchange.requester_learningPathId?._id);
+          const providerPath = await LearningPath.findById(exchange.provider_learningPathId?._id);
           
-          console.log(`🎉 BOTH users completed! Exchange ${exchange._id} marked as COMPLETED`);
-        } else {
-          console.log(`⏳ Waiting for other user to complete their learning path`);
-          // Keep exchange as 'active' so the other user can still learn
-          if (exchange.status !== 'active') {
-            exchange.status = 'active';
+          const requesterComplete = requesterPath?.status === 'completed';
+          const providerComplete = providerPath?.status === 'completed';
+          
+          console.log(`   Checking exchange ${exchange._id} completion status:`);
+          console.log(`   - Requester path: ${requesterComplete ? '✅ Complete' : '⏳ In progress'} (${requesterPath?.completedModules}/${requesterPath?.totalModules})`);
+          console.log(`   - Provider path: ${providerComplete ? '✅ Complete' : '⏳ In progress'} (${providerPath?.completedModules}/${providerPath?.totalModules})`);
+          
+          // Only mark exchange as completed if BOTH paths are done
+          if (requesterComplete && providerComplete) {
+            exchange.status = 'completed';
+            exchange.learningCompleted = true;
+            exchange.learningCompletedAt = new Date();
+            exchange.completed_date = new Date();
             await exchange.save();
+            
+            console.log(`🎉 BOTH users completed! Exchange ${exchange._id} marked as COMPLETED`);
+          } else {
+            console.log(`⏳ Waiting for other user to complete their learning path`);
+            // Keep exchange as 'active' so the other user can still learn
+            if (exchange.status !== 'active') {
+              exchange.status = 'active';
+              await exchange.save();
+            }
           }
         }
+      } catch (exchangeError) {
+        console.error('Error checking/updating exchange completion:', exchangeError);
       }
     }
 
-    await learningPath.save();
-
     res.status(200).json({
       message: 'Module completed successfully',
-      learningPath
+      learningPath,
+      completionCheckDone: true
     });
   } catch (error) {
     console.error('Complete module error:', error);
@@ -665,7 +686,15 @@ exports.getModuleDetails = async (req, res) => {
       return res.status(404).json({ message: 'Learning path not found' });
     }
 
-    const module = learningPath.modules.find(m => m.moduleId.toString() === moduleId);
+    // Use findIndex to get the correct index
+    const moduleIndex = learningPath.modules.findIndex(m => m.moduleId && m.moduleId.toString() === moduleId);
+    if (moduleIndex === -1) {
+      return res.status(404).json({ message: 'Module not found' });
+    }
+
+    const module = learningPath.modules[moduleIndex];
+
+    // Verify module exists before using it
     if (!module) {
       return res.status(404).json({ message: 'Module not found' });
     }
@@ -678,7 +707,7 @@ exports.getModuleDetails = async (req, res) => {
         duration: module.duration
       },
       progress: {
-        currentModule: learningPath.modules.indexOf(module) + 1,
+        currentModule: moduleIndex + 1,
         totalModules: learningPath.totalModules,
         isCompleted: module.isCompleted,
         completedModules: learningPath.completedModules
@@ -720,9 +749,10 @@ exports.getModuleDetailsAdmin = async (req, res) => {
       });
     }
 
+    // Safely convert module to object with null check
     res.status(200).json({
       success: true,
-      module: module.toObject()
+      module: module ? module.toObject() : null
     });
   } catch (error) {
     console.error('Get module details (admin) error:', error);
@@ -757,12 +787,19 @@ exports.incompleteModule = async (req, res) => {
       });
     }
 
-    const moduleIndex = learningPath.modules.findIndex(m => m.moduleId.toString() === moduleId);
+    // Find and verify module exists
+    const moduleIndex = learningPath.modules.findIndex(m => m.moduleId && m.moduleId.toString() === moduleId);
     if (moduleIndex === -1) {
       return res.status(404).json({ message: 'Module not found' });
     }
 
     const module = learningPath.modules[moduleIndex];
+    
+    // Verify module object exists
+    if (!module) {
+      return res.status(404).json({ message: 'Module not accessible' });
+    }
+    
     module.isCompleted = false;
     module.completedAt = undefined;
     module.score = undefined;
@@ -1223,7 +1260,8 @@ exports.deleteModule = async (req, res) => {
       });
     }
 
-    const moduleIndex = learningPath.modules.findIndex(m => m._id.toString() === moduleId);
+    // Use moduleId field consistently (not _id) to match the module
+    const moduleIndex = learningPath.modules.findIndex(m => m.moduleId && m.moduleId.toString() === moduleId);
     if (moduleIndex === -1) {
       return res.status(404).json({
         success: false,
