@@ -175,6 +175,26 @@ exchangeSchema.methods.updateStatus = function(newStatus) {
   return this.save();
 };
 
+// Method to check if both learning paths are completed
+exchangeSchema.methods.areBothLearningPathsCompleted = function() {
+  return this.requester_learningCompleted === true && this.provider_learningCompleted === true;
+};
+
+// Method to check completion status of both paths
+exchangeSchema.methods.getCompletionStatus = function() {
+  return {
+    requesterCompleted: this.requester_learningCompleted || false,
+    providerCompleted: this.provider_learningCompleted || false,
+    bothCompleted: this.requester_learningCompleted === true && this.provider_learningCompleted === true,
+    readyForRating: this.status === 'completed'
+  };
+};
+
+// Virtuals for quick access
+exchangeSchema.virtual('bothPathsCompleted').get(function() {
+  return this.areBothLearningPathsCompleted();
+});
+
 const Exchange = mongoose.model('Exchange', exchangeSchema);
 
 module.exports = Exchange;

@@ -195,6 +195,80 @@ exports.getExchangeById = async (req, res, next) => {
   }
 };
 
+// @desc    Check learning completion status for both paths
+// @route   GET /api/exchanges/:id/completion-status
+// @access  Private
+exports.checkLearningCompletion = async (req, res, next) => {
+  try {
+    const exchange = await Exchange.findById(req.params.id)
+      .populate('requester_learningPathId')
+      .populate('provider_learningPathId');
+
+    if (!exchange) {
+      return res.status(404).json({
+        success: false,
+        message: 'Exchange not found'
+      });
+    }
+
+    // Check authorization
+    if (
+      exchange.requester_id.toString() !== req.user._id.toString() &&
+      exchange.provider_id.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to view this exchange'
+      });
+    }
+
+    const requesterPath = exchange.requester_learningPathId;
+    const providerPath = exchange.provider_learningPathId;
+
+    // Get completion status
+    const requesterCompleted = requesterPath && requesterPath.status === 'completed';
+    const providerCompleted = providerPath && providerPath.status === 'completed';
+    const bothCompleted = requesterCompleted && providerCompleted;
+
+    // Calculate progress for each path
+    const requesterProgress = requesterPath ? {
+      completed: requesterPath.completedModules || 0,
+      total: requesterPath.totalModules || 0,
+      percentage: requesterPath.progressPercentage || 0,
+      status: requesterPath.status || 'not-started',
+      isComplete: requesterCompleted
+    } : null;
+
+    const providerProgress = providerPath ? {
+      completed: providerPath.completedModules || 0,
+      total: providerPath.totalModules || 0,
+      percentage: providerPath.progressPercentage || 0,
+      status: providerPath.status || 'not-started',
+      isComplete: providerCompleted
+    } : null;
+
+    res.status(200).json({
+      success: true,
+      completionStatus: {
+        requesterCompleted,
+        providerCompleted,
+        bothCompleted,
+        exchangeStatus: exchange.status,
+        readyForRating: exchange.status === 'completed',
+        requesterProgress,
+        providerProgress,
+        message: bothCompleted && exchange.status === 'completed'
+          ? '🎉 Both completed! Time to rate each other.'
+          : bothCompleted
+          ? '✅ Both learning paths complete! Exchange will be marked complete shortly.'
+          : `⏳ Waiting ${!requesterCompleted ? 'for requester' : 'for provider'} to complete`
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Update exchange status
 // @route   PUT /api/exchanges/:id/status
 // @access  Private

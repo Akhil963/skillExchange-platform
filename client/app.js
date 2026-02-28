@@ -1921,6 +1921,20 @@ async function renderExchanges() {
         return '';
       }
 
+      // Check and show completion notification asynchronously
+      if (exchange.status === 'active' || exchange.status === 'completed') {
+        (async () => {
+          const completion = await checkLearningCompletion(exchange._id);
+          if (completion && completion.bothCompleted && !exchange.requester_rating && !exchange.provider_rating) {
+            // Only show if current user hasn't rated yet
+            const hasUserRated = isRequester ? exchange.requester_rating : exchange.provider_rating;
+            if (!hasUserRated) {
+              showCompletionNotification(completion, exchange._id, otherUser.name);
+            }
+          }
+        })();
+      }
+
       return `
         <div class="exchange-item">
           <div class="exchange-header">
@@ -2044,55 +2058,52 @@ async function renderExchanges() {
               </div>
             ` : ''}
 
-            <!-- Bidirectional Rating Display -->
+            <!-- Enhanced Bidirectional Rating Display -->
             ${exchange.status === 'completed' ? `
-              <div class="exchange-ratings-section">
+              <div class="exchange-ratings-section" style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #eee;">
+                <div style="font-size: 12px; font-weight: 700; color: #666; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">⭐ RATINGS</div>
                 ${isRequester ? `
                   <!-- Requester's rating of Provider -->
-                  <div class="exchange-rating-item">
-                    <div class="rating-label">Your Rating</div>
+                  <div class="exchange-rating-item" style="margin-bottom: 12px; background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: #666; font-weight: 600; margin-bottom: 8px;">Your Rating</div>
                     ${exchange.requester_rating ? `
-                      <div class="exchange-rating-display">
-                        <div class="exchange-rating-stars">
-                          ${'⭐'.repeat(exchange.requester_rating)}${'☆'.repeat(5 - exchange.requester_rating)}
-                        </div>
-                        ${exchange.requester_review ? `<div class="exchange-rating-review">"${exchange.requester_review}"</div>` : ''}
+                      <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="font-size: 18px; letter-spacing: 2px;">${'⭐'.repeat(exchange.requester_rating)}${'☆'.repeat(5 - exchange.requester_rating)}</div>
+                        <span style="font-size: 12px; color: #999; font-weight: 500;">${exchange.requester_rating}/5</span>
                       </div>
-                    ` : `<div class="rating-pending">Pending your rating...</div>`}
+                      ${exchange.requester_review ? `<div style="font-size: 13px; color: #555; margin-top: 8px; font-style: italic; padding: 8px; background: white; border-radius: 4px;">"${exchange.requester_review}"</div>` : ''}
+                    ` : `<div style="color: #999; font-size: 13px; padding: 8px 0;">⏳ You haven't rated yet</div>`}
                   </div>
                   ${exchange.provider_rating ? `
-                    <div class="exchange-rating-item">
-                      <div class="rating-label">${otherUser.name}'s Rating</div>
-                      <div class="exchange-rating-display">
-                        <div class="exchange-rating-stars">
-                          ${'⭐'.repeat(exchange.provider_rating)}${'☆'.repeat(5 - exchange.provider_rating)}
-                        </div>
-                        ${exchange.provider_review ? `<div class="exchange-rating-review">"${exchange.provider_review}"</div>` : ''}
+                    <div class="exchange-rating-item" style="background: #f0f8ff; padding: 12px; border-radius: 6px; border-left: 3px solid #4caf50;">
+                      <div style="font-size: 12px; color: #666; font-weight: 600; margin-bottom: 8px;">${otherUser.name}'s Rating of You</div>
+                      <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="font-size: 18px; letter-spacing: 2px;">${'⭐'.repeat(exchange.provider_rating)}${'☆'.repeat(5 - exchange.provider_rating)}</div>
+                        <span style="font-size: 12px; color: #999; font-weight: 500;">${exchange.provider_rating}/5</span>
                       </div>
+                      ${exchange.provider_review ? `<div style="font-size: 13px; color: #555; margin-top: 8px; font-style: italic; padding: 8px; background: white; border-radius: 4px;">"${exchange.provider_review}"</div>` : ''}
                     </div>
                   ` : ''}
                 ` : `
                   <!-- Provider's rating of Requester -->
-                  <div class="exchange-rating-item">
-                    <div class="rating-label">Your Rating</div>
+                  <div class="exchange-rating-item" style="margin-bottom: 12px; background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 12px; color: #666; font-weight: 600; margin-bottom: 8px;">Your Rating</div>
                     ${exchange.provider_rating ? `
-                      <div class="exchange-rating-display">
-                        <div class="exchange-rating-stars">
-                          ${'⭐'.repeat(exchange.provider_rating)}${'☆'.repeat(5 - exchange.provider_rating)}
-                        </div>
-                        ${exchange.provider_review ? `<div class="exchange-rating-review">"${exchange.provider_review}"</div>` : ''}
+                      <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="font-size: 18px; letter-spacing: 2px;">${'⭐'.repeat(exchange.provider_rating)}${'☆'.repeat(5 - exchange.provider_rating)}</div>
+                        <span style="font-size: 12px; color: #999; font-weight: 500;">${exchange.provider_rating}/5</span>
                       </div>
-                    ` : `<div class="rating-pending">Pending your rating...</div>`}
+                      ${exchange.provider_review ? `<div style="font-size: 13px; color: #555; margin-top: 8px; font-style: italic; padding: 8px; background: white; border-radius: 4px;">"${exchange.provider_review}"</div>` : ''}
+                    ` : `<div style="color: #999; font-size: 13px; padding: 8px 0;">⏳ You haven't rated yet</div>`}
                   </div>
                   ${exchange.requester_rating ? `
-                    <div class="exchange-rating-item">
-                      <div class="rating-label">${otherUser.name}'s Rating</div>
-                      <div class="exchange-rating-display">
-                        <div class="exchange-rating-stars">
-                          ${'⭐'.repeat(exchange.requester_rating)}${'☆'.repeat(5 - exchange.requester_rating)}
-                        </div>
-                        ${exchange.requester_review ? `<div class="exchange-rating-review">"${exchange.requester_review}"</div>` : ''}
+                    <div class="exchange-rating-item" style="background: #f0f8ff; padding: 12px; border-radius: 6px; border-left: 3px solid #4caf50;">
+                      <div style="font-size: 12px; color: #666; font-weight: 600; margin-bottom: 8px;">${otherUser.name}'s Rating of You</div>
+                      <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="font-size: 18px; letter-spacing: 2px;">${'⭐'.repeat(exchange.requester_rating)}${'☆'.repeat(5 - exchange.requester_rating)}</div>
+                        <span style="font-size: 12px; color: #999; font-weight: 500;">${exchange.requester_rating}/5</span>
                       </div>
+                      ${exchange.requester_review ? `<div style="font-size: 13px; color: #555; margin-top: 8px; font-style: italic; padding: 8px; background: white; border-radius: 4px;">"${exchange.requester_review}"</div>` : ''}
                     </div>
                   ` : ''}
                 `}
@@ -2252,39 +2263,169 @@ async function cancelExchange(exchangeId) {
   }
 }
 
-// Rating Modal Functions
-function showRatingModal(exchangeId, userName) {
+// =============================================
+// DYNAMIC RATING SYSTEM - AUTO DETECTION
+// =============================================
+
+// Check if both learning paths are completed
+async function checkLearningCompletion(exchangeId) {
+  try {
+    const data = await apiRequest(`/exchanges/${exchangeId}/completion-status`);
+    return data.completionStatus;
+  } catch (error) {
+    console.error('Error checking completion status:', error);
+    return null;
+  }
+}
+
+// Show completion notification and rating prompt
+function showCompletionNotification(completionStatus, exchangeId, otherUserName) {
+  if (completionStatus.bothCompleted && completionStatus.readyForRating) {
+    const notification = document.createElement('div');
+    notification.className = 'completion-notification show';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      z-index: 10000;
+      max-width: 400px;
+      animation: slideInRight 0.3s ease;
+    `;
+    notification.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: start; gap: 15px;">
+        <div style="flex: 1;">
+          <h3 style="margin: 0 0 8px 0; font-size: 18px;">🎉 Learning Complete!</h3>
+          <p style="margin: 0 0 12px 0; font-size: 14px; opacity: 0.95;">
+            Both of you have completed all modules. Time to rate your experience!
+          </p>
+          <button onclick="showEnhancedRatingModal('${exchangeId}', '${otherUserName}')" style="
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+          " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            Rate Now ⭐
+          </button>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" style="
+          background: none;
+          border: none;
+          color: white;
+          font-size: 20px;
+          cursor: pointer;
+          padding: 0;
+          width: 30px;
+          height: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          ×
+        </button>
+      </div>
+    `;
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 8 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 8000);
+  }
+}
+
+// Enhanced Rating Modal with Progress Info
+function showEnhancedRatingModal(exchangeId, userName) {
   const modal = document.getElementById('ratingModal');
   const modalContent = document.getElementById('ratingModalContent');
 
   modalContent.innerHTML = `
-    <div class="rating-form">
-      <p style="text-align: center; margin-bottom: 20px;">
-        How was your experience exchanging skills with <strong>${userName}</strong>?
-      </p>
+    <div class="rating-form" style="max-width: 500px;">
+      <div style="text-align: center; margin-bottom: 25px;">
+        <div style="font-size: 48px; margin-bottom: 12px;">⭐</div>
+        <h2 style="margin: 0 0 8px 0; font-size: 22px; color: #333;">Rate Your Experience</h2>
+        <p style="margin: 0; font-size: 14px; color: #666;">
+          Rate <strong>${userName}</strong>'s teaching and communication skills
+        </p>
+      </div>
 
-      <div class="rating-stars" id="ratingStars">
+      <!-- Rating Stars -->
+      <div class="rating-stars" id="ratingStars" style="
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 25px;
+        font-size: 40px;
+      ">
         ${[1, 2, 3, 4, 5].map(star => `
-          <span class="rating-star" data-rating="${star}" onclick="selectRating(${star})">☆</span>
+          <span class="rating-star" data-rating="${star}" onclick="selectRating(${star})" style="
+            cursor: pointer;
+            filter: grayscale(80%);
+            opacity: 0.6;
+            transition: all 0.2s ease;
+          ">☆</span>
         `).join('')}
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Review (Optional)</label>
+      <!-- Rating Labels -->
+      <div id="ratingLabel" style="
+        text-align: center;
+        font-weight: 600;
+        color: #667eea;
+        margin-bottom: 20px;
+        font-size: 14px;
+        min-height: 20px;
+      "></div>
+
+      <!-- Review Textarea -->
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label class="form-label" style="font-weight: 600; color: #333; margin-bottom: 8px;">
+          Share Your Experience (Optional)
+        </label>
         <textarea class="form-control" id="reviewText" rows="4" 
-                  placeholder="Share your experience..."></textarea>
+                  placeholder="What did you learn? Any feedback for improvement? Any highlights?"
+                  style="
+                    width: 100%;
+                    padding: 12px;
+                    border: 1px solid #ddd;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    font-family: inherit;
+                    resize: vertical;
+                  "></textarea>
+        <div style="font-size: 12px; color: #999; margin-top: 4px;">
+          <span id="charCount">0</span>/500 characters
+        </div>
       </div>
 
+      <!-- Action Buttons -->
       <div style="display: flex; gap: 12px;">
-        <button class="btn btn--primary" style="flex: 1;" onclick="submitRating('${exchangeId}')">
-          Submit Rating
+        <button class="btn btn--primary" style="flex: 1; padding: 12px;" onclick="submitRating('${exchangeId}')">
+          ✓ Submit Rating
         </button>
-        <button class="btn btn--outline" onclick="closeRatingModal()">
+        <button class="btn btn--outline" onclick="closeRatingModal()" style="flex: 1; padding: 12px;">
           Cancel
         </button>
       </div>
     </div>
   `;
+
+  // Add character counter
+  const reviewText = document.getElementById('reviewText');
+  reviewText.addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length;
+  });
 
   modal.classList.add('show');
   AppState.selectedRating = 0;
@@ -2293,16 +2434,33 @@ function showRatingModal(exchangeId, userName) {
 function selectRating(rating) {
   AppState.selectedRating = rating;
 
+  const ratingLabels = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
+
   // Update star display
   document.querySelectorAll('.rating-star').forEach((star, index) => {
     if (index < rating) {
       star.classList.add('active');
       star.textContent = '⭐';
+      star.style.filter = 'grayscale(0%)';
+      star.style.opacity = '1';
     } else {
       star.classList.remove('active');
       star.textContent = '☆';
+      star.style.filter = 'grayscale(80%)';
+      star.style.opacity = '0.6';
     }
   });
+
+  // Update label
+  const label = document.getElementById('ratingLabel');
+  if (label) {
+    label.textContent = ratingLabels[rating] || '';
+  }
+}
+
+// Original Rating Modal (kept for compatibility)
+function showRatingModal(exchangeId, userName) {
+  showEnhancedRatingModal(exchangeId, userName);
 }
 
 async function submitRating(exchangeId) {
@@ -2325,7 +2483,7 @@ async function submitRating(exchangeId) {
     closeRatingModal();
     showNotification('⭐ Rating submitted! Thank you for your feedback.', 'success');
 
-    // Refresh exchanges
+    // Refresh exchanges to show the rating
     renderExchanges();
   } catch (error) {
     showNotification(error.message || 'Failed to submit rating', 'error');
@@ -2333,7 +2491,10 @@ async function submitRating(exchangeId) {
 }
 
 function closeRatingModal() {
-  document.getElementById('ratingModal').classList.remove('show');
+  const modal = document.getElementById('ratingModal');
+  if (modal) {
+    modal.classList.remove('show');
+  }
   AppState.selectedRating = 0;
 }
 
