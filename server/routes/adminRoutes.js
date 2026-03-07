@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const { protect: adminProtect } = require('../middleware/adminAuth');
+
+// All admin routes require admin authentication
+router.use(adminProtect);
 
 // System status and stats
 router.get('/status', adminController.getSystemStatus);

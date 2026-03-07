@@ -1,7 +1,9 @@
 const LearningPath = require('../models/LearningPath');
+const LearningMaterial = require('../models/LearningMaterial');
 const Exchange = require('../models/Exchange');
 const Skill = require('../models/Skill');
 const User = require('../models/User');
+const { cloudinary, uploadMaterial, uploadBufferToCloudinary, MAX_FILE_BYTES } = require('../middleware/upload');
 
 // Admin: Get all learning paths
 exports.getAllLearningPaths = async (req, res, next) => {
@@ -35,8 +37,8 @@ exports.createLearningPath = async (req, res) => {
       return res.status(404).json({ message: 'Exchange not found' });
     }
 
-    // Validate skill exists and get its videos
-    const skill = await Skill.findById(skillId).populate('videos');
+    // Validate skill exists
+    const skill = await Skill.findById(skillId);
     if (!skill) {
       return res.status(404).json({ message: 'Skill not found' });
     }
@@ -47,53 +49,12 @@ exports.createLearningPath = async (req, res) => {
       return res.status(400).json({ message: 'Learning path already exists for this exchange' });
     }
 
-    // Get videos for this skill
-    const videos = skill.videos || [];
-    
-    // Create modules from skill videos
-    const modules = [];
-    let totalDuration = 0;
-
-    if (videos.length > 0) {
-      for (let i = 0; i < videos.length; i++) {
-        const video = videos[i];
-        const duration = video.duration || 0;
-        totalDuration += duration;
-        
-        // Store video data directly in module (not as reference)
-        modules.push({
-          title: video.title || `Module ${i + 1}`,
-          description: `Learn ${skill.name}`,
-          videoUrl: video.url,  // YouTube URL
-          videoTitle: video.title,
-          duration: duration,
-          order: video.order || i + 1,
-          isCompleted: false
-        });
-      }
-    }
-
-    // If no videos, create a default module for the skill
-    if (modules.length === 0) {
-      modules.push({
-        title: `Learn ${skill.name}`,
-        description: `Master the fundamentals of ${skill.name}`,
-        order: 1,
-        isCompleted: false
-      });
-    }
-
     const learningPath = new LearningPath({
       exchangeId,
       skillId,
       learner,
       instructor,
-      modules,
-      totalModules: modules.length,
-      completedModules: 0,
-      progressPercentage: 0,
-      status: 'not-started',
-      estimatedDuration: totalDuration
+      status: 'not-started'
     });
 
     await learningPath.save();
@@ -109,7 +70,7 @@ exports.createLearningPath = async (req, res) => {
     console.error('Create learning path error:', error);
     res.status(500).json({
       message: 'Error creating learning path',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -155,7 +116,7 @@ exports.getUserLearningPaths = async (req, res) => {
     console.error('Get user learning paths error:', error);
     res.status(500).json({
       message: 'Error fetching learning paths',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -164,6 +125,13 @@ exports.getUserLearningPaths = async (req, res) => {
 async function createLearningPathForExchange(exchangeId, learner, instructor, skillName, isRequester) {
   try {
     console.log(`🔧 Creating ${isRequester ? 'requester' : 'provider'} learning path for skill: ${skillName}...`);
+
+    // Check if one already exists (prevents duplicate key error on unique index)
+    const existing = await LearningPath.findOne({ exchangeId, learner });
+    if (existing) {
+      console.log(`   Found existing path: ${existing._id}`);
+      return existing._id;
+    }
     
     // Find the skill - try multiple matching strategies for better results
     let skill = await Skill.findOne({ name: skillName });
@@ -171,12 +139,10 @@ async function createLearningPathForExchange(exchangeId, learner, instructor, sk
       skill = await Skill.findOne({ name: { $regex: new RegExp(`^${skillName}$`, 'i') } });
     }
     if (!skill) {
-      // Try partial match - e.g., "REACT JS" should match "React"
       const cleanedSkillName = skillName.replace(/\s+(JS|JAVA|CPP|PY)$/i, '').trim();
       skill = await Skill.findOne({ name: { $regex: new RegExp(cleanedSkillName, 'i') } });
     }
     if (!skill) {
-      // Try finding by word - "Project Management" contains "Management"
       const skillWords = skillName.split(/\s+/);
       for (const word of skillWords) {
         if (word.length > 3) {
@@ -187,61 +153,25 @@ async function createLearningPathForExchange(exchangeId, learner, instructor, sk
     }
     
     console.log(`   Skill found: ${skill ? '✅ ' + skill.name : '❌ Not found'}`);
-    if (skill && skill.videos) {
-      console.log(`   Videos available: ${skill.videos.length}`);
-    }
-
-    const modules = [];
-    let totalDuration = 0;
-
-    // Add modules from skill videos if available
-    if (skill && skill.videos && skill.videos.length > 0) {
-      skill.videos.forEach((video, index) => {
-        modules.push({
-          title: video.title || `Module ${index + 1}: ${skill.name}`,
-          description: `Learn ${skill.name}`,
-          videoUrl: video.url || '',
-          videoTitle: video.title || '',
-          duration: video.duration || 45,
-          order: index + 1,
-          isCompleted: false
-        });
-        totalDuration += video.duration || 45;
-      });
-      console.log(`   ✅ Created ${modules.length} modules from skill videos`);
-    } else {
-      // Create a default module if no skill videos found
-      modules.push({
-        title: `Learn ${skillName}`,
-        description: `Master the fundamentals of ${skillName}`,
-        videoUrl: '',
-        duration: 45,
-        order: 1,
-        isCompleted: false
-      });
-      totalDuration = 45;
-      console.log(`   ⚠️  No videos found - created default module`);
-    }
 
     const lp = new LearningPath({
       exchangeId: exchangeId,
-      skillId: skill ? skill._id : null,  // Set to null instead of orphaned ObjectId
-      skillName: skill ? skill.name : skillName, // Store actual skill name for reference
+      skillId: skill ? skill._id : undefined,
       learner: learner,
       instructor: instructor,
-      modules: modules,
-      totalModules: modules.length,
-      completedModules: 0,
-      progressPercentage: 0,
-      status: 'in-progress',
-      estimatedDuration: totalDuration
+      status: 'in-progress'
     });
 
     await lp.save();
     console.log(`✅ Created ${isRequester ? 'requester' : 'provider'} path: ${lp._id}`);
-    console.log(`   Total modules: ${lp.totalModules}, Duration: ${totalDuration} min`);
     return lp._id;
   } catch (error) {
+    // Handle race-condition duplicate key: try to find the existing one
+    if (error.code === 11000) {
+      console.warn(`⚠️  Duplicate key on create — fetching existing learning path`);
+      const existing = await LearningPath.findOne({ exchangeId, learner }).catch(() => null);
+      if (existing) return existing._id;
+    }
     console.error(`❌ Error creating learning path:`, error.message);
     return null;
   }
@@ -296,20 +226,39 @@ exports.getLearningPathsByExchange = async (req, res) => {
     let role = null;
 
     if (isRequester) {
-      learningPathId = exchange.requester_learningPathId?._id;
+      // Use populated ID if available; fall back to raw ObjectId
+      const lpRef = exchange.requester_learningPathId;
+      learningPathId = lpRef?._id || (lpRef && !lpRef._id ? lpRef : null);
       skillToLearn = exchange.requested_skill;
       role = 'requester';
       console.log(`   Learning: ${skillToLearn}`);
       console.log(`   Path exists: ${learningPathId ? '✅' : '❌'}`);
     } else {
-      learningPathId = exchange.provider_learningPathId?._id;
+      const lpRef = exchange.provider_learningPathId;
+      learningPathId = lpRef?._id || (lpRef && !lpRef._id ? lpRef : null);
       skillToLearn = exchange.offered_skill;
       role = 'provider';
       console.log(`   Learning: ${skillToLearn}`);
       console.log(`   Path exists: ${learningPathId ? '✅' : '❌'}`);
     }
 
-    // If learning path doesn't exist, create it
+    // If not linked on exchange, try to find orphaned path in DB by exchangeId + learner
+    if (!learningPathId) {
+      const learnerId = isRequester ? exchange.requester_id._id : exchange.provider_id._id;
+      const orphaned = await LearningPath.findOne({ exchangeId, learner: learnerId });
+      if (orphaned) {
+        console.log(`   Found orphaned path: ${orphaned._id} — re-linking to exchange`);
+        learningPathId = orphaned._id;
+        if (isRequester) {
+          exchange.requester_learningPathId = orphaned._id;
+        } else {
+          exchange.provider_learningPathId = orphaned._id;
+        }
+        await exchange.save();
+      }
+    }
+
+    // If learning path still doesn't exist, create it
     if (!learningPathId) {
       console.log(`\n🔨 Creating missing learning path for ${role}...`);
       
@@ -362,7 +311,6 @@ exports.getLearningPathsByExchange = async (req, res) => {
     console.log(`✅ Learning path ready: ${learningPath._id}`);
     console.log(`   Learner: ${learningPath.learner.name}`);
     console.log(`   Instructor: ${learningPath.instructor.name}`);
-    console.log(`   Modules: ${learningPath.totalModules}`);
 
     res.status(200).json({
       success: true,
@@ -382,7 +330,7 @@ exports.getLearningPathsByExchange = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching learning path for exchange',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -408,11 +356,11 @@ exports.debugExchangeLearningPaths = async (req, res) => {
 
     // Get both learning paths
     const requesterPath = exchange.requester_learningPathId 
-      ? await LearningPath.findById(exchange.requester_learningPathId).select('_id learner instructor totalModules status')
+      ? await LearningPath.findById(exchange.requester_learningPathId).select('_id learner instructor status')
       : null;
 
     const providerPath = exchange.provider_learningPathId 
-      ? await LearningPath.findById(exchange.provider_learningPathId).select('_id learner instructor totalModules status')
+      ? await LearningPath.findById(exchange.provider_learningPathId).select('_id learner instructor status')
       : null;
 
     const isRequester = exchange.requester_id._id.toString() === currentUserId;
@@ -444,7 +392,6 @@ exports.debugExchangeLearningPaths = async (req, res) => {
           id: requesterPath?._id || 'null',
           learner: requesterPath?.learner?.toString() || 'null',
           instructor: requesterPath?.instructor?.toString() || 'null',
-          totalModules: requesterPath?.totalModules || 0,
           status: requesterPath?.status || 'N/A',
           learning: exchange.requested_skill
         },
@@ -453,7 +400,6 @@ exports.debugExchangeLearningPaths = async (req, res) => {
           id: providerPath?._id || 'null',
           learner: providerPath?.learner?.toString() || 'null',
           instructor: providerPath?.instructor?.toString() || 'null',
-          totalModules: providerPath?.totalModules || 0,
           status: providerPath?.status || 'N/A',
           learning: exchange.offered_skill
         }
@@ -464,7 +410,7 @@ exports.debugExchangeLearningPaths = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error debugging exchange learning paths',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -491,8 +437,6 @@ exports.getLearningPath = async (req, res) => {
       .populate('learner', 'name avatar email')
       .populate('instructor', 'name avatar email')
       .populate('skillId', 'name description');
-    // Note: modules are embedded documents with video data stored directly (videoUrl, videoTitle, duration)
-    // No need to populate modules.videoId as it doesn't exist - video data is embedded in each module
 
     if (!learningPath) {
       console.error(`❌ Learning path not found for ID: ${learningPathId}`);
@@ -535,323 +479,11 @@ exports.getLearningPath = async (req, res) => {
     console.error('Get learning path error:', error);
     res.status(500).json({
       message: 'Error fetching learning path',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
 
-// Mark a module as completed
-exports.completeModule = async (req, res) => {
-  try {
-    const { learningPathId, moduleId } = req.params;
-    const { score, notes } = req.body;
-    const currentUserId = req.user._id.toString();
-
-    const learningPath = await LearningPath.findById(learningPathId);
-    if (!learningPath) {
-      return res.status(404).json({ message: 'Learning path not found' });
-    }
-
-    // CRITICAL: Verify current user is the LEARNER of this path
-    if (learningPath.learner.toString() !== currentUserId) {
-      console.error(`❌ Unauthorized module completion attempt!`);
-      console.error(`   Learning Path: ${learningPathId}`);
-      console.error(`   Path Learner: ${learningPath.learner}`);
-      console.error(`   Current User: ${currentUserId}`);
-      return res.status(403).json({ 
-        message: 'Unauthorized: You can only complete modules in your own learning path',
-        error: 'WRONG_LEARNER'
-      });
-    }
-
-    console.log(`✅ Module completion authorized:`);
-    console.log(`   User ${currentUserId} completing module in their own learning path`);
-
-    // Find and update the module
-    const moduleIndex = learningPath.modules.findIndex(m => m.moduleId.toString() === moduleId);
-    if (moduleIndex === -1) {
-      return res.status(404).json({ message: 'Module not found' });
-    }
-
-    const module = learningPath.modules[moduleIndex];
-    module.isCompleted = true;
-    module.completedAt = new Date();
-    if (score !== undefined) {
-      module.score = Math.min(Math.max(score, 0), 100); // Ensure 0-100
-    }
-    if (notes !== undefined) {
-      module.notes = notes;
-    }
-
-    // Update learning path statistics
-    const completedCount = learningPath.modules.filter(m => m.isCompleted).length;
-    learningPath.completedModules = completedCount;
-    learningPath.progressPercentage = Math.round((completedCount / learningPath.totalModules) * 100);
-
-    // Update status if not already started
-    if (learningPath.status === 'not-started') {
-      learningPath.status = 'in-progress';
-      learningPath.startedAt = new Date();
-    }
-
-    // Calculate average score if all modules have scores
-    const scoredModules = learningPath.modules.filter(m => m.score !== undefined);
-    if (scoredModules.length > 0) {
-      learningPath.averageScore = Math.round(
-        scoredModules.reduce((sum, m) => sum + m.score, 0) / scoredModules.length
-      );
-    }
-
-    // Mark as completed if all modules are done
-    if (learningPath.progressPercentage === 100) {
-      learningPath.status = 'completed';
-      learningPath.completedAt = new Date();
-      
-      // Calculate actual duration
-      const startTime = learningPath.startedAt || learningPath.createdAt;
-      learningPath.actualDuration = Math.round((new Date() - startTime) / 60000); // in minutes
-      
-      console.log(`✅ User completed their learning path: ${learningPath._id}`);
-    }
-
-    // Save the current learning path FIRST
-    await learningPath.save();
-
-    // THEN check if BOTH learning paths are completed (after saving)
-    if (learningPath.progressPercentage === 100) {
-      try {
-        const exchange = await Exchange.findById(learningPath.exchangeId)
-          .populate('requester_learningPathId')
-          .populate('provider_learningPathId');
-        
-        if (exchange) {
-          // Fetch fresh data from database to ensure accuracy
-          const requesterPath = await LearningPath.findById(exchange.requester_learningPathId?._id);
-          const providerPath = await LearningPath.findById(exchange.provider_learningPathId?._id);
-          
-          const requesterComplete = requesterPath?.status === 'completed';
-          const providerComplete = providerPath?.status === 'completed';
-          
-          console.log(`   Checking exchange ${exchange._id} completion status:`);
-          console.log(`   - Requester path: ${requesterComplete ? '✅ Complete' : '⏳ In progress'} (${requesterPath?.completedModules}/${requesterPath?.totalModules})`);
-          console.log(`   - Provider path: ${providerComplete ? '✅ Complete' : '⏳ In progress'} (${providerPath?.completedModules}/${providerPath?.totalModules})`);
-          
-          // Only mark exchange as completed if BOTH paths are done
-          if (requesterComplete && providerComplete) {
-            exchange.status = 'completed';
-            exchange.learningCompleted = true;
-            exchange.learningCompletedAt = new Date();
-            exchange.completed_date = new Date();
-            await exchange.save();
-            
-            console.log(`🎉 BOTH users completed! Exchange ${exchange._id} marked as COMPLETED`);
-          } else {
-            console.log(`⏳ Waiting for other user to complete their learning path`);
-            // Keep exchange as 'active' so the other user can still learn
-            if (exchange.status !== 'active') {
-              exchange.status = 'active';
-              await exchange.save();
-            }
-          }
-        }
-      } catch (exchangeError) {
-        console.error('Error checking/updating exchange completion:', exchangeError);
-      }
-    }
-
-    res.status(200).json({
-      message: 'Module completed successfully',
-      learningPath,
-      completionCheckDone: true
-    });
-  } catch (error) {
-    console.error('Complete module error:', error);
-    res.status(500).json({
-      message: 'Error completing module',
-      error: error.message
-    });
-  }
-};
-
-// Get module details
-exports.getModuleDetails = async (req, res) => {
-  try {
-    const { learningPathId, moduleId } = req.params;
-
-    const learningPath = await LearningPath.findById(learningPathId);
-    // Note: Video data is embedded in modules (videoUrl, videoTitle, duration)
-    // No need to populate modules.videoId as it's now embedded data
-
-    if (!learningPath) {
-      return res.status(404).json({ message: 'Learning path not found' });
-    }
-
-    // Use findIndex to get the correct index
-    const moduleIndex = learningPath.modules.findIndex(m => m.moduleId && m.moduleId.toString() === moduleId);
-    if (moduleIndex === -1) {
-      return res.status(404).json({ message: 'Module not found' });
-    }
-
-    const module = learningPath.modules[moduleIndex];
-
-    // Verify module exists before using it
-    if (!module) {
-      return res.status(404).json({ message: 'Module not found' });
-    }
-
-    const moduleWithDetails = {
-      ...module.toObject(),
-      video: {
-        title: module.videoTitle,
-        url: module.videoUrl,
-        duration: module.duration
-      },
-      progress: {
-        currentModule: moduleIndex + 1,
-        totalModules: learningPath.totalModules,
-        isCompleted: module.isCompleted,
-        completedModules: learningPath.completedModules
-      }
-    };
-
-    res.status(200).json(moduleWithDetails);
-  } catch (error) {
-    console.error('Get module details error:', error);
-    res.status(500).json({
-      message: 'Error fetching module details',
-      error: error.message
-    });
-  }
-};
-
-// Admin: Get module details (no user validation)
-exports.getModuleDetailsAdmin = async (req, res) => {
-  try {
-    const { learningPathId, moduleId } = req.params;
-
-    const learningPath = await LearningPath.findById(learningPathId)
-      .populate('learner', 'fullName email')
-      .populate('instructor', 'fullName email')
-      .populate('skillId', 'name category level');
-
-    if (!learningPath) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Learning path not found' 
-      });
-    }
-
-    const module = learningPath.modules.find(m => m._id.toString() === moduleId);
-    if (!module) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Module not found' 
-      });
-    }
-
-    // Safely convert module to object with null check
-    res.status(200).json({
-      success: true,
-      module: module ? module.toObject() : null
-    });
-  } catch (error) {
-    console.error('Get module details (admin) error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching module details',
-      error: error.message
-    });
-  }
-};
-
-// Mark a module as incomplete
-exports.incompleteModule = async (req, res) => {
-  try {
-    const { learningPathId, moduleId } = req.params;
-    const currentUserId = req.user._id.toString();
-
-    const learningPath = await LearningPath.findById(learningPathId);
-    if (!learningPath) {
-      return res.status(404).json({ message: 'Learning path not found' });
-    }
-
-    // CRITICAL: Verify current user is the LEARNER of this path
-    if (learningPath.learner.toString() !== currentUserId) {
-      console.error(`❌ Unauthorized module incomplete attempt!`);
-      console.error(`   Learning Path: ${learningPathId}`);
-      console.error(`   Path Learner: ${learningPath.learner}`);
-      console.error(`   Current User: ${currentUserId}`);
-      return res.status(403).json({ 
-        message: 'Unauthorized: You can only modify modules in your own learning path',
-        error: 'WRONG_LEARNER'
-      });
-    }
-
-    // Find and verify module exists
-    const moduleIndex = learningPath.modules.findIndex(m => m.moduleId && m.moduleId.toString() === moduleId);
-    if (moduleIndex === -1) {
-      return res.status(404).json({ message: 'Module not found' });
-    }
-
-    const module = learningPath.modules[moduleIndex];
-    
-    // Verify module object exists
-    if (!module) {
-      return res.status(404).json({ message: 'Module not accessible' });
-    }
-    
-    module.isCompleted = false;
-    module.completedAt = undefined;
-    module.score = undefined;
-
-    // Update learning path statistics
-    const completedCount = learningPath.modules.filter(m => m.isCompleted).length;
-    learningPath.completedModules = completedCount;
-    learningPath.progressPercentage = Math.round((completedCount / learningPath.totalModules) * 100);
-
-    // Reset status if needed
-    if (learningPath.status === 'completed') {
-      learningPath.status = 'in-progress';
-      learningPath.completedAt = undefined;
-      
-      console.log(`↩️  User uncompleted their learning path: ${learningPath._id}`);
-      
-      // Always revert exchange to active if any path is incomplete
-      const exchange = await Exchange.findById(learningPath.exchangeId);
-      if (exchange && exchange.status === 'completed') {
-        exchange.status = 'active';
-        exchange.learningCompleted = false;
-        exchange.learningCompletedAt = undefined;
-        await exchange.save();
-        
-        console.log(`↩️  Exchange ${learningPath.exchangeId} reverted to ACTIVE (one path incomplete)`);
-      }
-    }
-
-    // Recalculate average score
-    const scoredModules = learningPath.modules.filter(m => m.score !== undefined);
-    if (scoredModules.length > 0) {
-      learningPath.averageScore = Math.round(
-        scoredModules.reduce((sum, m) => sum + m.score, 0) / scoredModules.length
-      );
-    } else {
-      learningPath.averageScore = undefined;
-    }
-
-    await learningPath.save();
-
-    res.status(200).json({
-      message: 'Module marked as incomplete',
-      learningPath
-    });
-  } catch (error) {
-    console.error('Incomplete module error:', error);
-    res.status(500).json({
-      message: 'Error marking module as incomplete',
-      error: error.message
-    });
-  }
-};
 
 // Get learning path progress
 exports.getProgress = async (req, res) => {
@@ -866,22 +498,8 @@ exports.getProgress = async (req, res) => {
     const progress = {
       learningPathId: learningPath._id,
       status: learningPath.status,
-      progressPercentage: learningPath.progressPercentage,
-      completedModules: learningPath.completedModules,
-      totalModules: learningPath.totalModules,
-      averageScore: learningPath.averageScore,
-      estimatedDuration: learningPath.estimatedDuration,
-      actualDuration: learningPath.actualDuration,
       startedAt: learningPath.startedAt,
-      completedAt: learningPath.completedAt,
-      modules: learningPath.modules.map(m => ({
-        moduleId: m.moduleId,
-        title: m.title,
-        order: m.order,
-        isCompleted: m.isCompleted,
-        completedAt: m.completedAt,
-        score: m.score
-      }))
+      completedAt: learningPath.completedAt
     };
 
     res.status(200).json(progress);
@@ -889,7 +507,7 @@ exports.getProgress = async (req, res) => {
     console.error('Get progress error:', error);
     res.status(500).json({
       message: 'Error fetching progress',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -898,31 +516,15 @@ exports.getProgress = async (req, res) => {
 exports.completeLearning = async (req, res) => {
   try {
     const { learningPathId } = req.params;
-    const { feedback } = req.body;
-    const currentUserId = req.user._id; // From auth middleware
+    const currentUserId = req.user._id;
 
     const learningPath = await LearningPath.findById(learningPathId);
     if (!learningPath) {
       return res.status(404).json({ message: 'Learning path not found' });
     }
 
-    // Check if all modules are completed
-    if (learningPath.progressPercentage !== 100) {
-      return res.status(400).json({
-        message: 'Cannot complete learning path - not all modules are finished',
-        progress: learningPath.progressPercentage,
-        remaining: learningPath.totalModules - learningPath.completedModules
-      });
-    }
-
     learningPath.status = 'completed';
     learningPath.completedAt = new Date();
-
-    // Calculate actual duration if not already set
-    if (!learningPath.actualDuration) {
-      const startTime = learningPath.startedAt || learningPath.createdAt;
-      learningPath.actualDuration = Math.round((new Date() - startTime) / 60000);
-    }
 
     await learningPath.save();
 
@@ -935,7 +537,6 @@ exports.completeLearning = async (req, res) => {
       return res.status(404).json({ message: 'Exchange not found' });
     }
 
-    // Determine if this is requester's or provider's learning path
     const isRequesterPath = exchange.requester_learningPathId && 
                            exchange.requester_learningPathId.toString() === learningPathId;
     const isProviderPath = exchange.provider_learningPathId && 
@@ -944,11 +545,7 @@ exports.completeLearning = async (req, res) => {
     console.log(`📝 Learning Path Complete: ${learningPathId}`);
     console.log(`   - Is Requester Path: ${isRequesterPath}`);
     console.log(`   - Is Provider Path: ${isProviderPath}`);
-    console.log(`   - Requester ID: ${exchange.requester_id._id}`);
-    console.log(`   - Provider ID: ${exchange.provider_id._id}`);
-    console.log(`   - Current User ID: ${currentUserId}`);
 
-    // Update the appropriate learning completion flags
     if (isRequesterPath) {
       exchange.requester_learningCompleted = true;
       exchange.requester_learningCompletedAt = new Date();
@@ -959,17 +556,14 @@ exports.completeLearning = async (req, res) => {
       console.log(`   ✅ Marked provider's learning as complete`);
     }
 
-    // Check if BOTH learnings are complete - if so, mark exchange as completed
     if (exchange.requester_learningCompleted && exchange.provider_learningCompleted) {
       exchange.status = 'completed';
       exchange.completed_date = new Date();
-      exchange.learningCompleted = true; // Legacy field
-      exchange.learningCompletedAt = new Date(); // Legacy field
+      exchange.learningCompleted = true;
+      exchange.learningCompletedAt = new Date();
       console.log(`   🎉 BOTH learnings complete! Marking exchange as COMPLETED`);
     } else {
       console.log(`   ⏳ Waiting for other participant to complete their learning`);
-      console.log(`      - Requester complete: ${exchange.requester_learningCompleted}`);
-      console.log(`      - Provider complete: ${exchange.provider_learningCompleted}`);
     }
 
     await exchange.save();
@@ -989,10 +583,11 @@ exports.completeLearning = async (req, res) => {
     console.error('Complete learning error:', error);
     res.status(500).json({
       message: 'Error completing learning path',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
+
 // Create learning paths for all active exchanges that don't have one
 exports.createMissingLearningPaths = async (req, res) => {
   try {
@@ -1001,7 +596,6 @@ exports.createMissingLearningPaths = async (req, res) => {
     
     console.log('🔧 Starting to create missing learning paths...');
     
-    // Find all active exchanges without learning paths
     const activeExchanges = await Exchange.find({
       status: 'active',
       learningPathId: { $exists: false }
@@ -1017,38 +611,21 @@ exports.createMissingLearningPaths = async (req, res) => {
       try {
         console.log(`Creating learning path for exchange ${exchange._id}...`);
         
-        // Find skill
         let skill = await Skill.findOne({ name: exchange.requested_skill });
         if (!skill) {
           skill = await Skill.findOne({ name: { $regex: exchange.requested_skill, $options: 'i' } });
         }
         
-        // Create learning path
         const learningPath = new LearningPath({
           exchangeId: exchange._id,
-          skillId: skill ? skill._id : new (require('mongoose')).Types.ObjectId(),
+          skillId: skill ? skill._id : undefined,
           learner: exchange.requester_id._id,
           instructor: exchange.provider_id._id,
-          modules: [],
-          totalModules: 0,
-          completedModules: 0,
-          progressPercentage: 0,
-          status: 'not-started',
-          estimatedDuration: 0
+          status: 'not-started'
         });
-        
-        // Add default module
-        learningPath.modules.push({
-          title: `Learn ${exchange.requested_skill}`,
-          description: `Master the fundamentals of ${exchange.requested_skill}`,
-          order: 1,
-          isCompleted: false
-        });
-        learningPath.totalModules = 1;
         
         await learningPath.save();
         
-        // Update exchange
         exchange.learningPathId = learningPath._id;
         await exchange.save();
         
@@ -1073,286 +650,349 @@ exports.createMissingLearningPaths = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error creating missing learning paths',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
 
-// Seed modules and videos for all learning paths
+// Seed endpoint kept for API compatibility (no-op)
 exports.seedModulesForAllPaths = async (req, res) => {
-  try {
-    console.log('🌱 Starting to seed modules for all learning paths...');
-    
-    const { seedDemoData } = require('../utils/seedModulesAndVideos');
-    const { skillModulesData } = require('../utils/seedModulesAndVideos');
-    
-    // Get all learning paths
-    const learningPaths = await LearningPath.find().populate('skillId');
-    console.log(`📚 Found ${learningPaths.length} learning paths to update`);
-    
-    let updatedCount = 0;
-    let skippedCount = 0;
-    const results = [];
-    
-    for (const lp of learningPaths) {
-      try {
-        const skillName = lp.skillId?.name;
-        
-        if (!skillName) {
-          console.warn(`⚠️  Skipping learning path - no skill name found`);
-          skippedCount++;
-          results.push({
-            learningPathId: lp._id,
-            status: 'skipped',
-            reason: 'No skill name found'
-          });
-          continue;
-        }
-        
-        // Find matching modules for this skill
-        const moduleTemplate = skillModulesData[skillName];
-        
-        if (!moduleTemplate) {
-          console.log(`ℹ️  No template found for skill: ${skillName}`);
-          skippedCount++;
-          results.push({
-            learningPathId: lp._id,
-            skillName: skillName,
-            status: 'skipped',
-            reason: 'No module template found'
-          });
-          continue;
-        }
-        
-        // Create modules from template
-        const modules = moduleTemplate.modules.map(mod => ({
-          moduleId: new require('mongoose').Types.ObjectId(),
-          title: mod.title,
-          description: mod.description,
-          duration: mod.duration,
-          order: mod.order,
-          videoTitle: mod.videoTitle,
-          isCompleted: false,
-          createdAt: new Date()
-        }));
-        
-        // Update learning path
-        const totalDuration = modules.reduce((sum, m) => sum + m.duration, 0);
-        
-        lp.modules = modules;
-        lp.totalModules = modules.length;
-        lp.estimatedDuration = totalDuration;
-        lp.updatedAt = new Date();
-        
-        await lp.save();
-        updatedCount++;
-        
-        console.log(`✅ Updated ${skillName}: ${modules.length} modules added (${totalDuration} min)`);
-        
-        results.push({
-          learningPathId: lp._id,
-          skillName: skillName,
-          status: 'updated',
-          modulesAdded: modules.length,
-          estimatedDuration: totalDuration
-        });
-      } catch (error) {
-        console.error(`❌ Error updating learning path:`, error.message);
-        skippedCount++;
-        results.push({
-          learningPathId: lp._id,
-          status: 'error',
-          error: error.message
-        });
+  res.status(200).json({
+    success: true,
+    message: 'Module seeding is no longer supported'
+  });
+};
+
+// Upload a material (video or PDF) to a learning path
+exports.uploadMaterialToPath = (req, res) => {
+  // URL-based material (JSON body — no file upload required)
+  if (req.is('application/json')) {
+    return handleUrlMaterial(req, res);
+  }
+
+  // File-based upload (multipart/form-data via Cloudinary)
+  uploadMaterial(req, res, async (err) => {
+    if (err) {
+      // Multer file-too-large error
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        const maxMB = Math.round(MAX_FILE_BYTES / (1024 * 1024));
+        return res.status(400).json({ success: false, message: `File too large. Maximum size is ${maxMB} MB (Cloudinary free plan limit).` });
       }
+      return res.status(400).json({ success: false, message: err.message });
     }
-    
-    console.log('\n📊 Summary:');
-    console.log(`   ✅ Updated: ${updatedCount}`);
-    console.log(`   ⚠️  Skipped: ${skippedCount}`);
-    console.log(`   📚 Total: ${learningPaths.length}`);
-    
-    res.status(200).json({
-      success: true,
-      message: 'Module seeding completed',
-      summary: {
-        total: learningPaths.length,
-        updated: updatedCount,
-        skipped: skippedCount
-      },
-      results: results
-    });
-  } catch (error) {
-    console.error('Seed modules error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error seeding modules',
-      error: error.message
-    });
-  }
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    try {
+      const { learningPathId } = req.params;
+      const currentUserId = req.user._id;
+
+      const learningPath = await LearningPath.findById(learningPathId);
+      if (!learningPath) {
+        return res.status(404).json({ success: false, message: 'Learning path not found' });
+      }
+
+      // Both learner and instructor can upload materials (bidirectional exchange — both teach each other)
+      const isParticipant =
+        learningPath.learner.toString() === currentUserId.toString() ||
+        learningPath.instructor.toString() === currentUserId.toString();
+      if (!isParticipant) {
+        return res.status(403).json({ success: false, message: 'Only participants of this learning path can upload materials' });
+      }
+
+      const { title, description } = req.body;
+      if (!title || !title.trim()) {
+        return res.status(400).json({ success: false, message: 'Title is required' });
+      }
+
+      // Stream the in-memory buffer to Cloudinary
+      let url, publicId, bytes;
+      try {
+        ({ url, publicId, bytes } = await uploadBufferToCloudinary(
+          req.file.buffer,
+          req.file.mimetype
+        ));
+      } catch (cloudErr) {
+        // Cloudinary-specific size error
+        const msg = cloudErr.message || '';
+        if (msg.includes('File size too large') || cloudErr.http_code === 400) {
+          const maxMB = Math.round(MAX_FILE_BYTES / (1024 * 1024));
+          return res.status(400).json({ success: false, message: `File too large for your Cloudinary plan. Maximum allowed is ${maxMB} MB. Please upload a smaller file.` });
+        }
+        return res.status(500).json({ success: false, message: 'Cloud upload failed: ' + msg });
+      }
+
+      const isVideo = req.file.mimetype.startsWith('video/');
+      const allowedCategories = ['teaching', 'learning'];
+      const materialCategory = allowedCategories.includes(req.body.materialCategory)
+        ? req.body.materialCategory
+        : 'teaching';
+
+      const material = await LearningMaterial.create({
+        learningPathId,
+        title: title.trim(),
+        description: description ? description.trim() : '',
+        fileUrl: url,
+        fileType: isVideo ? 'video' : 'pdf',
+        cloudinaryPublicId: publicId,
+        fileSize: bytes || req.file.size || 0,
+        uploadedBy: currentUserId,
+        materialCategory
+      });
+
+      res.status(201).json({ success: true, material });
+    } catch (error) {
+      console.error('Upload material error:', error);
+      res.status(500).json({ success: false, message: 'Error saving material: ' + (error.message || 'Unknown error') });
+    }
+  });
 };
 
-// Admin: Update a module
-exports.updateModule = async (req, res) => {
-  try {
-    const { learningPathId, moduleId } = req.params;
-    const updateData = req.body;
-
-    const learningPath = await LearningPath.findById(learningPathId);
-    if (!learningPath) {
-      return res.status(404).json({
-        success: false,
-        message: 'Learning path not found'
-      });
-    }
-
-    const module = learningPath.modules.id(moduleId);
-    if (!module) {
-      return res.status(404).json({
-        success: false,
-        message: 'Module not found'
-      });
-    }
-
-    // Update module fields
-    if (updateData.title) module.title = updateData.title;
-    if (updateData.description) module.description = updateData.description;
-    if (updateData.duration !== undefined) module.duration = updateData.duration;
-    if (updateData.videoUrl) module.videoUrl = updateData.videoUrl;
-    if (updateData.order !== undefined) module.order = updateData.order;
-    if (updateData.resources) module.resources = updateData.resources;
-
-    // Update estimated duration if module duration changed
-    if (updateData.duration !== undefined) {
-      const totalDuration = learningPath.modules.reduce((sum, m) => sum + (m.duration || 0), 0);
-      learningPath.estimatedDuration = totalDuration;
-    }
-
-    learningPath.updatedAt = new Date();
-    await learningPath.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Module updated successfully',
-      module: module,
-      learningPath: learningPath
-    });
-  } catch (error) {
-    console.error('Update module error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error updating module',
-      error: error.message
-    });
-  }
-};
-
-// Admin: Delete a module
-exports.deleteModule = async (req, res) => {
-  try {
-    const { learningPathId, moduleId } = req.params;
-
-    const learningPath = await LearningPath.findById(learningPathId);
-    if (!learningPath) {
-      return res.status(404).json({
-        success: false,
-        message: 'Learning path not found'
-      });
-    }
-
-    // Use moduleId field consistently (not _id) to match the module
-    const moduleIndex = learningPath.modules.findIndex(m => m.moduleId && m.moduleId.toString() === moduleId);
-    if (moduleIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: 'Module not found'
-      });
-    }
-
-    // Remove the module
-    learningPath.modules.splice(moduleIndex, 1);
-
-    // Update module counts and progress
-    learningPath.totalModules = learningPath.modules.length;
-    learningPath.completedModules = learningPath.modules.filter(m => m.isCompleted).length;
-    learningPath.progressPercentage = learningPath.totalModules > 0 
-      ? Math.round((learningPath.completedModules / learningPath.totalModules) * 100) 
-      : 0;
-
-    // Recalculate estimated duration
-    const totalDuration = learningPath.modules.reduce((sum, m) => sum + (m.duration || 0), 0);
-    learningPath.estimatedDuration = totalDuration;
-
-    // Reorder remaining modules
-    learningPath.modules.forEach((module, index) => {
-      module.order = index + 1;
-    });
-
-    learningPath.updatedAt = new Date();
-    await learningPath.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Module deleted successfully',
-      learningPath: learningPath
-    });
-  } catch (error) {
-    console.error('Delete module error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting module',
-      error: error.message
-    });
-  }
-};
-
-// Admin: Add a new module
-exports.addModule = async (req, res) => {
+// Handle URL-based materials (YouTube, Google Drive, etc.) — no file upload needed
+async function handleUrlMaterial(req, res) {
   try {
     const { learningPathId } = req.params;
-    const { title, description, duration, videoUrl, order, resources } = req.body;
+    const currentUserId = req.user._id;
 
     const learningPath = await LearningPath.findById(learningPathId);
     if (!learningPath) {
-      return res.status(404).json({
-        success: false,
-        message: 'Learning path not found'
-      });
+      return res.status(404).json({ success: false, message: 'Learning path not found' });
     }
 
-    // Create new module
-    const newModule = {
-      title: title || 'New Module',
-      description: description || '',
-      duration: duration || 0,
-      videoUrl: videoUrl || '',
-      order: order || learningPath.modules.length + 1,
-      isCompleted: false,
-      resources: resources || []
-    };
+    const isParticipant =
+      learningPath.learner.toString() === currentUserId.toString() ||
+      learningPath.instructor.toString() === currentUserId.toString();
+    if (!isParticipant) {
+      return res.status(403).json({ success: false, message: 'Only participants can add materials' });
+    }
 
-    learningPath.modules.push(newModule);
+    const { title, description, materialUrl, materialType, materialCategory, videoThumbnail, duration } = req.body;
 
-    // Update totals
-    learningPath.totalModules = learningPath.modules.length;
-    learningPath.estimatedDuration = learningPath.modules.reduce((sum, m) => sum + (m.duration || 0), 0);
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: 'Title is required' });
+    }
+    if (!materialUrl || !materialUrl.trim()) {
+      return res.status(400).json({ success: false, message: 'Material URL is required' });
+    }
 
-    learningPath.updatedAt = new Date();
+    // Validate URL format (basic check — must start with http/https)
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(materialUrl.trim());
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error('Invalid protocol');
+    } catch {
+      return res.status(400).json({ success: false, message: 'Please provide a valid http/https URL' });
+    }
+
+    const allowedCategories = ['teaching', 'learning'];
+    const category = allowedCategories.includes(materialCategory) ? materialCategory : 'teaching';
+    const fileType = (materialType === 'pdf') ? 'pdf' : 'video';
+
+    const material = await LearningMaterial.create({
+      learningPathId,
+      title: title.trim(),
+      description: description ? description.trim() : '',
+      fileUrl: parsedUrl.toString(),
+      fileType,
+      isExternalLink: true,
+      videoThumbnail: videoThumbnail ? videoThumbnail.trim() : undefined,
+      duration: duration ? Math.max(1, parseInt(duration, 10)) : undefined,
+      uploadedBy: currentUserId,
+      materialCategory: category
+    });
+
+    res.status(201).json({ success: true, material });
+  } catch (error) {
+    console.error('Add URL material error:', error);
+    res.status(500).json({ success: false, message: 'Error saving material: ' + (error.message || 'Unknown error') });
+  }
+}
+
+// Get all materials for a learning path
+exports.getMaterials = async (req, res) => {
+  try {
+    const { learningPathId } = req.params;
+    const currentUserId = req.user._id.toString();
+
+    const learningPath = await LearningPath.findById(learningPathId);
+    if (!learningPath) {
+      return res.status(404).json({ success: false, message: 'Learning path not found' });
+    }
+
+    // Only participants can view materials
+    const isParticipant =
+      learningPath.learner.toString() === currentUserId ||
+      learningPath.instructor.toString() === currentUserId;
+    if (!isParticipant) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    // Collect material IDs from BOTH learning paths in this exchange so
+    // each participant sees everything uploaded by either side.
+    const pathIds = new Set([learningPathId.toString()]);
+    if (learningPath.exchangeId) {
+      const exchange = await Exchange.findById(learningPath.exchangeId)
+        .select('requester_learningPathId provider_learningPathId');
+      if (exchange) {
+        if (exchange.requester_learningPathId) pathIds.add(exchange.requester_learningPathId.toString());
+        if (exchange.provider_learningPathId)  pathIds.add(exchange.provider_learningPathId.toString());
+      }
+    }
+
+    const materials = await LearningMaterial.find({ learningPathId: { $in: [...pathIds] } })
+      .populate('uploadedBy', 'name avatar')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, materials });
+  } catch (error) {
+    console.error('Get materials error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching materials', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });
+  }
+};
+
+// Delete a material
+exports.deleteMaterial = async (req, res) => {
+  try {
+    const { learningPathId, materialId } = req.params;
+    const currentUserId = req.user._id.toString();
+
+    const material = await LearningMaterial.findById(materialId);
+    if (!material) {
+      return res.status(404).json({ success: false, message: 'Material not found' });
+    }
+    if (material.learningPathId.toString() !== learningPathId) {
+      return res.status(400).json({ success: false, message: 'Material does not belong to this learning path' });
+    }
+
+    // Only the person who uploaded can delete their own material
+    if (material.uploadedBy.toString() !== currentUserId) {
+      return res.status(403).json({ success: false, message: 'Only the uploader can delete this material' });
+    }
+
+    // Delete from Cloudinary
+    if (material.cloudinaryPublicId) {
+      try {
+        const resourceType = material.fileType === 'video' ? 'video' : 'raw';
+        await cloudinary.uploader.destroy(material.cloudinaryPublicId, { resource_type: resourceType });
+      } catch (cloudErr) {
+        console.warn('Cloudinary delete warning:', cloudErr.message);
+      }
+    }
+
+    await material.deleteOne();
+    res.status(200).json({ success: true, message: 'Material deleted' });
+  } catch (error) {
+    console.error('Delete material error:', error);
+    res.status(500).json({ success: false, message: 'Error deleting material', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });
+  }
+};
+
+// ── Tasks ──────────────────────────────────────────────────────────────────
+
+// Add a task/milestone to a learning path
+exports.addTask = async (req, res) => {
+  try {
+    const { learningPathId } = req.params;
+    const { title } = req.body;
+    const currentUserId = req.user._id;
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: 'Task title is required' });
+    }
+
+    const learningPath = await LearningPath.findById(learningPathId);
+    if (!learningPath) {
+      return res.status(404).json({ success: false, message: 'Learning path not found' });
+    }
+
+    const isParticipant =
+      learningPath.learner.toString() === currentUserId.toString() ||
+      learningPath.instructor.toString() === currentUserId.toString();
+    if (!isParticipant) {
+      return res.status(403).json({ success: false, message: 'Only participants can add tasks' });
+    }
+
+    learningPath.tasks.push({ title: title.trim(), createdBy: currentUserId });
     await learningPath.save();
 
-    res.status(201).json({
-      success: true,
-      message: 'Module added successfully',
-      module: learningPath.modules[learningPath.modules.length - 1],
-      learningPath: learningPath
-    });
+    const newTask = learningPath.tasks[learningPath.tasks.length - 1];
+    res.status(201).json({ success: true, task: newTask });
   } catch (error) {
-    console.error('Add module error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error adding module',
-      error: error.message
-    });
+    console.error('Add task error:', error);
+    res.status(500).json({ success: false, message: 'Error adding task', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });
+  }
+};
+
+// Update a task (toggle complete / rename)
+exports.updateTask = async (req, res) => {
+  try {
+    const { learningPathId, taskId } = req.params;
+    const { completed, title } = req.body;
+    const currentUserId = req.user._id;
+
+    const learningPath = await LearningPath.findById(learningPathId);
+    if (!learningPath) {
+      return res.status(404).json({ success: false, message: 'Learning path not found' });
+    }
+
+    const isParticipant =
+      learningPath.learner.toString() === currentUserId.toString() ||
+      learningPath.instructor.toString() === currentUserId.toString();
+    if (!isParticipant) {
+      return res.status(403).json({ success: false, message: 'Only participants can update tasks' });
+    }
+
+    const task = learningPath.tasks.id(taskId);
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+
+    if (typeof completed === 'boolean') task.completed = completed;
+    if (title && title.trim()) task.title = title.trim();
+
+    await learningPath.save();
+    res.status(200).json({ success: true, task });
+  } catch (error) {
+    console.error('Update task error:', error);
+    res.status(500).json({ success: false, message: 'Error updating task', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });
+  }
+};
+
+// Delete a task
+exports.deleteTask = async (req, res) => {
+  try {
+    const { learningPathId, taskId } = req.params;
+    const currentUserId = req.user._id;
+
+    const learningPath = await LearningPath.findById(learningPathId);
+    if (!learningPath) {
+      return res.status(404).json({ success: false, message: 'Learning path not found' });
+    }
+
+    const isParticipant =
+      learningPath.learner.toString() === currentUserId.toString() ||
+      learningPath.instructor.toString() === currentUserId.toString();
+    if (!isParticipant) {
+      return res.status(403).json({ success: false, message: 'Only participants can delete tasks' });
+    }
+
+    const task = learningPath.tasks.id(taskId);
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+
+    // Only the creator of the task can delete it
+    if (!task.createdBy || task.createdBy.toString() !== currentUserId.toString()) {
+      return res.status(403).json({ success: false, message: 'You can only delete tasks you created' });
+    }
+
+    task.deleteOne();
+    await learningPath.save();
+    res.status(200).json({ success: true, message: 'Task deleted' });
+  } catch (error) {
+    console.error('Delete task error:', error);
+    res.status(500).json({ success: false, message: 'Error deleting task', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });
   }
 };
 

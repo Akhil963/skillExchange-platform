@@ -71,16 +71,6 @@
                 <span class="nav-icon">🎯</span>
                 <span class="nav-text">Skills</span>
             </a>
-            <a href="#" class="nav-item" onclick="navigateToPage('modules'); return false;">
-                <span class="nav-icon">🎓</span>
-                <span class="nav-text">Modules</span>
-                <span class="badge" id="moduleCount">0</span>
-            </a>
-            <a href="#" class="nav-item" onclick="navigateToPage('videos'); return false;">
-                <span class="nav-icon">🎥</span>
-                <span class="nav-text">Videos</span>
-                <span class="badge" id="videoCount">0</span>
-            </a>
             <a href="#" class="nav-item" onclick="navigateToPage('analytics'); return false;">
                 <span class="nav-icon">📈</span>
                 <span class="nav-text">Analytics</span>
@@ -355,113 +345,6 @@
             </div>
         </section>
 
-        <!-- Modules Page -->
-        <section class="page" id="modulesPage">
-            <div class="page-header">
-                <h2>Modules Management</h2>
-                <div class="page-actions">
-                    <input type="text" class="search-input" id="moduleSearch" placeholder="🔍 Search modules..." oninput="searchModules()">
-                    <select class="filter-select" id="moduleFilter" onchange="filterModules()">
-                        <option value="all">All Modules</option>
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="showAddModuleModal()">
-                        <i class="fas fa-plus"></i> Add Module
-                    </button>
-                </div>
-            </div>
-            
-            <div class="stats-grid" style="margin-bottom: 30px;">
-                <div class="stat-card">
-                    <div class="stat-icon">🎓</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Total Modules</div>
-                        <div class="stat-value" id="totalModulesCount">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">⏱️</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Avg Duration</div>
-                        <div class="stat-value" id="avgModuleDuration">0 min</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">✅</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Completed</div>
-                        <div class="stat-value" id="completedModulesCount">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">📚</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Learning Paths</div>
-                        <div class="stat-value" id="learningPathsCount">0</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="modules-grid" id="modulesGrid">
-                <div class="loading">Loading modules...</div>
-            </div>
-        </section>
-
-        <!-- Videos Management Page -->
-        <section class="page" id="videosPage">
-            <div class="page-header">
-                <h2>Video Library Management</h2>
-                <div class="page-actions">
-                    <input type="text" class="search-input" id="videoSearch" placeholder="🔍 Search videos..." oninput="searchVideos()">
-                    <select class="filter-select" id="videoFilter" onchange="filterVideos()">
-                        <option value="all">All Videos</option>
-                        <option value="used">Used in Modules</option>
-                        <option value="unused">Unused</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="showAddVideoModal()">
-                        <i class="fas fa-plus"></i> Add Video
-                    </button>
-                </div>
-            </div>
-            
-            <div class="stats-grid" style="margin-bottom: 30px;">
-                <div class="stat-card">
-                    <div class="stat-icon">🎥</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Total Videos</div>
-                        <div class="stat-value" id="totalVideosCount">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">✅</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Active Videos</div>
-                        <div class="stat-value" id="activeVideosCount">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">⏱️</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Total Duration</div>
-                        <div class="stat-value" id="totalVideoDuration">0 min</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">📚</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Used in Modules</div>
-                        <div class="stat-value" id="videosUsedCount">0</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="videos-grid" id="videosGrid">
-                <div class="loading">Loading videos...</div>
-            </div>
-        </section>
-
         <!-- Analytics Page -->
         <section class="page" id="analyticsPage">
             <div class="page-header">
@@ -660,9 +543,9 @@
             <div class="settings-container">
                 <div class="settings-card">
                     <h3>Database Configuration</h3>
-                    <div class="setting-item">
+                    <div class="setting-item" hidden>
                         <label>MongoDB URI</label>
-                        <input type="text" class="form-control" id="mongoUri" value="***hidden***" readonly>
+                        <!-- <input type="text" class="form-control" id="mongoUri" value="***hidden***"> -->
                     </div>
                     <div class="setting-item">
                         <label>Database Name</label>
@@ -790,165 +673,6 @@
                             <i class="fas fa-save"></i> Save Skill
                         </button>
                         <button type="button" class="btn btn-secondary" onclick="closeModal('skillModal')">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Module Modal -->
-    <div class="modal" id="editModuleModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="moduleModalTitle">Edit Module</h3>
-                <button class="modal-close" onclick="closeModal('editModuleModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="editModuleForm" onsubmit="saveModuleChanges(event)">
-                    <input type="hidden" id="editLearningPathId">
-                    <input type="hidden" id="editModuleId">
-                    
-                    <div class="form-group" id="learningPathSelectGroup" style="display: none;">
-                        <label for="selectLearningPath">Learning Path *</label>
-                        <select id="selectLearningPath" class="form-control">
-                            <option value="">Select a learning path</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="editModuleTitleInput">Module Title *</label>
-                        <input type="text" id="editModuleTitleInput" class="form-control" required maxlength="200" 
-                               placeholder="e.g., Introduction to JavaScript">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="editModuleDescription">Description</label>
-                        <textarea id="editModuleDescription" class="form-control" rows="3" maxlength="500" 
-                                  placeholder="Brief description of this module..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="editModuleDuration">Duration (minutes)</label>
-                        <input type="number" id="editModuleDuration" class="form-control" min="0" 
-                               placeholder="e.g., 30">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="editModuleVideoUrl">YouTube Video URL *</label>
-                        <input type="url" id="editModuleVideoUrl" class="form-control" required
-                               placeholder="https://www.youtube.com/watch?v=...">
-                        <small class="form-text">Enter full YouTube video URL (e.g., https://youtube.com/watch?v=abc123)</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="editModuleOrder">Module Order</label>
-                        <input type="number" id="editModuleOrder" class="form-control" min="1" 
-                               placeholder="1">
-                        <small class="form-text">Position in the learning path</small>
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Save Changes
-                        </button>
-                        <button type="button" class="btn btn-danger" id="deleteModuleBtn" onclick="confirmDeleteModule()" style="display: none;">
-                            <i class="fas fa-trash"></i> Delete Module
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('editModuleModal')">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add/Edit Video Modal -->
-    <div class="modal" id="videoModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="videoModalTitle">Add Video</h3>
-                <button class="modal-close" onclick="closeModal('videoModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="videoForm" onsubmit="saveVideo(event)">
-                    <input type="hidden" id="videoId">
-                    <input type="hidden" id="videoModuleId">
-                    <input type="hidden" id="videoLearningPathId">
-                    
-                    <div class="form-group">
-                        <label for="videoTitle">Video Title *</label>
-                        <input type="text" id="videoTitle" class="form-control" required maxlength="200" 
-                               placeholder="e.g., Introduction to JavaScript Basics">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="videoUrl">YouTube Video URL *</label>
-                        <input type="url" id="videoUrl" class="form-control" required
-                               placeholder="https://www.youtube.com/watch?v=...">
-                        <small class="form-text">Enter full YouTube video URL</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="videoDescription">Description</label>
-                        <textarea id="videoDescription" class="form-control" rows="3" maxlength="500" 
-                                  placeholder="Brief description of what this video covers..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="videoDuration">Duration (minutes)</label>
-                        <input type="number" id="videoDuration" class="form-control" min="1" 
-                               placeholder="e.g., 15">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="videoCategory">Category</label>
-                        <select id="videoCategory" class="form-control">
-                            <option value="">Select category</option>
-                            <option value="Programming">Programming</option>
-                            <option value="Design">Design</option>
-                            <option value="Business">Business</option>
-                            <option value="Marketing">Marketing</option>
-                            <option value="Language">Language</option>
-                            <option value="Music">Music</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="videoTags">Tags (comma-separated)</label>
-                        <input type="text" id="videoTags" class="form-control" 
-                               placeholder="e.g., javascript, tutorial, beginner">
-                        <small class="form-text">Helps in searching and categorizing</small>
-                    </div>
-                    
-                    <!-- Video Preview -->
-                    <div class="form-group" id="videoPreviewGroup" style="display: none;">
-                        <label>Video Preview</label>
-                        <div class="video-preview-container">
-                            <iframe id="videoPreviewFrame" 
-                                    width="100%" 
-                                    height="300" 
-                                    frameborder="0" 
-                                    allowfullscreen>
-                            </iframe>
-                        </div>
-                    </div>
-                    
-                    <button type="button" class="btn btn-secondary" onclick="previewVideo()">
-                        <i class="fas fa-eye"></i> Preview Video
-                    </button>
-                    
-                    <div class="modal-actions" style="margin-top: 20px;">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Save Video
-                        </button>
-                        <button type="button" class="btn btn-danger" id="deleteVideoBtn" onclick="confirmDeleteVideo()" style="display: none;">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('videoModal')">
                             Cancel
                         </button>
                     </div>

@@ -747,6 +747,118 @@
                 font-size: 12px !important;
             }
         }
+
+        /* ── Materials Section ── */
+        .materials-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: clamp(16px, 4vw, 24px);
+            margin-bottom: clamp(16px, 4vw, 24px);
+        }
+        .materials-section h3 {
+            margin: 0 0 16px;
+            color: #333;
+            font-size: clamp(16px, 4vw, 20px);
+        }
+        .upload-form {
+            background: #f7f8fc;
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .upload-form input[type="text"],
+        .upload-form textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .upload-form input[type="file"] {
+            width: 100%;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .upload-progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .upload-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        .material-card {
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 12px;
+            transition: box-shadow 0.2s;
+        }
+        .material-card:hover { box-shadow: 0 2px 8px rgba(102,126,234,0.15); }
+        .material-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .material-card-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .btn-play {
+            background: #667eea; color: white; border: none;
+            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;
+        }
+        .btn-view-mat {
+            background: #38a169; color: white; border: none;
+            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;
+            text-decoration: none; display: inline-flex; align-items: center;
+        }
+        .btn-download-mat {
+            background: #2b6cb0; color: white; border: none;
+            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;
+        }
+        .btn-download-mat:disabled { background: #90cdf4; cursor: not-allowed; }
+        .btn-delete-mat {
+            background: #e53e3e; color: white; border: none;
+            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;
+        }
+        .video-player-wrap {
+            margin-top: 12px;
+            display: none;
+        }
+        .video-player-wrap video {
+            width: 100%; border-radius: 8px; max-height: 320px; background: #000;
+        }
+        .no-materials {
+            text-align: center; color: #999; padding: 30px 0; font-size: 14px;
+        }
+        .materials-group-label {
+            font-size: 13px; font-weight: 700; color: #555;
+            padding: 8px 4px 6px; border-bottom: 2px solid #e2e8f0; margin-bottom: 10px;
+            text-transform: uppercase; letter-spacing: 0.4px;
+        }
+        .uploader-badge {
+            display: inline-block; font-size: 11px; font-weight: 700;
+            padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+        }
+        .uploader-you    { background: #c6f6d5; color: #276749; }
+        .uploader-partner { background: #bee3f8; color: #2c5282; }
     </style>
 </head>
 <body>
@@ -759,44 +871,48 @@
         <div class="dashboard-header" style="margin-top: 50px;">
             <div class="header-title" style="text-align: center; margin-bottom: 30px;">📚 Learning Dashboard</div>
             
-            <!-- Bidirectional Exchange Display - Responsive Grid -->
-            <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: clamp(15px, 5vw, 25px); border-radius: 12px; margin-bottom: 25px; border: 2px solid #667eea;">
-                <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: clamp(10px, 4vw, 20px); align-items: center;">
-                    <!-- Left Side: Learner -->
-                    <div style="background: white; padding: clamp(12px, 4vw, 18px); border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s ease;">
-                        <div id="learnerAvatar" style="width: clamp(45px, 12vw, 60px); height: clamp(45px, 12vw, 60px); border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; font-size: clamp(18px, 6vw, 24px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">L</div>
-                        <h4 id="learnerName" style="margin: 0 0 5px 0; color: #333; font-size: clamp(14px, 4vw, 18px); font-weight: 700;">You</h4>
-                        <p style="margin: 0 0 12px 0; color: #999; font-size: clamp(11px, 3vw, 13px); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Learner</p>
-                        <!-- <div style="background: #e3f2fd; padding: clamp(8px, 3vw, 12px); border-radius: 8px; border-left: 4px solid #1565c0;">
-                            <p style="margin: 0; color: #1565c0; font-weight: 700; font-size: clamp(12px, 3.5vw, 15px);" id="learningSkill">Learning: ---</p>
-                        </div> -->
-                    </div>
-                    
-                    <!-- Center: Exchange Arrow -->
-                    <div style="text-align: center; font-size: clamp(24px, 8vw, 32px); color: #667eea; font-weight: bold; animation: pulse 2s infinite;">⇄</div>
-                    
-                    <!-- Right Side: Teacher -->
-                    <div style="background: white; padding: clamp(12px, 4vw, 18px); border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s ease;">
-                        <div id="teacherAvatar" style="width: clamp(45px, 12vw, 60px); height: clamp(45px, 12vw, 60px); border-radius: 50%; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; font-size: clamp(18px, 6vw, 24px); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);">T</div>
-                        <h4 id="teacherName" style="margin: 0 0 5px 0; color: #333; font-size: clamp(14px, 4vw, 18px); font-weight: 700;">Instructor</h4>
-                        <p style="margin: 0 0 12px 0; color: #999; font-size: clamp(11px, 3vw, 13px); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Teacher</p>
-                        <!-- <div style="background: #f1f8e9; padding: clamp(8px, 3vw, 12px); border-radius: 8px; border-left: 4px solid #558b2f;">
-                            <p style="margin: 0; color: #558b2f; font-weight: 700; font-size: clamp(12px, 3.5vw, 15px);" id="teachingSkill">Teaching: ---</p>
-                        </div> -->
-                    </div>
-                </div>
-            </div>
+            <!-- Bidirectional Exchange Display -->
+            <div id="exchangeCardsWrap" style="background:linear-gradient(135deg,#f0f4ff 0%,#e8edff 100%);border:2px solid #667eea;border-radius:14px;padding:clamp(14px,4vw,22px);margin-bottom:20px;">
 
-            <!-- Progress Section -->
-            <div class="progress-section">
-                <div class="progress-label">
-                    <span>Overall Progress</span>
-                    <span id="progressText" style="font-size: 14px; font-weight: 700; color: #667eea;">0%</span>
+                <!-- Skill being exchanged — center banner -->
+                <div id="exchangeSkillBanner" style="text-align:center;margin-bottom:14px;">
+                    <span id="exchangeSkillChip" style="display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);color:white;font-size:clamp(12px,3vw,14px);font-weight:700;padding:6px 18px;border-radius:20px;letter-spacing:0.3px;">📖 Loading skill…</span>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill" style="width: 0%; transition: width 0.5s ease;">
-                        <span id="progressPercent"></span>
+
+                <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:clamp(8px,3vw,18px);align-items:center;">
+
+                    <!-- Learner card -->
+                    <div id="learnerCard" style="background:white;border-radius:12px;padding:clamp(12px,3vw,18px);box-shadow:0 2px 10px rgba(102,126,234,0.12);border:2px solid transparent;transition:all 0.2s;position:relative;">
+                        <div id="learnerYouBadge" style="display:none;position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#667eea;color:white;font-size:10px;font-weight:800;padding:3px 10px;border-radius:10px;letter-spacing:0.5px;white-space:nowrap;">👤 YOU</div>
+                        <div style="text-align:center;">
+                            <div id="learnerAvatar" style="width:clamp(44px,11vw,58px);height:clamp(44px,11vw,58px);border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:white;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-weight:800;font-size:clamp(18px,5vw,24px);box-shadow:0 3px 10px rgba(102,126,234,0.35);">L</div>
+                            <div id="learnerName" style="font-size:clamp(13px,3.5vw,16px);font-weight:800;color:#222;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
+                            <div id="learnerEmail" style="font-size:clamp(10px,2vw,12px);color:#888;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+                            <span style="display:inline-block;background:#e8edff;color:#3730a3;font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;letter-spacing:0.3px;">🎓 Learner</span>
+                            <div id="learnerSkillChip" style="margin-top:8px;font-size:clamp(10px,2vw,12px);color:#667eea;font-weight:600;"></div>
+                            <div id="learnerStatusDot" style="margin-top:6px;font-size:11px;color:#888;"></div>
+                        </div>
                     </div>
+
+                    <!-- Center divider -->
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                        <div style="font-size:clamp(22px,7vw,30px);color:#667eea;animation:pulse 2s infinite;">⇄</div>
+                        <div style="font-size:10px;color:#999;font-weight:600;letter-spacing:0.5px;white-space:nowrap;">EXCHANGE</div>
+                    </div>
+
+                    <!-- Instructor card -->
+                    <div id="instructorCard" style="background:white;border-radius:12px;padding:clamp(12px,3vw,18px);box-shadow:0 2px 10px rgba(76,175,80,0.12);border:2px solid transparent;transition:all 0.2s;position:relative;">
+                        <div id="instructorYouBadge" style="display:none;position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#ff9800;color:white;font-size:10px;font-weight:800;padding:3px 10px;border-radius:10px;letter-spacing:0.5px;white-space:nowrap;">👤 YOU</div>
+                        <div style="text-align:center;">
+                            <div id="teacherAvatar" style="width:clamp(44px,11vw,58px);height:clamp(44px,11vw,58px);border-radius:50%;background:linear-gradient(135deg,#4caf50,#2e7d32);color:white;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-weight:800;font-size:clamp(18px,5vw,24px);box-shadow:0 3px 10px rgba(76,175,80,0.35);">T</div>
+                            <div id="teacherName" style="font-size:clamp(13px,3.5vw,16px);font-weight:800;color:#222;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
+                            <div id="teacherEmail" style="font-size:clamp(10px,2vw,12px);color:#888;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+                            <span style="display:inline-block;background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;letter-spacing:0.3px;">👨‍🏫 Instructor</span>
+                            <div id="instructorSkillChip" style="margin-top:8px;font-size:clamp(10px,2vw,12px);color:#388e3c;font-weight:600;"></div>
+                            <div id="instructorStatusDot" style="margin-top:6px;font-size:11px;color:#888;"></div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -817,87 +933,253 @@
             </div>
 
             <!-- Stats -->
-            <div class="progress-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: clamp(12px, 3vw, 16px); margin-bottom: 20px;">
-                <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: clamp(15px, 3vw, 20px); border-radius: 10px; text-align: center;">
-                    <div class="stat-number" id="completedCount" style="font-size: clamp(24px, 6vw, 32px); font-weight: 700; color: white;">0</div>
-                    <div class="stat-label" style="font-size: clamp(12px, 3vw, 14px); color: rgba(255,255,255,0.8); margin-top: 5px;">Completed</div>
+            <div id="statsGrid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:clamp(10px,2.5vw,14px); margin-bottom:20px;">
+
+                <!-- Status card -->
+                <div id="statCardStatus" style="border-radius:12px;padding:clamp(13px,3vw,18px);color:white;background:linear-gradient(135deg,#2196f3,#1565c0);position:relative;overflow:hidden;">
+                    <div style="position:absolute;right:-10px;top:-10px;font-size:52px;opacity:0.15;">⚡</div>
+                    <div id="statStatusIcon" style="font-size:clamp(22px,5vw,28px);margin-bottom:6px;">🚀</div>
+                    <div id="statStatusLabel" style="font-size:clamp(14px,3.5vw,17px);font-weight:800;line-height:1.1;">Not Started</div>
+                    <div style="font-size:clamp(10px,2vw,11px);font-weight:600;letter-spacing:0.5px;margin-top:4px;opacity:0.82;">STATUS</div>
+                    <div id="statStatusHint" style="font-size:clamp(9px,1.8vw,11px);margin-top:5px;opacity:0.75;line-height:1.3;">Tap materials to begin</div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; padding: clamp(15px, 3vw, 20px); border-radius: 10px; text-align: center;">
-                    <div class="stat-number" id="totalCount" style="font-size: clamp(24px, 6vw, 32px); font-weight: 700; color: white;">0</div>
-                    <div class="stat-label" style="font-size: clamp(12px, 3vw, 14px); color: rgba(255,255,255,0.8); margin-top: 5px;">Total Modules</div>
+
+                <!-- Role card -->
+                <div id="statCardRole" style="border-radius:12px;padding:clamp(13px,3vw,18px);color:white;background:linear-gradient(135deg,#4caf50,#2e7d32);position:relative;overflow:hidden;">
+                    <div style="position:absolute;right:-10px;top:-10px;font-size:52px;opacity:0.15;">👤</div>
+                    <div id="statRoleIcon" style="font-size:clamp(22px,5vw,28px);margin-bottom:6px;">🎓</div>
+                    <div id="statRoleLabel" style="font-size:clamp(14px,3.5vw,17px);font-weight:800;line-height:1.1;">Learner</div>
+                    <div style="font-size:clamp(10px,2vw,11px);font-weight:600;letter-spacing:0.5px;margin-top:4px;opacity:0.82;">YOUR ROLE</div>
+                    <div id="statRoleHint" style="font-size:clamp(9px,1.8vw,11px);margin-top:5px;opacity:0.75;line-height:1.3;">You are learning a skill</div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: clamp(15px, 3vw, 20px); border-radius: 10px; text-align: center;">
-                    <div class="stat-number" id="avgScore" style="font-size: clamp(24px, 6vw, 32px); font-weight: 700; color: white;">-</div>
-                    <div class="stat-label" style="font-size: clamp(12px, 3vw, 14px); color: rgba(255,255,255,0.8); margin-top: 5px;">Avg Score</div>
+
+                <!-- Tasks progress card -->
+                <div id="statCardTasks" style="border-radius:12px;padding:clamp(13px,3vw,18px);color:white;background:linear-gradient(135deg,#ff7043,#bf360c);position:relative;overflow:hidden;">
+                    <div style="position:absolute;right:-10px;top:-10px;font-size:52px;opacity:0.15;">✅</div>
+                    <div id="statTasksIcon" style="font-size:clamp(22px,5vw,28px);margin-bottom:6px;">📋</div>
+                    <div id="statTasksLabel" style="font-size:clamp(14px,3.5vw,17px);font-weight:800;line-height:1.1;">—</div>
+                    <div style="font-size:clamp(10px,2vw,11px);font-weight:600;letter-spacing:0.5px;margin-top:4px;opacity:0.82;">TASKS</div>
+                    <div id="statTasksHint" style="font-size:clamp(9px,1.8vw,11px);margin-top:5px;opacity:0.75;line-height:1.3;">Assigned milestones</div>
+                    <div id="statTasksBar" style="margin-top:8px;background:rgba(255,255,255,0.25);border-radius:4px;height:4px;overflow:hidden;"><div id="statTasksFill" style="height:100%;background:#fff;border-radius:4px;width:0%;transition:width 0.4s;"></div></div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); color: white; padding: clamp(15px, 3vw, 20px); border-radius: 10px; text-align: center;">
-                    <div class="stat-number" id="statusDisplay" style="font-size: clamp(14px, 4vw, 18px); font-weight: 700; color: white;">Not Started</div>
-                    <div class="stat-label" style="font-size: clamp(12px, 3vw, 14px); color: rgba(255,255,255,0.8); margin-top: 5px;">Status</div>
+
+                <!-- Materials progress card -->
+                <div id="statCardMaterials" style="border-radius:12px;padding:clamp(13px,3vw,18px);color:white;background:linear-gradient(135deg,#667eea,#4a3fcb);position:relative;overflow:hidden;">
+                    <div style="position:absolute;right:-10px;top:-10px;font-size:52px;opacity:0.15;">👁</div>
+                    <div id="statMatsIcon" style="font-size:clamp(22px,5vw,28px);margin-bottom:6px;">📚</div>
+                    <div id="statMatsLabel" style="font-size:clamp(14px,3.5vw,17px);font-weight:800;line-height:1.1;">—</div>
+                    <div style="font-size:clamp(10px,2vw,11px);font-weight:600;letter-spacing:0.5px;margin-top:4px;opacity:0.82;">MATERIALS</div>
+                    <div id="statMatsHint" style="font-size:clamp(9px,1.8vw,11px);margin-top:5px;opacity:0.75;line-height:1.3;">Teaching resources</div>
+                    <div id="statMatsBar" style="margin-top:8px;background:rgba(255,255,255,0.25);border-radius:4px;height:4px;overflow:hidden;"><div id="statMatsFill" style="height:100%;background:#fff;border-radius:4px;width:0%;transition:width 0.4s;"></div></div>
                 </div>
+
+            </div>
+
+        </div>
+
+        <!-- Learning Materials Section -->
+        <div class="materials-section" id="materialsWrapper">
+            <!-- Section header -->
+            <div style="margin-bottom:20px;">
+                <h3 style="margin:0 0 4px;">📚 Learning Materials</h3>
+                <p style="margin:0; font-size:13px; color:#888;">Both participants can upload videos and PDFs</p>
+            </div>
+
+            <!-- ── Learning Resources Subsection ── -->
+            <div style="background:#fff; border:1px solid #e8e8e8; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <h4 style="margin:0 0 4px; font-size:15px; color:#333;">🎓 Teaching Materials</h4>
+                        <p id="learningResourceSubtitle" style="margin:0; font-size:13px; color:#888;">Uploaded by <strong id="instructorNameLabel">your partner</strong> for you to learn + your own resources for: <strong id="learningSkillLabel">—</strong></p>
+                    </div>
+                    <button id="addLearningResourceBtn" onclick="toggleLearningResourceForm()" style="background:linear-gradient(135deg,#43a047,#2e7d32); color:white; border:none; padding:9px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; white-space:nowrap; transition:all 0.2s;">
+                        ➕ Add Teaching Materials
+                    </button>
+                </div>
+
+                <!-- Learning Resource Upload Form -->
+                <div id="learningResourceUploadSection" style="display:none; margin-bottom:14px;">
+                    <div class="upload-form" style="background:#f6fff8;border:1.5px solid #43a047;border-radius:12px;padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                            <div style="font-weight:800;color:#1b5e20;font-size:15px;">🎓 Add Teaching Material</div>
+                            <button onclick="toggleLearningResourceForm()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#888;padding:0 4px;line-height:1;">✕</button>
+                        </div>
+                        <!-- Title -->
+                        <div style="margin-bottom:14px;">
+                            <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:5px;letter-spacing:0.5px;">TITLE *</label>
+                            <input type="text" id="learningResourceTitle" placeholder="e.g. JavaScript Basics – Week 1" maxlength="200" style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" onfocus="this.style.borderColor='#43a047'" onblur="this.style.borderColor='#d1d5db'">
+                        </div>
+                        <!-- Type selector -->
+                        <div style="margin-bottom:14px;">
+                            <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:7px;letter-spacing:0.5px;">TYPE</label>
+                            <div style="display:flex;gap:8px;">
+                                <button id="learning_typeVideoBtn" onclick="setMaterialType('video','learning')" style="flex:1;padding:9px 10px;border:2px solid #43a047;border-radius:8px;background:#43a047;color:white;font-weight:700;font-size:13px;cursor:pointer;">🎬 Video</button>
+                                <button id="learning_typePDFBtn" onclick="setMaterialType('pdf','learning')" style="flex:1;padding:9px 10px;border:2px solid #e5e7eb;border-radius:8px;background:white;color:#666;font-weight:700;font-size:13px;cursor:pointer;">📄 PDF</button>
+                            </div>
+                        </div>
+                        <!-- Video URL fields -->
+                        <div id="learning_urlSection" style="margin-bottom:14px;">
+                            <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:5px;letter-spacing:0.5px;">THUMBNAIL URL (OPTIONAL)</label>
+                            <input type="url" id="learningVideoThumbnail" placeholder="https://img.youtube.com/vi/.../hqdefault.jpg" style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;margin-bottom:10px;box-sizing:border-box;" onfocus="this.style.borderColor='#43a047'" onblur="this.style.borderColor='#d1d5db'">
+                            <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:5px;letter-spacing:0.5px;">URL (YOUTUBE, DRIVE, ETC.)</label>
+                            <input type="url" id="learningVideoUrl" placeholder="https://youtube.com/watch?v=..." style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;margin-bottom:10px;box-sizing:border-box;" onfocus="this.style.borderColor='#43a047'" onblur="this.style.borderColor='#d1d5db'">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                                <div>
+                                    <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:5px;letter-spacing:0.5px;">DURATION (MIN)</label>
+                                    <input type="number" id="learningVideoDuration" placeholder="e.g. 15" min="1" max="600" style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;box-sizing:border-box;" onfocus="this.style.borderColor='#43a047'" onblur="this.style.borderColor='#d1d5db'">
+                                </div>
+                            </div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:5px;letter-spacing:0.5px;">NOTES</label>
+                            <textarea id="learningResourceDescription" placeholder="What does this cover? Any prerequisites?" rows="2" maxlength="500" style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;box-sizing:border-box;font-family:inherit;resize:vertical;" onfocus="this.style.borderColor='#43a047'" onblur="this.style.borderColor='#d1d5db'"></textarea>
+                            <div style="display:flex;align-items:center;gap:10px;margin:14px 0 10px;">
+                                <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+                                <span style="font-size:11px;color:#9ca3af;font-weight:700;letter-spacing:0.5px;">OR ATTACH A FILE</span>
+                                <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+                            </div>
+                        </div>
+                        <!-- File drop zone -->
+                        <div id="learning_fileSection" style="margin-bottom:14px;">
+                            <label id="learningDropZone" for="learningResourceFile" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed #d1d5db;border-radius:10px;padding:20px 16px;cursor:pointer;background:#f9fafb;transition:all 0.2s;" onmouseover="this.style.borderColor='#43a047';this.style.background='#f0fff4'" onmouseout="this.style.borderColor='#d1d5db';this.style.background='#f9fafb'">
+                                <span style="font-size:26px;">☁️</span>
+                                <span style="font-size:13px;font-weight:700;color:#555;">Click to browse or drag &amp; drop</span>
+                                <span id="learning_fileHint" style="font-size:11px;color:#9ca3af;">PDF, MP4 — max 10 MB</span>
+                                <span id="learning_fileName" style="font-size:12px;color:#43a047;font-weight:600;display:none;"></span>
+                            </label>
+                            <input type="file" id="learningResourceFile" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.pdf" style="display:none;" onchange="onMaterialFileChange(this,'learning')">
+                            <div id="learningFileSizeWarning" style="display:none;color:#e53e3e;font-size:13px;font-weight:600;margin-top:6px;">⚠️ File exceeds 10 MB limit. Please choose a smaller file.</div>
+                        </div>
+                        <!-- Progress bar -->
+                        <div id="learningResourceUploadProgressWrap" style="display:none; margin-bottom:10px;">
+                            <div style="font-size:13px;color:#43a047;margin-bottom:6px;font-weight:600;">Uploading… <span id="learningResourceUploadPercent">0%</span></div>
+                            <div class="upload-progress-bar"><div class="upload-progress-fill" id="learningResourceUploadProgressFill" style="background:linear-gradient(90deg,#43a047,#2e7d32);"></div></div>
+                        </div>
+                        <!-- Buttons -->
+                        <div style="display:flex; gap:10px;">
+                            <button id="learningResourceUploadBtn" onclick="doUploadMaterial('learning')" style="flex:1;background:linear-gradient(135deg,#43a047,#2e7d32);color:white;border:none;padding:11px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;">📤 Save Material</button>
+                            <button onclick="toggleLearningResourceForm()" style="background:#f0f0f0;color:#555;border:none;padding:11px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Learning Resources List -->
+                <div id="learningResourcesList"><p class="no-materials">No resources yet. Click "+ Add" to get started.</p></div>
+            </div>
+
+            <br>
+
+            <!-- ── Teaching Materials Subsection ── -->
+            <div style="background:#fff; border:1px solid #e8e8e8; border-radius:12px; padding:18px; margin-bottom:18px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <h4 style="margin:0 0 4px; font-size:15px; color:#333;">📖 Learning Resources</h4>
+                        <p id="teachingSubtitle" style="margin:0; font-size:13px; color:#888;">Materials uploaded by <strong id="partnerNameLabel">your instructor</strong> to help <strong>you</strong> learn: <strong id="teachingSkillLabel">—</strong> &nbsp;<span style="color:#e64a19;font-size:12px;font-weight:600;">(view all to unlock completion)</span></p>
+                    </div>
+                    <button id="addTeachingBtn" onclick="toggleTeachingForm()" style="background:linear-gradient(135deg,#667eea,#764ba2); color:white; border:none; padding:9px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; white-space:nowrap; transition:all 0.2s;">
+                        ➕ Add Teaching Material
+                    </button>
+                </div>
+
+                <!-- Teaching Upload Form -->
+                <div id="teachingUploadSection" style="display:none; margin-bottom:14px;">
+                    <div class="upload-form" style="background:#fafbff;border:1.5px solid #667eea;border-radius:12px;padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                            <div style="font-weight:800;color:#3730a3;font-size:15px;">🎓 Add Teaching Material</div>
+                            <button onclick="toggleTeachingForm()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#888;padding:0 4px;line-height:1;">✕</button>
+                        </div>
+                        <!-- Title -->
+                        <div style="margin-bottom:14px;">
+                            <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:5px;letter-spacing:0.5px;">TITLE *</label>
+                            <input type="text" id="teachingMaterialTitle" placeholder="e.g. JavaScript Basics – Week 1" maxlength="200" style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#d1d5db'">
+                        </div>
+                        <!-- Type selector -->
+                        <div style="margin-bottom:14px;">
+                            <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:7px;letter-spacing:0.5px;">TYPE</label>
+                            <div style="display:flex;gap:8px;">
+                                <button id="teaching_typeVideoBtn" onclick="setMaterialType('video','teaching')" style="flex:1;padding:9px 10px;border:2px solid #667eea;border-radius:8px;background:#667eea;color:white;font-weight:700;font-size:13px;cursor:pointer;">🎬 Video</button>
+                                <button id="teaching_typePDFBtn" onclick="setMaterialType('pdf','teaching')" style="flex:1;padding:9px 10px;border:2px solid #e5e7eb;border-radius:8px;background:white;color:#666;font-weight:700;font-size:13px;cursor:pointer;">📄 PDF</button>
+                            </div>
+                        </div>
+                        <!-- Video URL fields -->
+                        <div id="teaching_urlSection" style="margin-bottom:14px;">
+                            <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:5px;letter-spacing:0.5px;">THUMBNAIL URL (OPTIONAL)</label>
+                            <input type="url" id="teachingVideoThumbnail" placeholder="https://img.youtube.com/vi/.../hqdefault.jpg" style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;margin-bottom:10px;box-sizing:border-box;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#d1d5db'">
+                            <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:5px;letter-spacing:0.5px;">URL (YOUTUBE, DRIVE, ETC.)</label>
+                            <input type="url" id="teachingVideoUrl" placeholder="https://youtube.com/watch?v=..." style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;margin-bottom:10px;box-sizing:border-box;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#d1d5db'">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                                <div>
+                                    <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:5px;letter-spacing:0.5px;">DURATION (MIN)</label>
+                                    <input type="number" id="teachingVideoDuration" placeholder="e.g. 15" min="1" max="600" style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;box-sizing:border-box;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#d1d5db'">
+                                </div>
+                            </div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:5px;letter-spacing:0.5px;">NOTES</label>
+                            <textarea id="teachingMaterialDescription" placeholder="What does this cover? Any prerequisites?" rows="2" maxlength="500" style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;box-sizing:border-box;font-family:inherit;resize:vertical;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#d1d5db'"></textarea>
+                            <div style="display:flex;align-items:center;gap:10px;margin:14px 0 10px;">
+                                <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+                                <span style="font-size:11px;color:#9ca3af;font-weight:700;letter-spacing:0.5px;">OR ATTACH A FILE</span>
+                                <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+                            </div>
+                        </div>
+                        <!-- File drop zone -->
+                        <div id="teaching_fileSection" style="margin-bottom:14px;">
+                            <label id="teachingDropZone" for="teachingMaterialFile" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed #d1d5db;border-radius:10px;padding:20px 16px;cursor:pointer;background:#f9fafb;transition:all 0.2s;" onmouseover="this.style.borderColor='#667eea';this.style.background='#f0f4ff'" onmouseout="this.style.borderColor='#d1d5db';this.style.background='#f9fafb'">
+                                <span style="font-size:26px;">☁️</span>
+                                <span style="font-size:13px;font-weight:700;color:#555;">Click to browse or drag &amp; drop</span>
+                                <span id="teaching_fileHint" style="font-size:11px;color:#9ca3af;">PDF, MP4 — max 10 MB</span>
+                                <span id="teaching_fileName" style="font-size:12px;color:#667eea;font-weight:600;display:none;"></span>
+                            </label>
+                            <input type="file" id="teachingMaterialFile" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.pdf" style="display:none;" onchange="onMaterialFileChange(this,'teaching')">
+                            <div id="teachingFileSizeWarning" style="display:none;color:#e53e3e;font-size:13px;font-weight:600;margin-top:6px;">⚠️ File exceeds 10 MB limit. Please choose a smaller file.</div>
+                        </div>
+                        <!-- Progress bar -->
+                        <div id="teachingUploadProgressWrap" style="display:none; margin-bottom:10px;">
+                            <div style="font-size:13px;color:#667eea;margin-bottom:6px;font-weight:600;">Uploading… <span id="teachingUploadPercent">0%</span></div>
+                            <div class="upload-progress-bar"><div class="upload-progress-fill" id="teachingUploadProgressFill"></div></div>
+                        </div>
+                        <!-- Buttons -->
+                        <div style="display:flex; gap:10px;">
+                            <button id="teachingUploadBtn" onclick="doUploadMaterial('teaching')" style="flex:1;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:11px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;">📤 Save Material</button>
+                            <button onclick="toggleTeachingForm()" style="background:#f0f0f0;color:#555;border:none;padding:11px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Teaching Materials List -->
+                <div id="teachingMaterialsList"><p class="no-materials">No resources yet. Click "+ Add" to get started.</p></div>
             </div>
         </div>
 
-        <!-- Modules Section -->
-        <div class="modules-section">
-            <div class="section-title">Learning Modules</div>
-            <div class="loading" id="loadingState">
-                <div class="spinner"></div>
-                <p>Loading modules...</p>
-            </div>
-            <div id="modulesContainer" class="modules-list"></div>
-            <div class="empty-state" id="emptyState" style="display: none;">
-                <p>No modules available yet.</p>
-            </div>
-
-            <!-- Complete Learning Section (shown when 100% complete) -->
-            <div class="complete-section hidden" id="completeSection">
-                <h3>🎉 All Modules Complete!</h3>
-                <p style="margin-bottom: 15px;">You've successfully completed all learning modules!</p>
-                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: left; font-size: 13px;">
-                    <strong style="color: #4caf50;">✅ Learning Path Status:</strong><br>
-                    Your skill exchange is now COMPLETE and ready for final rating. The following will happen:
-                    <ol style="margin-top: 10px; margin-left: 20px;">
-                        <li>Exchange marked as COMPLETED</li>
-                        <li>You can now rate your instructor</li>
-                        <li>Your instructor can rate you</li>
-                        <li>Skills are considered EXCHANGED ✅</li>
-                    </ol>
+        <!-- Tasks & Milestones Section -->
+        <div class="materials-section" id="tasksWrapper" style="margin-top:0;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h3 id="taskSectionTitle" style="margin:0 0 4px;">✅ Tasks &amp; Milestones</h3>
+                    <p id="taskSectionSubtitle" style="margin:0; font-size:13px; color:#888;">Track your learning milestones and progress</p>
                 </div>
-                <button class="btn btn-success" onclick="completeLearning()" style="font-size: 15px; padding: 12px 24px;">
-                    ✅ Mark Exchange as COMPLETED
+                <button id="addTaskBtn" onclick="toggleAddTaskForm()" style="background:linear-gradient(135deg,#ff7043,#e64a19); color:white; border:none; padding:9px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; white-space:nowrap; transition:all 0.2s;">
+                    ➕ Add Task
                 </button>
             </div>
-        </div>
-    </div>
 
-    <!-- Video Modal -->
-    <div class="modal" id="videoModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="videoTitle"></h2>
-                <button class="close-btn" onclick="closeVideoModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="video-container" id="videoContainer"></div>
-                <div id="videoDescription"></div>
-
-                <!-- Module Completion Form -->
-                <div class="completion-form">
-                    <h3>Mark Module as Complete</h3>
-
-                    <div class="form-group">
-                        <label>Score (0-100) - Optional</label>
-                        <input type="number" id="moduleScore" min="0" max="100" placeholder="Enter your score...">
+            <!-- Add Task Form -->
+            <div id="addTaskSection" style="display:none; margin-bottom:16px;">
+                <div class="upload-form">
+                    <div id="addTaskFormTitle" style="font-weight:700; color:#555; margin-bottom:10px; font-size:14px;">📝 Add a Milestone / Task</div>
+                    <input type="text" id="taskTitleInput" placeholder="Task title (required)" maxlength="300" style="margin-bottom:12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();doAddTask();}">
+                    <div style="display:flex; gap:10px;">
+                        <button id="addTaskConfirmBtn" onclick="doAddTask()" style="flex:1; background:linear-gradient(135deg,#ff7043,#e64a19);color:white;border:none;padding:11px 20px;border-radius:7px;cursor:pointer;font-size:14px;font-weight:700;">✅ Add Task</button>
+                        <button onclick="toggleAddTaskForm()" style="background:#f0f0f0;color:#555;border:none;padding:11px 16px;border-radius:7px;cursor:pointer;font-size:14px;font-weight:600;">Cancel</button>
                     </div>
-
-                    <div class="form-group">
-                        <label>Notes - Optional</label>
-                        <textarea id="moduleNotes" placeholder="Add any notes or reflections about this module..."></textarea>
-                    </div>
-
-                    <button class="btn btn-success" onclick="completeModule()">Mark as Complete</button>
-                    <button class="btn btn-secondary" onclick="closeVideoModal()">Close</button>
                 </div>
+            </div>
+
+            <!-- Tasks List -->
+            <div id="tasksList"><p class="no-materials">No tasks yet.</p></div>
+        </div>
+
+        <!-- ── Mark Learning Complete CTA ── -->
+        <div class="materials-section" id="completionCTASection" style="margin-top:0;">
+            <div id="completionCTABottom">
+                <!-- Rendered by updateProgressActionBtn() -->
             </div>
         </div>
     </div>
@@ -921,8 +1203,11 @@
         // Global state
         let learningPathData = null;
         let exchangeData = null;
-        let currentModuleId = null;
         let currentUserId = null;
+        let userRole = null; // 'learner' or 'instructor'
+        let currentTasks = []; // kept in sync by loadTasks(); used to gate the completion button
+        let viewedMaterialIds = new Set(); // tracks which materials the user has opened/played
+        let learningMaterialsForGate = []; // instructor's teaching uploads — must all be viewed before completion
 
         // Determine API URL based on environment
         function getAPIBase() {
@@ -999,7 +1284,7 @@
                 }
                 
                 const meData = await meResponse.json();
-                currentUserId = meData.userId;
+                currentUserId = meData.user?._id || meData.userId;
                 
                 // Fetch learning path
                 const lpResponse = await fetch(`${API_BASE}/learning-paths/${learningPathId}`, {
@@ -1016,9 +1301,9 @@
                 
                 // Handle nested learningPath response from API
                 learningPathData = responseData.learningPath || responseData;
+                userRole = responseData.userRole || null;
                 
                 console.log('Learning Path Data:', learningPathData);
-                console.log('Modules in learning path:', learningPathData.modules);
                 
                 // Fetch exchange data - use exchange ID from param if available
                 const eId = exchangeId || learningPathData.exchangeId;
@@ -1030,7 +1315,8 @@
                     });
                     
                     if (exResponse.ok) {
-                        exchangeData = await exResponse.json();
+                        const exJson = await exResponse.json();
+                        exchangeData = exJson.exchange || exJson;
                         console.log('Exchange Data:', exchangeData);
                     } else {
                         console.warn('Could not load exchange data, continuing without it');
@@ -1065,104 +1351,11 @@
         function renderDashboard() {
             if (!learningPathData) return;
 
-            // Display bidirectional exchange
-            if (exchangeData) {
-                // Determine learner and teacher based on current user
-                const isRequester = exchangeData.requesterId === currentUserId;
-                const learnerData = isRequester ? exchangeData.requester : exchangeData.responder;
-                const teacherData = isRequester ? exchangeData.responder : exchangeData.requester;
-                
-                console.log('Is Requester:', isRequester);
-                console.log('Learner Data:', learnerData);
-                console.log('Teacher Data:', teacherData);
-                console.log('SkillRequested:', exchangeData.skillRequested);
-                console.log('SkillOffered:', exchangeData.skillOffered);
-                
-                // Extract skill names with multiple fallbacks
-                let learningSkillName = 'Unknown Skill';
-                let teachingSkillName = 'Unknown Skill';
-                
-                // Try different ways to get skill names
-                if (isRequester) {
-                    // Requester is learning skillRequested, teaching skillOffered
-                    if (exchangeData.skillRequested) {
-                        learningSkillName = exchangeData.skillRequested.name || exchangeData.skillRequested;
-                    } else if (exchangeData.skillRequestedName) {
-                        learningSkillName = exchangeData.skillRequestedName;
-                    }
-                    
-                    if (exchangeData.skillOffered) {
-                        teachingSkillName = exchangeData.skillOffered.name || exchangeData.skillOffered;
-                    } else if (exchangeData.skillOfferedName) {
-                        teachingSkillName = exchangeData.skillOfferedName;
-                    }
-                } else {
-                    // Responder is learning skillOffered, teaching skillRequested
-                    if (exchangeData.skillOffered) {
-                        learningSkillName = exchangeData.skillOffered.name || exchangeData.skillOffered;
-                    } else if (exchangeData.skillOfferedName) {
-                        learningSkillName = exchangeData.skillOfferedName;
-                    }
-                    
-                    if (exchangeData.skillRequested) {
-                        teachingSkillName = exchangeData.skillRequested.name || exchangeData.skillRequested;
-                    } else if (exchangeData.skillRequestedName) {
-                        teachingSkillName = exchangeData.skillRequestedName;
-                    }
-                }
-                
-                console.log('Final Skill Names - Learning:', learningSkillName, 'Teaching:', teachingSkillName);
-                
-                // Update learner side (YOU) - safely check if elements exist
-                const learnerNameEl = document.getElementById('learnerName');
-                const learnerAvatarEl = document.getElementById('learnerAvatar');
-                const learningSkillEl = document.getElementById('learningSkill');
-                
-                if (learnerNameEl) learnerNameEl.textContent = learnerData?.name || 'You';
-                if (learnerAvatarEl) learnerAvatarEl.textContent = (learnerData?.name || 'You').charAt(0).toUpperCase();
-                if (learningSkillEl) learningSkillEl.textContent = `Learning: ${learningSkillName}`;
-                
-                // Update teacher side (INSTRUCTOR) - safely check if elements exist
-                const teacherNameEl = document.getElementById('teacherName');
-                const teacherAvatarEl = document.getElementById('teacherAvatar');
-                const teachingSkillEl = document.getElementById('teachingSkill');
-                
-                if (teacherNameEl) teacherNameEl.textContent = teacherData?.name || 'Instructor';
-                if (teacherAvatarEl) teacherAvatarEl.textContent = (teacherData?.name || 'Instructor').charAt(0).toUpperCase();
-                if (teachingSkillEl) teachingSkillEl.textContent = `Teaching: ${teachingSkillName}`;
-            } else {
-                // Fallback to learning path data
-                let skillName = 'Unknown Skill';
-                
-                // Try different ways to get skill name from learning path
-                if (learningPathData.skillId) {
-                    skillName = learningPathData.skillId.name || learningPathData.skillId;
-                } else if (learningPathData.skillName) {
-                    skillName = learningPathData.skillName;
-                } else if (learningPathData.skill) {
-                    skillName = learningPathData.skill.name || learningPathData.skill;
-                }
-                
-                const learningSkillEl = document.getElementById('learningSkill');
-                if (learningSkillEl) {
-                    learningSkillEl.textContent = `Learning: ${skillName}`;
-                }
-                console.log('Using fallback skill name:', skillName);
-            }
+            // Display bidirectional exchange using LP-populated learner/instructor fields
+            updateExchangeCards();
 
-            // Progress
-            const progress = Math.round(learningPathData.progressPercentage) || 0;
-            document.getElementById('progressText').textContent = `${progress}%`;
-            document.getElementById('progressFill').style.width = `${progress}%`;
-            document.getElementById('progressPercent').textContent = progress > 10 ? `${progress}%` : '';
-
-            // Stats
-            document.getElementById('completedCount').textContent = learningPathData.completedModules || 0;
-            document.getElementById('totalCount').textContent = learningPathData.totalModules || 0;
-            document.getElementById('avgScore').textContent = learningPathData.averageScore 
-                ? `${learningPathData.averageScore}%` 
-                : '-';
-            document.getElementById('statusDisplay').textContent = capitalizeFirst(learningPathData.status || 'Not Started');
+            // Update all stat cards dynamically
+            updateStatsCards();
 
             // Update workflow flow status
             const flowStatus = document.getElementById('flowStatus');
@@ -1170,402 +1363,382 @@
                 flowStatus.innerHTML = '5️⃣ <strong style="color: #4caf50;">Rate ✅</strong>';
                 flowStatus.style.background = '#e8f5e9';
                 flowStatus.style.color = '#2e7d32';
-            } else if (progress === 100) {
-                flowStatus.innerHTML = '5️⃣ <strong style="color: #ff9800;">Ready to Rate</strong>';
-                flowStatus.style.background = '#fff3e0';
-                flowStatus.style.color = '#e65100';
             } else {
                 flowStatus.innerHTML = '5️⃣ Rate';
                 flowStatus.style.background = '#f5f5f5';
                 flowStatus.style.color = '#999';
             }
 
-            // Modules
-            renderModules();
+            // Load materials for both participants
+            loadMaterials();
 
-            // Show complete section if 100%
-            if (progress === 100 && learningPathData.status !== 'completed') {
-                document.getElementById('completeSection').classList.remove('hidden');
-            }
+            // Update material section skill labels
+            updateMaterialSectionLabels();
+
+            // Update task section labels based on role
+            updateTaskSectionUI();
+
+            // Load tasks
+            loadTasks();
+
+            // Render the progress action button for the learner
+            updateProgressActionBtn();
         }
 
-        // Render modules
-        function renderModules() {
-            const container = document.getElementById('modulesContainer');
-            container.innerHTML = '';
 
-            console.log('=== renderModules called ===');
-            console.log('learningPathData:', learningPathData);
-            console.log('modules:', learningPathData?.modules);
 
-            if (!learningPathData.modules || learningPathData.modules.length === 0) {
-                console.warn('No modules found, showing empty state');
-                showEmptyState();
-                return;
-            }
-
-            console.log(`Rendering ${learningPathData.modules.length} modules`);
-
-            // Progressive reveal: show 4-5 modules at a time
-            const maxVisibleModules = window.innerWidth <= 768 ? 4 : 5;
-            let visibleCount = 0;
-
-            learningPathData.modules.forEach((module, index) => {
-                console.log(`Module ${index}:`, module);
-                // Show completed modules + next available modules (up to max)
-                if (module.isCompleted || visibleCount < maxVisibleModules) {
-                    const moduleCard = createModuleCard(module, index + 1);
-                    container.appendChild(moduleCard);
-                    visibleCount++;
-                } else if (index === learningPathData.modules.findIndex(m => !m.isCompleted)) {
-                    // Always show the first incomplete module
-                    const moduleCard = createModuleCard(module, index + 1);
-                    container.appendChild(moduleCard);
+        // ── Dynamic Stats Cards ───────────────────────────────────────────
+        // Resolve the skill name for this LP from multiple sources
+        function getExchangeSkillName() {
+            if (!learningPathData) return 'Skill Exchange';
+            // 1. LP's populated skillId object
+            if (learningPathData.skillId?.name) return learningPathData.skillId.name;
+            // 2. LP skillId is a raw string that isn't a 24-char ObjectId hex
+            const rawId = learningPathData.skillId;
+            if (typeof rawId === 'string' && rawId.length > 0 && !/^[0-9a-f]{24}$/i.test(rawId)) return rawId;
+            // 3. Derive from exchange data by matching learner to requester or provider
+            if (exchangeData) {
+                const learnerId   = String(learningPathData.learner?._id || learningPathData.learner || '');
+                const requesterId = String(
+                    exchangeData.requester_id?._id ||
+                    exchangeData.requesterId ||
+                    exchangeData.requester?._id || ''
+                );
+                if (learnerId && requesterId && learnerId === requesterId) {
+                    // Learner is the exchange requester → they are learning requested_skill
+                    return exchangeData.requested_skill || exchangeData.skillRequested || null;
+                } else {
+                    // Learner is the exchange provider → they are learning offered_skill
+                    return exchangeData.offered_skill || exchangeData.skillOffered || null;
                 }
-            });
-
-            console.log(`Visible modules: ${visibleCount}/${learningPathData.modules.length}`);
-
-            // Show load more button if there are more modules
-            if (visibleCount < learningPathData.modules.length) {
-                const loadMoreBtn = document.createElement('button');
-                loadMoreBtn.className = 'btn btn-primary';
-                loadMoreBtn.style.marginTop = '20px';
-                loadMoreBtn.style.width = '100%';
-                loadMoreBtn.innerHTML = '📚 Load More Modules';
-                loadMoreBtn.onclick = () => {
-                    // Show all modules
-                    renderAllModules();
-                };
-                container.parentElement.appendChild(loadMoreBtn);
             }
+            return 'Skill Exchange';
         }
 
-        function renderAllModules() {
-            const container = document.getElementById('modulesContainer');
-            container.innerHTML = '';
+        function updateExchangeCards() {
+            if (!learningPathData) return;
 
-            if (!learningPathData.modules || learningPathData.modules.length === 0) {
-                showEmptyState();
-                return;
-            }
+            const learner    = learningPathData.learner    || {};
+            const instructor = learningPathData.instructor || {};
+            const skillName  = getExchangeSkillName() || 'Skill Exchange';
+            const isCurrentLearner = String(learner._id || '') === currentUserId;
 
-            learningPathData.modules.forEach((module, index) => {
-                const moduleCard = createModuleCard(module, index + 1);
-                container.appendChild(moduleCard);
-            });
-        }
+            // ── Center skill banner ───────────────────────────────────
+            _setEl('exchangeSkillChip', `📖 ${skillName}`);
 
-        // Create module card
-        function createModuleCard(module, moduleNumber) {
-            const card = document.createElement('div');
-            card.className = `module-card ${module.isCompleted ? 'completed' : ''}`;
+            // ── Learner card ──────────────────────────────────────────
+            const learnerInitial = (learner.name || 'L').charAt(0).toUpperCase();
+            _setEl('learnerAvatar',    learnerInitial);
+            _setEl('learnerName',      learner.name  || '—');
+            _setEl('learnerEmail',     learner.email || '');
+            _setEl('learnerSkillChip', `📖 Learning: ${skillName}`);
+            _setEl('learnerStatusDot', learningPathData.status === 'completed' ? '✅ Completed' : '🟢 Active');
 
-            const duration = module.duration ? `${module.duration} min` : 'No duration';
-            const completedBadge = module.isCompleted 
-                ? '<span class="completion-badge">✓ Completed</span>' 
-                : '';
-            const scoreBadge = module.score 
-                ? `<span class="score-badge">Score: ${module.score}%</span>` 
-                : '';
-
-            // Build video section
-            let videoSection = '';
-            if (module.videoUrl || module.videoTitle) {
-                videoSection = `
-                    <div class="module-video-section">
-                        <div class="video-title">📺 ${module.videoTitle || 'Video Lesson'}</div>
-                        ${module.videoUrl ? `
-                            <iframe width="100%" height="200" style="border-radius: 8px; margin: 10px 0;"
-                                src="${module.videoUrl}?rel=0" 
-                                frameborder="0" 
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowfullscreen>
-                            </iframe>
-                            <a href="${module.videoUrl.replace('/embed/', '/watch?v=')}" target="_blank" class="btn btn-primary btn-small" style="margin-top: 8px;">
-                                🎬 Open in YouTube
-                            </a>
-                        ` : ''}
-                    </div>
-                `;
-            }
-
-            card.innerHTML = `
-                <div class="module-header">
-                    <div class="module-number">${moduleNumber}</div>
-                    <div class="module-info">
-                        <div class="module-title">${module.title}</div>
-                        <div class="module-description">${module.description || 'No description'}</div>
-                        <div class="module-meta">
-                            <span>⏱️ ${duration}</span>
-                            <span>📍 Module ${module.order}</span>
-                        </div>
-                    </div>
-                </div>
-                ${videoSection}
-                <div class="module-status">
-                    ${completedBadge}
-                    ${scoreBadge}
-                </div>
-                <div class="module-actions">
-                    ${!module.isCompleted 
-                        ? `<button class="btn btn-success btn-small" onclick="openCompletionForm('${module.moduleId}')">
-                            ✓ Mark Complete
-                        </button>` 
-                        : `<button class="btn btn-secondary btn-small" onclick="incompleteModule('${module.moduleId}')">
-                            ↻ Mark Incomplete
-                        </button>`}
-                </div>
-            `;
-
-            return card;
-        }
-
-        // Watch video
-        async function watchVideo(moduleId) {
-            currentModuleId = moduleId;
-            const module = learningPathData.modules.find(m => m.moduleId === moduleId);
-            
-            if (!module || !module.videoUrl) {
-                alert('No video available for this module');
-                return;
-            }
-
-            // Video data is now embedded in the module, no need to fetch separately
-            showVideoModal(module);
-        }
-
-        // Show video modal
-        function showVideoModal(module) {
-            document.getElementById('videoTitle').textContent = module.title || 'Video Lesson';
-            document.getElementById('videoDescription').innerHTML = `
-                <div style="margin-bottom: 20px;">
-                    <p><strong>Duration:</strong> ${module.duration || 'N/A'} minutes</p>
-                    <p><strong>Description:</strong> ${module.description || 'No description available'}</p>
-                </div>
-            `;
-
-            // Create video embed
-            const videoContainer = document.getElementById('videoContainer');
-            videoContainer.innerHTML = '';
-            
-            const iframe = document.createElement('iframe');
-            iframe.src = module.videoUrl;
-            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-            iframe.allowFullscreen = true;
-            videoContainer.appendChild(iframe);
-
-            document.getElementById('videoModal').classList.add('active');
-        }
-
-        // Close video modal
-        function closeVideoModal() {
-            document.getElementById('videoModal').classList.remove('active');
-            currentModuleId = null;
-            document.getElementById('moduleScore').value = '';
-            document.getElementById('moduleNotes').value = '';
-        }
-
-        // Open completion form
-        function openCompletionForm(moduleId) {
-            currentModuleId = moduleId;
-            const module = learningPathData.modules.find(m => m.moduleId === moduleId);
-            
-            if (!module) {
-                console.error('Module not found:', moduleId);
-                return;
-            }
-
-            console.log('Opening completion form for module:', module);
-
-            // Clear previous form values
-            document.getElementById('moduleScore').value = '';
-            document.getElementById('moduleNotes').value = '';
-            document.getElementById('videoTitle').textContent = module.title || 'Module Completion';
-            document.getElementById('videoDescription').innerHTML = module.description || '';
-            
-            // Show video if available
-            const videoContainer = document.getElementById('videoContainer');
-            if (module.videoUrl) {
-                videoContainer.innerHTML = `
-                    <iframe width="100%" height="300"
-                        src="${module.videoUrl}?rel=0" 
-                        frameborder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowfullscreen style="border-radius: 8px;">
-                    </iframe>
-                `;
+            const learnerYouBadge = document.getElementById('learnerYouBadge');
+            const learnerCard     = document.getElementById('learnerCard');
+            if (isCurrentLearner) {
+                if (learnerYouBadge) learnerYouBadge.style.display = 'block';
+                if (learnerCard)     learnerCard.style.border = '2px solid #667eea';
             } else {
-                videoContainer.innerHTML = '<p>No video available for this module</p>';
+                if (learnerYouBadge) learnerYouBadge.style.display = 'none';
+                if (learnerCard)     learnerCard.style.border = '2px solid transparent';
             }
 
-            // Show modal
-            document.getElementById('videoModal').classList.add('active');
-        }
+            // ── Instructor card ───────────────────────────────────────
+            const instructorInitial = (instructor.name || 'T').charAt(0).toUpperCase();
+            _setEl('teacherAvatar',       instructorInitial);
+            _setEl('teacherName',         instructor.name  || '—');
+            _setEl('teacherEmail',        instructor.email || '');
+            _setEl('instructorSkillChip', `📚 Teaching: ${skillName}`);
+            _setEl('instructorStatusDot', '🟢 Active');
 
-        // Complete module
-        async function completeModule() {
-            if (!currentModuleId) return;
-
-            const score = document.getElementById('moduleScore').value;
-            const notes = document.getElementById('moduleNotes').value;
-
-            try {
-                const response = await fetch(
-                    `${API_BASE}/learning-paths/${learningPathData._id}/modules/${currentModuleId}/complete`,
-                    {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify({
-                            score: score ? parseInt(score) : undefined,
-                            notes: notes || undefined
-                        })
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error('Failed to complete module');
-                }
-
-                const responseData = await response.json();
-                learningPathData = responseData.learningPath || responseData;
-                renderDashboard();
-                closeVideoModal();
-
-                // ✨ Check if all modules are completed and both users are done
-                if (learningPathData.status === 'completed' && exchangeData) {
-                    console.log('✅ Your learning path is complete! Checking exchange status...');
-                    
-                    // Refresh exchange data to see if both completed
-                    try {
-                        const exResponse = await fetch(
-                            `${API_BASE}/exchanges/${exchangeData._id}/completion-status`,
-                            {
-                                headers: {
-                                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                                }
-                            }
-                        );
-                        
-                        if (exResponse.ok) {
-                            const completionStatus = (await exResponse.json()).completionStatus;
-                            console.log('Completion Status:', completionStatus);
-                            
-                            if (completionStatus.bothCompleted) {
-                                showCompletionBanner();
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Error checking completion status:', error);
-                    }
-                }
-
-                alert('Module completed successfully! 🎉');
-            } catch (error) {
-                console.error('Error completing module:', error);
-                alert('Failed to complete module');
+            const instructorYouBadge = document.getElementById('instructorYouBadge');
+            const instructorCard     = document.getElementById('instructorCard');
+            if (!isCurrentLearner) {
+                if (instructorYouBadge) instructorYouBadge.style.display = 'block';
+                if (instructorCard)     instructorCard.style.border = '2px solid #ff9800';
+            } else {
+                if (instructorYouBadge) instructorYouBadge.style.display = 'none';
+                if (instructorCard)     instructorCard.style.border = '2px solid transparent';
             }
         }
 
-        // Show completion banner when both users finish
-        function showCompletionBanner() {
-            const banner = document.createElement('div');
-            banner.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 20px;
-                text-align: center;
-                z-index: 10000;
-                font-size: 16px;
-                font-weight: bold;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                animation: slideDown 0.4s ease;
-            `;
-            
-            // Force mark exchange as completed
-            if (exchangeData && exchangeData._id) {
-                fetch(`${API_BASE}/exchanges/${exchangeData._id}/status`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({ status: 'completed' })
-                }).catch(err => console.error('Error updating exchange status:', err));
-            }
-            
-            banner.innerHTML = `
-                <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
-                    <div>
-                        <div style="font-size: 32px; margin-bottom: 8px;">🎉</div>
-                        <div><strong>Congratulations!</strong> Both of you completed all modules!</div>
-                        <div style="font-size: 14px; margin-top: 8px; opacity: 0.95;">Time to rate each other's teaching</div>
+        function updateStatsCards() {
+            if (!learningPathData) return;
+
+            // ── Status card ──────────────────────────────────────────────
+            const status = learningPathData.status || 'not-started';
+            const statusMap = {
+                'not-started': { icon: '🚀', label: 'Not Started',  hint: 'Open materials to begin',          bg: 'linear-gradient(135deg,#2196f3,#1565c0)' },
+                'in-progress': { icon: '⚡', label: 'In Progress',   hint: 'Keep going — you\'re on track!',   bg: 'linear-gradient(135deg,#ff9800,#e65100)' },
+                'completed':   { icon: '🏆', label: 'Completed',     hint: 'Well done — learning finished!',   bg: 'linear-gradient(135deg,#4caf50,#1b5e20)' },
+                'cancelled':   { icon: '❌', label: 'Cancelled',     hint: 'This exchange was cancelled',      bg: 'linear-gradient(135deg,#f44336,#b71c1c)' },
+            };
+            const sm = statusMap[status] || statusMap['not-started'];
+            const sc = document.getElementById('statCardStatus');
+            if (sc) sc.style.background = sm.bg;
+            _setEl('statStatusIcon',  sm.icon);
+            _setEl('statStatusLabel', sm.label);
+            _setEl('statStatusHint',  sm.hint);
+
+            // ── Role card ────────────────────────────────────────────────
+            const isInstructor = userRole === 'instructor';
+            const roleMap = {
+                instructor: { icon: '👨‍🏫', label: 'Instructor', hint: 'You are teaching this skill',   bg: 'linear-gradient(135deg,#ff9800,#e65100)' },
+                learner:    { icon: '🎓',   label: 'Learner',    hint: 'You are learning this skill',   bg: 'linear-gradient(135deg,#4caf50,#2e7d32)' },
+            };
+            const rm = isInstructor ? roleMap.instructor : roleMap.learner;
+            const rc = document.getElementById('statCardRole');
+            if (rc) rc.style.background = rm.bg;
+            _setEl('statRoleIcon',  rm.icon);
+            _setEl('statRoleLabel', rm.label);
+            _setEl('statRoleHint',  rm.hint);
+
+            // ── Tasks card ───────────────────────────────────────────────
+            const instructorId = String(learningPathData.instructor?._id || learningPathData.instructor || '');
+            const assignedTasks = currentTasks.filter(t => String(t.createdBy?._id || t.createdBy || '') === instructorId);
+            const doneAssigned  = assignedTasks.filter(t => t.completed).length;
+            const totalAssigned = assignedTasks.length;
+            const taskPct = totalAssigned ? Math.round((doneAssigned / totalAssigned) * 100) : 0;
+            const taskAllDone = totalAssigned > 0 && doneAssigned === totalAssigned;
+            const taskCardBg = taskAllDone
+                ? 'linear-gradient(135deg,#4caf50,#2e7d32)'
+                : totalAssigned === 0
+                    ? 'linear-gradient(135deg,#78909c,#546e7a)'
+                    : 'linear-gradient(135deg,#ff7043,#bf360c)';
+            const tc = document.getElementById('statCardTasks');
+            if (tc) tc.style.background = taskCardBg;
+            _setEl('statTasksIcon',  taskAllDone ? '✅' : '📋');
+            _setEl('statTasksLabel', totalAssigned === 0 ? 'No tasks' : `${doneAssigned} / ${totalAssigned}`);
+            _setEl('statTasksHint',  totalAssigned === 0
+                ? (isInstructor ? 'Assign tasks to your learner' : 'No assigned tasks yet')
+                : taskAllDone ? 'All tasks complete! 🎉' : `${totalAssigned - doneAssigned} remaining`);
+            const tf = document.getElementById('statTasksFill');
+            if (tf) tf.style.width = taskPct + '%';
+
+            // ── Materials card ───────────────────────────────────────────
+            const totalMats  = learningMaterialsForGate.length;
+            const viewedMats = learningMaterialsForGate.filter(m => viewedMaterialIds.has(String(m._id))).length;
+            const matPct = totalMats ? Math.round((viewedMats / totalMats) * 100) : 0;
+            const matAllDone = totalMats > 0 && viewedMats === totalMats;
+            const matCardBg = matAllDone
+                ? 'linear-gradient(135deg,#4caf50,#2e7d32)'
+                : totalMats === 0
+                    ? 'linear-gradient(135deg,#78909c,#546e7a)'
+                    : 'linear-gradient(135deg,#667eea,#4a3fcb)';
+            const mc = document.getElementById('statCardMaterials');
+            if (mc) mc.style.background = matCardBg;
+            _setEl('statMatsIcon',  matAllDone ? '👁️' : '📚');
+            _setEl('statMatsLabel', totalMats === 0 ? 'No uploads' : `${viewedMats} / ${totalMats}`);
+            _setEl('statMatsHint',  totalMats === 0
+                ? (isInstructor ? 'Upload teaching materials' : 'No materials yet')
+                : matAllDone ? 'All materials viewed! ✅' : `${totalMats - viewedMats} left to view`);
+            const mf = document.getElementById('statMatsFill');
+            if (mf) mf.style.width = matPct + '%';
+        }
+
+        function _setEl(id, html) {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = html;
+        }
+
+        // Render the Learning Progress action button based on current status
+        function updateProgressActionBtn() {
+            const wrap = document.getElementById('learningProgressAction');
+            const cta  = document.getElementById('completionCTABottom');
+            if (!learningPathData) return;
+
+            const status = learningPathData.status || 'not-started';
+
+            // ── Instructor view: monitoring panel (no completion button for instructor) ──
+            if (userRole === 'instructor') {
+                const isComplete = status === 'completed';
+                if (cta) cta.innerHTML = `
+                  <div style="background:linear-gradient(135deg,#fff8f0,#fff0e0);border:2px solid #ff9800;border-radius:14px;padding:22px 24px;box-shadow:0 4px 16px rgba(255,152,0,0.12);">
+                    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                      <span style="font-size:36px;">📊</span>
+                      <div>
+                        <div style="font-size:16px;font-weight:700;color:#e65100;">Instructor Dashboard</div>
+                        <div style="font-size:13px;color:#bf5a00;margin-top:4px;">You are the instructor for this exchange. The learner marks their own learning as complete.</div>
+                        ${isComplete
+                          ? `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;background:#d4edda;padding:8px 12px;border-radius:8px;border-left:3px solid #28a745;">
+                               <span style="font-size:18px;">🎓</span>
+                               <span style="font-size:13px;font-weight:700;color:#155724;">Learner has marked this exchange as complete!</span>
+                             </div>`
+                          : `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;background:#fff3cd;padding:8px 12px;border-radius:8px;border-left:3px solid #ffc107;">
+                               <span style="font-size:18px;">⏳</span>
+                               <span style="font-size:13px;font-weight:600;color:#856404;">Waiting for the learner to complete their learning...</span>
+                             </div>`}
+                        <div style="margin-top:10px;font-size:12px;color:#a06000;">
+                          💡 You can assign tasks above to guide your learner's progress.
+                        </div>
+                      </div>
                     </div>
-                    <a href="javascript:window.location.href='/#exchanges'" style="
-                        background: white;
-                        color: #667eea;
-                        padding: 10px 20px;
-                        border-radius: 6px;
-                        text-decoration: none;
-                        font-weight: 600;
-                        cursor: pointer;
-                        white-space: nowrap;
-                        transition: all 0.2s ease;
-                    " onmouseover="this.style.transform='scale(1.05'" onmouseout="this.style.transform='scale(1)'">
-                        View Ratings →
-                    </a>
+                  </div>`;
+                return;
+            }
+
+            if (status === 'completed') {
+                const completedHTML = `
+                  <div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#d4edda,#c3e6cb);border:1.5px solid #28a745;padding:14px 18px;border-radius:10px;">
+                    <span style="font-size:24px;">🎓</span>
+                    <div>
+                      <div style="font-size:15px;font-weight:700;color:#155724;">Learning Complete!</div>
+                      <div style="font-size:12px;color:#1e7e34;margin-top:2px;">You have finished your learning. Waiting for your partner to complete too.</div>
+                    </div>
+                  </div>`;
+                if (wrap) wrap.innerHTML = '';
+                if (cta)  cta.innerHTML  = completedHTML;
+                return;
+            }
+
+            if (status === 'in-progress') {
+                if (cta) cta.innerHTML = `
+                  <div style="background:linear-gradient(135deg,#fff8e1,#fff3cd);border:2px solid #ffc107;border-radius:14px;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;box-shadow:0 4px 16px rgba(255,193,7,0.15);">
+                    <div style="display:flex;align-items:center;gap:14px;">
+                      <span style="font-size:36px;">📋</span>
+                      <div>
+                        <div style="font-size:16px;font-weight:700;color:#856404;">Finished reviewing the materials?</div>
+                        <div style="font-size:13px;color:#a07000;margin-top:4px;">Watch or open every video and PDF in the Teaching Materials section, then mark your learning as complete.</div>
+                        <div id="completionViewProgress" style="display:none;font-size:13px;font-weight:600;margin-top:6px;"></div>
+                        <div id="completionTaskHint" style="display:none;font-size:13px;font-weight:600;margin-top:6px;"></div>
+                      </div>
+                    </div>
+                    <button id="completionCTABtn" onclick="completeLearning()"
+                      style="background:linear-gradient(135deg,#28a745,#20863b);color:#fff;border:none;padding:13px 28px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:700;white-space:nowrap;box-shadow:0 4px 14px rgba(40,167,69,0.35);transition:all 0.2s;letter-spacing:0.3px;"
+                      onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(40,167,69,0.4)'"
+                      onmouseout="this.style.transform='';this.style.boxShadow='0 4px 14px rgba(40,167,69,0.35)'">
+                      🎓 Learning is Completed
+                    </button>
+                  </div>`;
+                setTimeout(syncCompletionBtn, 0);
+                return;
+            }
+
+            // not-started
+            if (cta) cta.innerHTML = `
+              <div style="background:linear-gradient(135deg,#f0f4ff,#e8edff);border:2px solid #667eea;border-radius:14px;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;box-shadow:0 4px 16px rgba(102,126,234,0.12);">
+                <div style="display:flex;align-items:center;gap:14px;">
+                  <span style="font-size:36px;">📋</span>
+                  <div>
+                    <div style="font-size:16px;font-weight:700;color:#3730a3;">Ready to wrap up?</div>
+                    <div style="font-size:13px;color:#667eea;margin-top:4px;">Watch or open every video and PDF in the Teaching Materials section, then mark your learning as complete.</div>
+                    <div id="completionViewProgress" style="display:none;font-size:13px;font-weight:600;margin-top:6px;"></div>
+                    <div id="completionTaskHint" style="display:none;font-size:13px;font-weight:600;margin-top:6px;"></div>
+                  </div>
                 </div>
-            `;
-            document.body.appendChild(banner);
-            
-            setTimeout(() => {
-                banner.style.transition = 'all 0.3s ease';
-                banner.style.opacity = '0';
-                setTimeout(() => banner.remove(), 300);
-            }, 10000);
+                <button id="completionCTABtn" onclick="completeLearning()"
+                  style="background:linear-gradient(135deg,#28a745,#20863b);color:#fff;border:none;padding:13px 28px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:700;white-space:nowrap;box-shadow:0 4px 14px rgba(40,167,69,0.35);transition:all 0.2s;letter-spacing:0.3px;"
+                  onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(40,167,69,0.4)'"
+                  onmouseout="this.style.transform='';this.style.boxShadow='0 4px 14px rgba(40,167,69,0.35)'">
+                  🎓 Learning is Completed
+                </button>
+              </div>`;
+            setTimeout(syncCompletionBtn, 0);
         }
 
-        // Incomplete module
-        async function incompleteModule(moduleId) {
-            if (!confirm('Mark this module as incomplete?')) return;
+        // Sync the completion CTA button state based on task completion
+        function syncCompletionBtn() {
+            const status = learningPathData?.status || 'not-started';
+            if (status === 'completed') return;
 
-            try {
-                const response = await fetch(
-                    `${API_BASE}/learning-paths/${learningPathData._id}/modules/${moduleId}/incomplete`,
-                    {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        }
-                    }
-                );
+            // ── Task gate: only INSTRUCTOR-assigned tasks must be completed ──
+            const instructorId = String(learningPathData?.instructor?._id || learningPathData?.instructor || '');
+            const assignedTasks = currentTasks.filter(t => String(t.createdBy?._id || t.createdBy || '') === instructorId);
+            const hasAssigned = assignedTasks.length > 0;
+            const pendingTaskCount = assignedTasks.filter(t => !t.completed).length;
+            const tasksDone = !hasAssigned || pendingTaskCount === 0;
 
-                if (!response.ok) {
-                    throw new Error('Failed to mark module as incomplete');
+            // ── Viewed-materials gate ────────────────────────────────
+            // Gate on instructor's teaching uploads (the content the learner must study)
+            const totalGate = learningMaterialsForGate.length;
+            const viewedCount = learningMaterialsForGate.filter(m => viewedMaterialIds.has(String(m._id))).length;
+            const allViewed = totalGate === 0 || viewedCount >= totalGate;
+            const unviewedCount = totalGate - viewedCount;
+
+            const canComplete = tasksDone && allViewed;
+
+            const ctaBtn = document.getElementById('completionCTABtn');
+            const hint   = document.getElementById('completionTaskHint');
+            const viewProgress = document.getElementById('completionViewProgress');
+            if (!ctaBtn) return;
+
+            // Update viewed progress counter
+            if (viewProgress) {
+                if (totalGate > 0) {
+                    viewProgress.style.display = 'block';
+                    viewProgress.style.color = allViewed ? '#28a745' : '#856404';
+                    viewProgress.innerHTML = allViewed
+                        ? `👁 All ${totalGate} resource${totalGate !== 1 ? 's' : ''} viewed ✅`
+                        : `👁 ${viewedCount} / ${totalGate} resource${totalGate !== 1 ? 's' : ''} viewed — play or open each one to continue`;
+                } else {
+                    viewProgress.style.display = 'none';
                 }
-
-                learningPathData = await response.json();
-                renderDashboard();
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to mark module as incomplete');
             }
+
+            if (!canComplete) {
+                ctaBtn.disabled = true;
+                ctaBtn.style.cssText = 'padding:13px 28px;border-radius:10px;border:none;font-size:15px;font-weight:700;white-space:nowrap;letter-spacing:0.3px;background:#bbb;color:#fff;cursor:not-allowed;opacity:0.75;';
+                ctaBtn.onmouseover = null;
+                ctaBtn.onmouseout  = null;
+                const reasons = [];
+                if (unviewedCount > 0) reasons.push(`view ${unviewedCount} more resource${unviewedCount !== 1 ? 's' : ''}`);
+                if (pendingTaskCount > 0) reasons.push(`complete ${pendingTaskCount} assigned task${pendingTaskCount !== 1 ? 's' : ''}`); 
+                ctaBtn.title = `Still needed: ${reasons.join(' and ')}`;
+                if (hint) {
+                    hint.style.display = 'block';
+                    hint.style.color = '#e53e3e';
+                    hint.innerHTML = `🔒 ${reasons.join(' · ')} to unlock`;
+                }
+            } else {
+                ctaBtn.disabled = false;
+                ctaBtn.style.cssText = 'background:linear-gradient(135deg,#28a745,#20863b);color:#fff;border:none;padding:13px 28px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:700;white-space:nowrap;box-shadow:0 4px 14px rgba(40,167,69,0.35);transition:all 0.2s;letter-spacing:0.3px;';
+                ctaBtn.onmouseover = function() { this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 18px rgba(40,167,69,0.4)'; };
+                ctaBtn.onmouseout  = function() { this.style.transform=''; this.style.boxShadow='0 4px 14px rgba(40,167,69,0.35)'; };
+                ctaBtn.title = '';
+                if (hint) {
+                    hint.style.display = 'block';
+                    hint.style.color = '#28a745';
+                    hint.innerHTML = (hasAssigned || totalGate > 0)
+                        ? '✅ All materials viewed and assigned tasks completed — you\'re ready!'
+                        : '✅ Ready to mark your learning as complete!';
+                }
+            }
+            // Always refresh stat cards when gate state changes
+            updateStatsCards();
         }
 
         // Complete entire learning path
         async function completeLearning() {
-            if (learningPathData.progressPercentage !== 100) {
-                alert('Please complete all modules first');
+            // Gate: all teaching materials must be viewed
+            const unviewed = learningMaterialsForGate.filter(m => !viewedMaterialIds.has(String(m._id)));
+            if (unviewed.length > 0) {
+                showToast(`👁 Please view all ${unviewed.length} remaining resource${unviewed.length !== 1 ? 's' : ''} in the Learning Resources section first.`, 'error');
+                document.getElementById('materialsWrapper')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
-
+            // Gate: all instructor-assigned tasks must be completed
+            const instructorIdGate = String(learningPathData?.instructor?._id || learningPathData?.instructor || '');
+            const pendingTasks = currentTasks.filter(t =>
+                String(t.createdBy?._id || t.createdBy || '') === instructorIdGate && !t.completed
+            );
+            if (pendingTasks.length > 0) {
+                showToast(`🔒 Please complete all ${pendingTasks.length} task${pendingTasks.length !== 1 ? 's' : ''} before marking your learning as done.`, 'error');
+                document.getElementById('tasksWrapper')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            if (!confirm('Are you sure you want to mark your learning as complete?\nThis confirms you have reviewed all materials.')) return;
+            const btn = null; // top bar removed — only bottom CTA used
+            const ctaBtn  = document.getElementById('completionCTABtn');
+            const disableAll = () => {
+                if (btn)    { btn.disabled    = true; btn.textContent    = '⏳ Saving…'; }
+                if (ctaBtn) { ctaBtn.disabled = true; ctaBtn.textContent = '⏳ Saving…'; }
+            };
+            const restoreAll = () => {
+                if (btn)    { btn.disabled    = false; btn.textContent    = '✅ Mark My Learning Complete'; }
+                if (ctaBtn) { ctaBtn.disabled = false; ctaBtn.textContent = '🎓 Learning is Completed'; }
+            };
+            disableAll();
             try {
                 const response = await fetch(
                     `${API_BASE}/learning-paths/${learningPathData._id}/complete`,
@@ -1582,23 +1755,47 @@
                 }
 
                 const data = await response.json();
-                
-                // Show success message
-                alert(
-                    '✅ SUCCESS!\n\n' +
-                    'Exchange Status: COMPLETED\n' +
-                    'Learning Path: COMPLETE\n\n' +
-                    'You can now rate your instructor, and they can rate you.\n' +
-                    'Once both rate each other, the skill exchange is finalized!'
-                );
-                
-                // Reload the dashboard to show updated status
-                location.reload();
+
+                // Update local state
+                learningPathData.status = 'completed';
+
+                // Update status badge in stats card
+                const sd = document.getElementById('statusDisplay');
+                if (sd) sd.textContent = 'Completed';
+
+                // Update flow badge
+                const flowStatus = document.getElementById('flowStatus');
+                if (flowStatus) {
+                    flowStatus.innerHTML = '5️⃣ <strong style="color:#4caf50;">Rate ✅</strong>';
+                    flowStatus.style.background = '#e8f5e9';
+                    flowStatus.style.color = '#2e7d32';
+                }
+
+                // Re-render the button to show "completed" state
+                updateProgressActionBtn();
+
+                // Show success banner
+                showToast('🎉 Learning marked complete! Once your partner also completes, you can rate each other.', 'success');
+
             } catch (error) {
                 console.error('Error completing learning path:', error);
-                alert('Failed to complete learning path');
+                restoreAll();
+                showToast('Failed to mark complete. Please try again.', 'error');
             }
         }
+
+        function showToast(msg, type) {
+            const existing = document.getElementById('_dashToast');
+            if (existing) existing.remove();
+            const t = document.createElement('div');
+            t.id = '_dashToast';
+            t.textContent = msg;
+            const bg = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#667eea';
+            t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${bg};color:#fff;padding:13px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:9999;max-width:90%;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.2);animation:fadeIn 0.3s ease;`;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 5000);
+        }
+
 
         // Utility functions
         
@@ -1611,58 +1808,43 @@
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
-                // Server is reachable if we get any response (even 401)
                 return true;
             } catch (error) {
                 console.warn('Server connection check failed:', error);
-                // Check if it's a CORS error or network error
-                if (error.message.includes('CORS') || error.message.includes('loopback')) {
-                    console.error('CORS Error detected - frontend and backend on different domains');
-                }
                 return false;
             }
         }
         
         function showLoading(show) {
-            document.getElementById('loadingState').classList.toggle('active', show);
+            const loadingEl = document.getElementById('loadingState');
+            if (loadingEl) loadingEl.classList.toggle('active', show);
         }
 
-        function showEmptyState(message = 'No modules available yet.', showRetry = false) {
-            const emptyStateEl = document.getElementById('emptyState');
-            emptyStateEl.style.display = 'block';
-            document.getElementById('modulesContainer').innerHTML = '';
+        function showEmptyState(message = 'Unable to load dashboard.', showRetry = false) {
+            const loadingEl = document.getElementById('loadingState');
+            if (loadingEl) loadingEl.style.display = 'none';
             
-            // Update the message
-            const messageEl = emptyStateEl.querySelector('p') || document.createElement('p');
-            messageEl.textContent = message;
+            const container = document.querySelector('.materials-section') || document.querySelector('.container');
+            if (!container) return;
             
-            // Add retry button if needed
-            const existingRetryBtn = emptyStateEl.querySelector('button');
-            if (showRetry && !existingRetryBtn) {
+            const existingError = container.querySelector('.error-message');
+            if (existingError) existingError.remove();
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.style.cssText = 'padding: 20px; text-align: center; color: #e53e3e;';
+            errorDiv.textContent = message;
+            
+            if (showRetry) {
                 const retryBtn = document.createElement('button');
                 retryBtn.textContent = 'Try Again';
-                retryBtn.style.cssText = `
-                    margin-top: 15px;
-                    padding: 8px 16px;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 500;
-                    transition: transform 0.2s;
-                `;
-                retryBtn.onmouseover = () => retryBtn.style.transform = 'scale(1.05)';
-                retryBtn.onmouseout = () => retryBtn.style.transform = 'scale(1)';
-                retryBtn.addEventListener('click', () => {
-                    console.log('Retrying dashboard initialization...');
-                    initDashboard();
-                });
-                emptyStateEl.appendChild(retryBtn);
-            } else if (!showRetry && existingRetryBtn) {
-                existingRetryBtn.remove();
+                retryBtn.style.cssText = 'margin-top: 15px; padding: 8px 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 4px; cursor: pointer;';
+                retryBtn.addEventListener('click', () => initDashboard());
+                errorDiv.appendChild(document.createElement('br'));
+                errorDiv.appendChild(retryBtn);
             }
+            
+            container.insertBefore(errorDiv, container.firstChild);
         }
 
         function getQueryParam(name) {
@@ -1676,20 +1858,767 @@
 
         // Go back to exchanges page
         function goBack() {
-            // Navigate back to the My Skill Exchanges page
             window.location.href = '/index.html#exchanges';
         }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', initDashboard);
 
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('videoModal');
-            if (event.target === modal) {
-                closeVideoModal();
+        // ── Materials & Tasks Feature ──────────────────────────────────
+
+        const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB — Cloudinary free plan limit
+
+        // Update skill labels in the two subsection headers after data loads
+        function updateMaterialSectionLabels() {
+            if (!learningPathData) return;
+            const skillName = getExchangeSkillName() || '—';
+            const instructorName = learningPathData.instructor?.name || 'your instructor';
+
+            const partnerEl = document.getElementById('partnerNameLabel');
+            const instructorEl = document.getElementById('instructorNameLabel');
+            const teachingEl = document.getElementById('teachingSkillLabel');
+            const learningEl = document.getElementById('learningSkillLabel');
+            if (partnerEl) partnerEl.textContent = instructorName;
+            if (instructorEl) instructorEl.textContent = instructorName;
+            if (teachingEl) teachingEl.textContent = skillName;
+            if (learningEl) learningEl.textContent = skillName;
+        }
+
+        function setMaterialType(type, category) {
+            const p = category; // 'teaching' or 'learning'
+            const videoBtnId = p + '_typeVideoBtn';
+            const pdfBtnId   = p + '_typePDFBtn';
+            const urlSecId   = p + '_urlSection';
+            const fileHintId = p + '_fileHint';
+            const fileInputId = (p === 'teaching') ? 'teachingMaterialFile' : 'learningResourceFile';
+
+            const isVideo = type === 'video';
+            const accentColor = (p === 'teaching') ? '#667eea' : '#43a047';
+
+            const videoBtn = document.getElementById(videoBtnId);
+            const pdfBtn   = document.getElementById(pdfBtnId);
+            const urlSec   = document.getElementById(urlSecId);
+            const fileHint = document.getElementById(fileHintId);
+            const fileInput = document.getElementById(fileInputId);
+
+            if (videoBtn) {
+                videoBtn.style.background = isVideo ? accentColor : 'white';
+                videoBtn.style.color = isVideo ? 'white' : '#666';
+                videoBtn.style.borderColor = isVideo ? accentColor : '#e5e7eb';
             }
-        };
+            if (pdfBtn) {
+                pdfBtn.style.background = !isVideo ? accentColor : 'white';
+                pdfBtn.style.color = !isVideo ? 'white' : '#666';
+                pdfBtn.style.borderColor = !isVideo ? accentColor : '#e5e7eb';
+            }
+            // URL section only relevant for video; hide for PDF
+            if (urlSec) urlSec.style.display = isVideo ? 'block' : 'none';
+            if (fileHint) fileHint.textContent = isVideo ? 'MP4 — max 10 MB' : 'PDF — max 10 MB';
+            if (fileInput) fileInput.accept = isVideo
+                ? 'video/mp4,video/quicktime,video/webm,video/x-msvideo'
+                : '.pdf,application/pdf';
+        }
+
+        function onMaterialFileChange(input, category) {
+            const isTeaching = category === 'teaching';
+            const fileNameEl = document.getElementById(isTeaching ? 'teaching_fileName' : 'learning_fileName');
+            const warnEl     = document.getElementById(isTeaching ? 'teachingFileSizeWarning' : 'learningFileSizeWarning');
+            if (!input.files[0]) {
+                if (fileNameEl) { fileNameEl.textContent = ''; fileNameEl.style.display = 'none'; }
+                if (warnEl) warnEl.style.display = 'none';
+                return;
+            }
+            if (input.files[0].size > MAX_UPLOAD_BYTES) {
+                if (warnEl) warnEl.style.display = 'block';
+                if (fileNameEl) { fileNameEl.textContent = ''; fileNameEl.style.display = 'none'; }
+                input.value = '';
+                return;
+            }
+            if (warnEl) warnEl.style.display = 'none';
+            if (fileNameEl) {
+                fileNameEl.textContent = '📎 ' + input.files[0].name;
+                fileNameEl.style.display = 'block';
+            }
+        }
+
+        function checkFileSize(input, warnId, btnId) {
+            const warn = document.getElementById(warnId || 'teachingFileSizeWarning');
+            const btn = document.getElementById(btnId || 'teachingUploadBtn');
+            if (input.files[0] && input.files[0].size > MAX_UPLOAD_BYTES) {
+                if (warn) warn.style.display = 'block';
+                if (btn) btn.disabled = true;
+            } else {
+                if (warn) warn.style.display = 'none';
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        function toggleTeachingForm() {
+            const form = document.getElementById('teachingUploadSection');
+            const btn = document.getElementById('addTeachingBtn');
+            if (!form) return;
+            const isHidden = form.style.display === 'none' || form.style.display === '';
+            form.style.display = isHidden ? 'block' : 'none';
+            if (btn) btn.textContent = isHidden ? '✕ Cancel' : '➕ Add Teaching Material';
+        }
+
+        function toggleLearningResourceForm() {
+            const form = document.getElementById('learningResourceUploadSection');
+            const btn = document.getElementById('addLearningResourceBtn');
+            if (!form) return;
+            const isHidden = form.style.display === 'none' || form.style.display === '';
+            form.style.display = isHidden ? 'block' : 'none';
+            if (btn) btn.textContent = isHidden ? '✕ Cancel' : '➕ Add Learning Resource';
+        }
+
+        // Update task section labels & form text based on current user's role
+        function updateTaskSectionUI() {
+            if (!learningPathData) return;
+            const instructorId = String(learningPathData.instructor?._id || learningPathData.instructor || '');
+            const isInstructor = instructorId === currentUserId;
+
+            const title      = document.getElementById('taskSectionTitle');
+            const subtitle   = document.getElementById('taskSectionSubtitle');
+            const addBtn     = document.getElementById('addTaskBtn');
+            const formTitle  = document.getElementById('addTaskFormTitle');
+            const confirmBtn = document.getElementById('addTaskConfirmBtn');
+
+            if (isInstructor) {
+                if (title)      title.textContent = '📌 Task Assignments';
+                if (subtitle)   subtitle.textContent = 'Assign milestones for your learner to track and complete';
+                if (addBtn)     addBtn.innerHTML = '📌 Assign Task';
+                if (formTitle)  formTitle.textContent = '📌 Assign a New Milestone to the Learner';
+                if (confirmBtn) confirmBtn.innerHTML = '📌 Assign Task';
+            } else {
+                if (title)      title.textContent = '✅ Tasks & Milestones';
+                if (subtitle)   subtitle.textContent = 'Complete assigned tasks and add your own personal milestones';
+                if (addBtn)     addBtn.innerHTML = '➕ Add Milestone';
+                if (formTitle)  formTitle.textContent = '🎯 Add a Personal Milestone';
+                if (confirmBtn) confirmBtn.innerHTML = '✅ Add Milestone';
+            }
+        }
+
+        function toggleAddTaskForm() {
+            const form = document.getElementById('addTaskSection');
+            const btn = document.getElementById('addTaskBtn');
+            if (!form) return;
+            const isHidden = form.style.display === 'none' || form.style.display === '';
+            form.style.display = isHidden ? 'block' : 'none';
+            if (btn) btn.textContent = isHidden ? '✕ Cancel' : '➕ Add Task';
+            if (isHidden) {
+                const inp = document.getElementById('taskTitleInput');
+                if (inp) { inp.value = ''; inp.focus(); }
+            }
+        }
+
+        async function loadMaterials() {
+            try {
+                const res = await fetch(`${API_BASE}/learning-paths/${learningPathData._id}/materials`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch materials');
+                const data = await res.json();
+                renderMaterials(data.materials || []);
+            } catch (err) {
+                console.error('Load materials error:', err);
+                const tl = document.getElementById('teachingMaterialsList');
+                const ll = document.getElementById('learningResourcesList');
+                if (tl) tl.innerHTML = '<p class="no-materials">Could not load materials.</p>';
+                if (ll) ll.innerHTML = '<p class="no-materials">Could not load materials.</p>';
+            }
+        }
+
+        function buildCard(m) {
+            const uploaderId = m.uploadedBy?._id || m.uploadedBy;
+            const isOwner = uploaderId && (uploaderId === currentUserId || uploaderId.toString() === currentUserId);
+            const uploaderLabel = isOwner
+                ? '<span class="uploader-badge uploader-you">👤 You</span>'
+                : `<span class="uploader-badge uploader-partner">👤 ${escapeHtml(m.uploadedBy?.name || 'Partner')}</span>`;
+            const sizeStr     = (m.fileSize && !m.isExternalLink) ? formatFileSize(m.fileSize) : '';
+            const durationStr = m.duration ? `⏱ ${m.duration} min` : '';
+            const dateStr     = new Date(m.createdAt).toLocaleDateString();
+            const icon        = m.fileType === 'video' ? '🎬' : '📄';
+            const rawUrl      = m.fileUrl || '';
+            const safeUrl     = escapeHtml(rawUrl);
+            const safeTitle   = escapeHtml(m.title);
+
+            // Detect external/embeddable URLs
+            const isYouTube = rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be');
+            const isDrive   = rawUrl.includes('drive.google.com');
+            const isEmbed   = m.isExternalLink && m.fileType === 'video';
+
+            let actionButtons;
+            if (m.fileType === 'video') {
+                if (isYouTube || isDrive) {
+                    const safeEmbed = escapeHtml(getEmbedUrl(rawUrl));
+                    actionButtons = `<button class="btn-play" onclick="toggleEmbedPlayer('${m._id}', '${safeEmbed}')">▶ Play</button>
+                       <a class="btn-view-mat" href="${safeUrl}" target="_blank" rel="noopener" onclick="markMaterialViewed('${m._id}')">🔗 Open</a>`;
+                } else if (isEmbed) {
+                    // Other external video links — just open in new tab
+                    actionButtons = `<a class="btn-play" href="${safeUrl}" target="_blank" rel="noopener" onclick="markMaterialViewed('${m._id}')">▶ Open Video</a>`;
+                } else {
+                    actionButtons = `<button class="btn-play" onclick="toggleVideo('${m._id}', '${safeUrl}')">▶ Play</button>
+                       <a class="btn-view-mat" href="${safeUrl}" target="_blank" rel="noopener" onclick="markMaterialViewed('${m._id}')">🔗 Open</a>
+                       <button class="btn-download-mat" id="dl_${m._id}" onclick="markMaterialViewed('${m._id}');downloadMaterial('${safeUrl}','${safeTitle}','video','dl_${m._id}')">📥 Download</button>`;
+                }
+            } else {
+                const safeViewUrl = escapeHtml(getViewUrl(rawUrl, m.fileType));
+                actionButtons = `<a class="btn-view-mat" href="${safeViewUrl}" target="_blank" rel="noopener" onclick="markMaterialViewed('${m._id}')">📖 View</a>
+                   <button class="btn-download-mat" id="dl_${m._id}" onclick="markMaterialViewed('${m._id}');downloadMaterial('${safeUrl}','${safeTitle}','pdf','dl_${m._id}')">📥 Download</button>`;
+            }
+
+            // Thumbnail for external videos
+            const thumbHtml = m.videoThumbnail
+                ? `<img src="${escapeHtml(m.videoThumbnail)}" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-bottom:8px;" onerror="this.style.display='none'" alt="">`
+                : '';
+
+            // Player area depends on type
+            let playerHtml = '';
+            if (m.fileType === 'video') {
+                if (isYouTube || isDrive) {
+                    playerHtml = `<div class="video-player-wrap" id="player_${m._id}" style="display:none;"><div id="iframe_${m._id}" style="aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;"></div></div>`;
+                } else if (!isEmbed) {
+                    playerHtml = `<div class="video-player-wrap" id="player_${m._id}" style="display:none;"><video controls preload="metadata" style="width:100%;border-radius:8px;max-height:320px;background:#000;"><source src="${safeUrl}">Your browser does not support video playback.</video></div>`;
+                }
+            }
+
+            return `<div class="material-card" id="card_${m._id}">
+                <div class="material-card-header">
+                    <div style="flex:1;min-width:0;">
+                        ${thumbHtml}
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <strong style="color:#333;font-size:15px;">${icon} ${safeTitle}</strong>
+                            ${uploaderLabel}
+                        </div>
+                        ${m.description ? `<p style="color:#666;font-size:13px;margin:4px 0 0;word-break:break-word;">${escapeHtml(m.description)}</p>` : ''}
+                        <p style="color:#aaa;font-size:12px;margin:4px 0 0;">${[sizeStr, durationStr, dateStr].filter(Boolean).join(' · ')}</p>
+                    </div>
+                    <div class="material-card-actions">
+                        ${actionButtons}
+                        ${isOwner ? `<button class="btn-delete-mat" onclick="doDeleteMaterial('${m._id}')">🗑</button>` : ''}
+                    </div>
+                </div>
+                ${playerHtml}
+            </div>`;
+        }
+
+        function getEmbedUrl(url) {
+            // YouTube: watch URL, short URL, or already embed
+            let ytMatch = url.match(/[?&]v=([^&]+)/);
+            if (!ytMatch) ytMatch = url.match(/youtu\.be\/([^?&]+)/);
+            if (!ytMatch) ytMatch = url.match(/youtube\.com\/embed\/([^?&]+)/);
+            if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+            // Google Drive: .../file/d/ID/view → .../file/d/ID/preview
+            const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+            if (driveMatch) return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+            return url;
+        }
+
+        function toggleEmbedPlayer(materialId, embedUrl) {
+            const wrap = document.getElementById(`player_${materialId}`);
+            if (!wrap) return;
+            const isHidden = wrap.style.display === 'none' || wrap.style.display === '';
+            if (isHidden) {
+                markMaterialViewed(materialId);
+                wrap.style.display = 'block';
+                const iframeContainer = document.getElementById(`iframe_${materialId}`);
+                if (iframeContainer && !iframeContainer.querySelector('iframe')) {
+                    iframeContainer.innerHTML = `<iframe src="${embedUrl}" style="width:100%;height:100%;border:none;" allow="autoplay;encrypted-media" allowfullscreen></iframe>`;
+                }
+                wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                wrap.style.display = 'none';
+                const iframeContainer = document.getElementById(`iframe_${materialId}`);
+                if (iframeContainer) iframeContainer.innerHTML = ''; // stop playback
+            }
+        }
+
+        function renderMaterials(materials) {
+            const teachingList = document.getElementById('teachingMaterialsList');
+            const learningList = document.getElementById('learningResourcesList');
+            if (!teachingList || !learningList) return;
+
+            // Use LP roles to split materials:
+            //   Teaching Materials  = uploaded by the INSTRUCTOR of this LP
+            //                        (the instructor's content is what they prepared to teach)
+            //   Learning Resources  = uploaded by everyone else (the learner's personal resources)
+            const instructorId = String(learningPathData?.instructor?._id || learningPathData?.instructor || '');
+
+            const teachingMats = materials.filter(m => {
+                const uid = String(m.uploadedBy?._id || m.uploadedBy || '');
+                return uid && uid === instructorId;
+            });
+
+            const learningMats = materials.filter(m => {
+                const uid = String(m.uploadedBy?._id || m.uploadedBy || '');
+                return uid !== instructorId;
+            });
+
+            // Gate completion on the instructor's teaching materials (learner must view all)
+            learningMaterialsForGate = teachingMats;
+
+            const partnerName = document.getElementById('instructorNameLabel')?.textContent || 'your partner';
+
+            if (!teachingMats.length) {
+                teachingList.innerHTML = `<p class="no-materials">No teaching materials yet — ${escapeHtml(partnerName)} hasn't uploaded any videos or PDFs yet.</p>`;
+            } else {
+                teachingList.innerHTML = teachingMats.map(buildCard).join('');
+            }
+
+            if (!learningMats.length) {
+                learningList.innerHTML = '<p class="no-materials">No personal learning resources yet. Add your own notes, videos or PDFs to supplement your study.</p>';
+            } else {
+                learningList.innerHTML = learningMats.map(buildCard).join('');
+            }
+
+            updateUploadButtonVisibility();
+            syncCompletionBtn();
+        }
+
+        // Show the correct upload button based on LP role
+        function updateUploadButtonVisibility() {
+            if (!learningPathData) return;
+            const instructorId = String(learningPathData.instructor?._id || learningPathData.instructor || '');
+            const amInstructor = instructorId === currentUserId;
+            const teachBtn = document.getElementById('addTeachingBtn');
+            const learnBtn = document.getElementById('addLearningResourceBtn');
+            if (teachBtn) teachBtn.style.display = amInstructor ? '' : 'none';
+            if (learnBtn) learnBtn.style.display  = !amInstructor ? '' : 'none';
+        }
+
+        // Mark a material as viewed and update the gate
+        function markMaterialViewed(materialId) {
+            viewedMaterialIds.add(String(materialId));
+            syncCompletionBtn();
+        }
+
+        function toggleVideo(materialId, url) {
+            const wrap = document.getElementById(`player_${materialId}`);
+            if (!wrap) return;
+            const isHidden = wrap.style.display === 'none' || wrap.style.display === '';
+            if (isHidden) {
+                // Mark as viewed the first time the user plays the video
+                markMaterialViewed(materialId);
+                wrap.style.display = 'block';
+                const video = wrap.querySelector('video');
+                if (video) {
+                    const source = video.querySelector('source');
+                    if (source && !source.src) { source.src = url; video.load(); }
+                    video.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            } else {
+                wrap.style.display = 'none';
+                const video = wrap.querySelector('video');
+                if (video) video.pause();
+            }
+        }
+
+        // category: 'teaching' | 'learning'
+        async function doUploadMaterial(category) {
+            const isTeaching = category === 'teaching';
+            const titleId    = isTeaching ? 'teachingMaterialTitle'       : 'learningResourceTitle';
+            const descId     = isTeaching ? 'teachingMaterialDescription' : 'learningResourceDescription';
+            const fileId     = isTeaching ? 'teachingMaterialFile'        : 'learningResourceFile';
+            const btnId      = isTeaching ? 'teachingUploadBtn'           : 'learningResourceUploadBtn';
+            const progWrapId = isTeaching ? 'teachingUploadProgressWrap'  : 'learningResourceUploadProgressWrap';
+            const progFillId = isTeaching ? 'teachingUploadProgressFill'  : 'learningResourceUploadProgressFill';
+            const progTextId = isTeaching ? 'teachingUploadPercent'       : 'learningResourceUploadPercent';
+            const videoUrlId = isTeaching ? 'teachingVideoUrl'            : 'learningVideoUrl';
+            const thumbId    = isTeaching ? 'teachingVideoThumbnail'      : 'learningVideoThumbnail';
+            const durationId = isTeaching ? 'teachingVideoDuration'       : 'learningVideoDuration';
+
+            const title    = document.getElementById(titleId)?.value.trim();
+            const desc     = document.getElementById(descId)?.value.trim();
+            const fileInput = document.getElementById(fileId);
+            const file      = fileInput?.files[0];
+            const videoUrl  = document.getElementById(videoUrlId)?.value.trim();
+            const thumbnail = document.getElementById(thumbId)?.value.trim();
+            const duration  = document.getElementById(durationId)?.value;
+
+            if (!title) { alert('Please enter a title for the material.'); return; }
+
+            const hasUrl  = videoUrl && videoUrl.length > 0;
+            const hasFile = file && file.size > 0;
+
+            if (!hasUrl && !hasFile) {
+                alert('Please either enter a URL or select a file to upload.');
+                return;
+            }
+            if (hasFile && file.size > MAX_UPLOAD_BYTES) {
+                alert(`File too large (${formatFileSize(file.size)}). Maximum is 10 MB.`);
+                return;
+            }
+
+            const btn = document.getElementById(btnId);
+            const progressWrap = document.getElementById(progWrapId);
+            const progressFill = document.getElementById(progFillId);
+            const progressText = document.getElementById(progTextId);
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+            const resetForm = () => {
+                if (document.getElementById(titleId)) document.getElementById(titleId).value = '';
+                if (document.getElementById(descId)) document.getElementById(descId).value = '';
+                if (document.getElementById(videoUrlId)) document.getElementById(videoUrlId).value = '';
+                if (document.getElementById(thumbId)) document.getElementById(thumbId).value = '';
+                if (document.getElementById(durationId)) document.getElementById(durationId).value = '';
+                if (fileInput) fileInput.value = '';
+                const fnEl = document.getElementById(isTeaching ? 'teaching_fileName' : 'learning_fileName');
+                if (fnEl) { fnEl.textContent = ''; fnEl.style.display = 'none'; }
+                if (isTeaching) toggleTeachingForm(); else toggleLearningResourceForm();
+            };
+
+            try {
+                if (hasUrl) {
+                    // ── URL-based material (JSON request) ──────────────────
+                    const payload = {
+                        title,
+                        description: desc || '',
+                        materialUrl: videoUrl,
+                        materialType: 'video',
+                        materialCategory: category,
+                        videoThumbnail: thumbnail || '',
+                        duration: duration ? parseInt(duration, 10) : null
+                    };
+                    const res = await fetch(`${API_BASE}/learning-paths/${learningPathData._id}/materials`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.status === 201) {
+                        resetForm();
+                        loadMaterials();
+                        showToast('✅ Material added successfully!', 'success');
+                    } else {
+                        let msg = 'Failed to save material';
+                        try { msg = (await res.json()).message || msg; } catch (_) {}
+                        alert('Error: ' + msg);
+                    }
+                } else {
+                    // ── File upload (multipart/form-data via XHR) ──────────
+                    if (progressWrap) progressWrap.style.display = 'block';
+                    if (progressFill) progressFill.style.width = '0%';
+                    const formData = new FormData();
+                    formData.append('title', title);
+                    formData.append('description', desc || '');
+                    formData.append('file', file);
+                    formData.append('materialCategory', category);
+
+                    await new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('POST', `${API_BASE}/learning-paths/${learningPathData._id}/materials`);
+                        xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('token')}`);
+                        xhr.upload.addEventListener('progress', (e) => {
+                            if (e.lengthComputable) {
+                                const pct = Math.round((e.loaded / e.total) * 100);
+                                if (progressFill) progressFill.style.width = pct + '%';
+                                if (progressText) progressText.textContent = pct + '%';
+                            }
+                        });
+                        xhr.addEventListener('load', () => {
+                            if (progressWrap) progressWrap.style.display = 'none';
+                            if (xhr.status === 201) {
+                                resetForm();
+                                loadMaterials();
+                                showToast('✅ Material uploaded successfully!', 'success');
+                                resolve();
+                            } else {
+                                let msg = 'Upload failed';
+                                try { msg = JSON.parse(xhr.responseText).message || msg; } catch (_) {}
+                                alert('Upload failed: ' + msg);
+                                reject(new Error(msg));
+                            }
+                        });
+                        xhr.addEventListener('error', () => {
+                            if (progressWrap) progressWrap.style.display = 'none';
+                            alert('Network error during upload. Please try again.');
+                            reject(new Error('Network error'));
+                        });
+                        xhr.send(formData);
+                    });
+                }
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = '📤 Save Material'; }
+            }
+        }
+
+        async function doDeleteMaterial(materialId) {
+            if (!confirm('Delete this material? This cannot be undone.')) return;
+            try {
+                const res = await fetch(
+                    `${API_BASE}/learning-paths/${learningPathData._id}/materials/${materialId}`,
+                    {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    }
+                );
+                if (!res.ok) throw new Error('Delete failed');
+                loadMaterials();
+            } catch (err) {
+                alert('Failed to delete material. Please try again.');
+            }
+        }
+
+        // ── Tasks Feature ────────────────────────────────────────────
+
+        async function loadTasks() {
+            if (!learningPathData) return;
+            try {
+                const res = await fetch(`${API_BASE}/learning-paths/${learningPathData._id}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch tasks');
+                const data = await res.json();
+                const tasks = (data.learningPath || data).tasks || [];
+                currentTasks = tasks;
+                renderTasks(tasks);
+                syncCompletionBtn();
+            } catch (err) {
+                console.error('Load tasks error:', err);
+                const list = document.getElementById('tasksList');
+                if (list) list.innerHTML = '<p class="no-materials">Could not load tasks.</p>';
+            }
+        }
+
+        function renderTasks(tasks) {
+            const list = document.getElementById('tasksList');
+            if (!list) return;
+
+            const instructorId = String(learningPathData?.instructor?._id || learningPathData?.instructor || '');
+            const isInstructor = instructorId === currentUserId;
+
+            // Split: instructor-created = assigned tasks; everyone else = personal milestones
+            const assignedTasks = tasks.filter(t => String(t.createdBy?._id || t.createdBy || '') === instructorId);
+            const personalTasks = tasks.filter(t => String(t.createdBy?._id || t.createdBy || '') !== instructorId);
+
+            if (!tasks.length) {
+                const emptyMsg = isInstructor
+                    ? 'No assignments yet. Use "📌 Assign Task" to set milestones for your learner.'
+                    : 'No tasks yet. Your instructor may assign milestones, or add your own personal ones below.';
+                list.innerHTML = `<p class="no-materials">${emptyMsg}</p>`;
+                return;
+            }
+
+            let html = '';
+
+            // ── Section 1: Assigned Tasks (instructor-created) ──────────────
+            if (assignedTasks.length > 0) {
+                const doneCount = assignedTasks.filter(t => t.completed).length;
+                const pct = Math.round((doneCount / assignedTasks.length) * 100);
+                const sectionLabel = isInstructor
+                    ? '📌 Your Assignments <span style="font-weight:400;font-size:11px;color:#a0410a;">(learner must complete all)</span>'
+                    : '📌 Assigned by Instructor <span style="font-weight:400;font-size:11px;color:#a0410a;">(required — complete all to unlock graduation)</span>';
+
+                html += `<div style="margin-bottom:20px;">
+                    <div class="materials-group-label" style="color:#c53d1e;border-bottom-color:#ff7043;">${sectionLabel}</div>
+                    <div style="margin:8px 0 12px;">
+                        <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:5px;">
+                            <span>${doneCount} / ${assignedTasks.length} completed</span><span>${pct}%</span>
+                        </div>
+                        <div style="background:#f0e5e0;border-radius:6px;height:7px;overflow:hidden;">
+                            <div style="background:linear-gradient(90deg,#ff7043,#e64a19);height:100%;width:${pct}%;border-radius:6px;transition:width 0.3s;"></div>
+                        </div>
+                    </div>`;
+
+                assignedTasks.forEach(t => {
+                    const safeTitle = escapeHtml(t.title);
+                    const checkedAttr = t.completed ? 'checked' : '';
+                    const lineThrough = t.completed ? 'text-decoration:line-through;color:#bbb;' : 'color:#333;';
+                    const isMyTask = String(t.createdBy?._id || t.createdBy || '') === currentUserId;
+                    const badge = `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#fff0eb;color:#c53d1e;white-space:nowrap;flex-shrink:0;">👨‍🏫 Instructor</span>`;
+                    const statusIcon = t.completed ? '✅' : '⬜';
+                    html += `<div class="material-card" id="task_${t._id}" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-left:3px solid #ff7043;">
+                        <input type="checkbox" ${checkedAttr} onchange="doToggleTask('${t._id}', this.checked)"
+                            style="width:18px;height:18px;cursor:pointer;accent-color:#ff7043;flex-shrink:0;">
+                        <span style="flex:1;font-size:14px;${lineThrough}">${safeTitle}</span>
+                        ${badge}
+                        ${isMyTask ? `<button onclick="doDeleteTask('${t._id}')" style="background:none;border:none;cursor:pointer;font-size:15px;color:#ccc;padding:3px 6px;border-radius:4px;" title="Delete assignment">🗑</button>` : ''}
+                    </div>`;
+                });
+
+                html += `</div>`;
+            }
+
+            // ── Section 2: Personal Milestones (learner-created) ─────────────
+            if (personalTasks.length > 0) {
+                const donePersonal = personalTasks.filter(t => t.completed).length;
+                const pctP = Math.round((donePersonal / personalTasks.length) * 100);
+                const sectionLabel = isInstructor
+                    ? '🎯 Learner\'s Personal Milestones <span style="font-weight:400;font-size:11px;color:#5a67a0;">(added by learner)</span>'
+                    : '🎯 My Personal Milestones <span style="font-weight:400;font-size:11px;color:#5a67a0;">(optional — for your own tracking)</span>';
+
+                html += `<div style="margin-bottom:8px;">
+                    <div class="materials-group-label" style="color:#4a56a0;border-bottom-color:#667eea;">${sectionLabel}</div>
+                    <div style="margin:8px 0 12px;">
+                        <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:5px;">
+                            <span>${donePersonal} / ${personalTasks.length} done</span><span>${pctP}%</span>
+                        </div>
+                        <div style="background:#e8edff;border-radius:6px;height:7px;overflow:hidden;">
+                            <div style="background:linear-gradient(90deg,#667eea,#764ba2);height:100%;width:${pctP}%;border-radius:6px;transition:width 0.3s;"></div>
+                        </div>
+                    </div>`;
+
+                personalTasks.forEach(t => {
+                    const safeTitle = escapeHtml(t.title);
+                    const checkedAttr = t.completed ? 'checked' : '';
+                    const lineThrough = t.completed ? 'text-decoration:line-through;color:#bbb;' : 'color:#333;';
+                    const isMyTask = String(t.createdBy?._id || t.createdBy || '') === currentUserId;
+                    const badge = `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e8edff;color:#3730a3;white-space:nowrap;flex-shrink:0;">🎓 Learner</span>`;
+                    html += `<div class="material-card" id="task_${t._id}" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-left:3px solid #667eea;">
+                        <input type="checkbox" ${checkedAttr} onchange="doToggleTask('${t._id}', this.checked)"
+                            style="width:18px;height:18px;cursor:pointer;accent-color:#667eea;flex-shrink:0;">
+                        <span style="flex:1;font-size:14px;${lineThrough}">${safeTitle}</span>
+                        ${badge}
+                        ${isMyTask ? `<button onclick="doDeleteTask('${t._id}')" style="background:none;border:none;cursor:pointer;font-size:15px;color:#ccc;padding:3px 6px;border-radius:4px;" title="Delete milestone">🗑</button>` : ''}
+                    </div>`;
+                });
+
+                html += `</div>`;
+            }
+
+            list.innerHTML = html;
+        }
+
+        async function doAddTask() {
+            const inp = document.getElementById('taskTitleInput');
+            const title = inp ? inp.value.trim() : '';
+            if (!title) { alert('Please enter a task title.'); return; }
+
+            try {
+                const res = await fetch(`${API_BASE}/learning-paths/${learningPathData._id}/tasks`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title })
+                });
+                if (!res.ok) throw new Error('Failed to add task');
+                inp.value = '';
+                toggleAddTaskForm();
+                loadTasks();
+                showToast('✅ Task added!', 'success');
+            } catch (err) {
+                alert('Failed to add task. Please try again.');
+            }
+        }
+
+        async function doToggleTask(taskId, completed) {
+            try {
+                const res = await fetch(`${API_BASE}/learning-paths/${learningPathData._id}/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ completed })
+                });
+                if (!res.ok) throw new Error('Failed to update task');
+                loadTasks();
+            } catch (err) {
+                alert('Failed to update task. Please try again.');
+            }
+        }
+
+        async function doDeleteTask(taskId) {
+            if (!confirm('Delete this task?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/learning-paths/${learningPathData._id}/tasks/${taskId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (!res.ok) throw new Error('Failed to delete task');
+                loadTasks();
+            } catch (err) {
+                alert('Failed to delete task. Please try again.');
+            }
+        }
+
+        // Build a Cloudinary URL with fl_attachment so the CDN serves with Content-Disposition: attachment
+        function getCloudinaryDownloadUrl(fileUrl) {
+            try {
+                const url = new URL(fileUrl);
+                if (url.hostname.includes('cloudinary.com') && url.pathname.includes('/upload/')) {
+                    // fl_attachment works on video resources; raw resources download by default anyway
+                    url.pathname = url.pathname
+                        .replace('/upload/fl_inline/', '/upload/')
+                        .replace('/upload/', '/upload/fl_attachment/');
+                    return url.toString();
+                }
+            } catch (e) {}
+            return fileUrl;
+        }
+
+        // Get a URL that opens the file for viewing (not downloading) in a new tab.
+        // PDFs are stored as Cloudinary "raw" resources — fl_inline is NOT supported on raw.
+        // Solution: wrap the URL in Google Docs Viewer which previews any public URL.
+        function getViewUrl(fileUrl, fileType) {
+            if (fileType === 'pdf') {
+                // Strip any Cloudinary transformation flags from the URL first
+                let cleanUrl = fileUrl;
+                try {
+                    const u = new URL(fileUrl);
+                    if (u.hostname.includes('cloudinary.com')) {
+                        u.pathname = u.pathname
+                            .replace('/upload/fl_attachment/', '/upload/')
+                            .replace('/upload/fl_inline/', '/upload/');
+                        cleanUrl = u.toString();
+                    }
+                } catch (e) {}
+                return 'https://docs.google.com/viewer?url=' + encodeURIComponent(cleanUrl) + '&embedded=false';
+            }
+            // For videos: plain URL is fine — browsers open/play them directly
+            return fileUrl;
+        }
+
+        // Download a file — fetches as blob so the browser saves rather than opens
+        async function downloadMaterial(fileUrl, title, fileType, btnId) {
+            const btn = btnId ? document.getElementById(btnId) : null;
+            const ext = fileType === 'video' ? '.mp4' : '.pdf';
+            const safeFilename = (title || 'file').replace(/[^a-z0-9 _\-]/gi, '_').trim() + ext;
+            const downloadUrl = getCloudinaryDownloadUrl(fileUrl);
+
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ Downloading…'; }
+
+            try {
+                const response = await fetch(downloadUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = safeFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+            } catch (err) {
+                console.warn('Blob download failed, falling back to direct link:', err);
+                // Fallback: open Cloudinary fl_attachment URL in new tab
+                window.open(downloadUrl, '_blank');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = '📥 Download'; }
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes) return '';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+        }
     </script>
 </body>
 </html>

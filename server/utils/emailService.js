@@ -508,7 +508,7 @@ const sendEmail = async (to, template, data) => {
     }
 
     if (!process.env.SENDGRID_API_KEY) {
-      console.warn('⚠️  Email service not configured, skipping email send');
+      console.warn('⚠️  Email service not configured (SENDGRID_API_KEY missing), skipping email send');
       if (process.env.NODE_ENV === 'development') {
         console.log(`📧 [EMAIL SIMULATION] To: ${to}`);
         console.log(`   Template: ${template}`);
@@ -517,9 +517,15 @@ const sendEmail = async (to, template, data) => {
       return { success: false, message: 'Email service not configured' };
     }
 
+    const fromEmail = process.env.FROM_EMAIL;
+    if (!fromEmail || fromEmail === 'noreply@sendgrid.net') {
+      console.error('❌ FROM_EMAIL is not set to a verified sender address. Set FROM_EMAIL in your .env to an email you have verified in SendGrid (Sender Authentication). Skipping send.');
+      return { success: false, message: 'FROM_EMAIL not configured with a verified sender' };
+    }
+
     // Get email template
     const emailContent = emailTemplates[template]?.(data);
-    
+
     if (!emailContent) {
       throw new Error(`Email template '${template}' not found`);
     }
@@ -527,7 +533,7 @@ const sendEmail = async (to, template, data) => {
     // Send email via SendGrid
     const msg = {
       to,
-      from: process.env.FROM_EMAIL || 'noreply@sendgrid.net',
+      from: { email: fromEmail, name: process.env.FROM_NAME || 'SkillExchange Platform' },
       subject: emailContent.subject,
       html: emailContent.html
     };

@@ -8,6 +8,24 @@ let allExchanges = [];
 let allSkills = [];
 let currentAdmin = null;
 
+// ===== SKILL CATEGORY STYLES (must match server/models/Skill.js enum exactly) =====
+const CATEGORY_STYLES = {
+    'Programming & Development': { emoji: '💻', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.1)' },
+    'Design & Creative':         { emoji: '🎨', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },
+    'Business & Finance':        { emoji: '💼', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },
+    'Marketing & Sales':         { emoji: '📱', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
+    'Writing & Translation':     { emoji: '✍️', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
+    'Music & Audio':             { emoji: '🎵', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' },
+    'Video & Animation':         { emoji: '🎬', color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)' },
+    'Photography':               { emoji: '📷', color: '#f97316', bg: 'rgba(249, 115, 22, 0.1)' },
+    'Health & Fitness':          { emoji: '💪', color: '#84cc16', bg: 'rgba(132, 204, 22, 0.1)' },
+    'Teaching & Academics':      { emoji: '📚', color: '#0ea5e9', bg: 'rgba(14, 165, 233, 0.1)' },
+    'Lifestyle':                 { emoji: '🌟', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.1)' },
+    'Data & Analytics':          { emoji: '📊', color: '#14b8a6', bg: 'rgba(20, 184, 166, 0.1)' },
+    'AI & Machine Learning':     { emoji: '🤖', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.15)' },
+    'Other':                     { emoji: '🎯', color: '#64748b', bg: 'rgba(100, 116, 139, 0.1)' }
+};
+
 // ===== AUTHENTICATION =====
 async function checkAuth() {
     const token = localStorage.getItem('adminToken');
@@ -86,30 +104,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 function initializeAdmin() {
     // Get last active page from localStorage or default to dashboard
     const lastPage = localStorage.getItem('adminCurrentPage') || 'dashboard';
-    
+
     // Load the last active page
     navigateToPage(lastPage);
-    
+
     // Check database connection
     checkDatabaseConnection();
-    
+
     // Initialize network logs display
     displayNetworkLogs();
-    
+
     // Initialize modal handlers
     initializeModalHandlers();
-    
-    // Add some example logs to show the feature works
-    setTimeout(() => {
-        addExampleLogs();
-    }, 500);
-}
-
-// Add example logs to demonstrate the feature
-function addExampleLogs() {
-    logAPICall('GET', '/api/admin/status', 200, 45, 'success');
-    setTimeout(() => logAPICall('GET', '/api/admin/stats', 200, 128, 'success'), 200);
-    setTimeout(() => logAPICall('GET', '/api/admin/users', 200, 95, 'success'), 400);
 }
 
 // ===== NAVIGATION =====
@@ -144,8 +150,6 @@ function navigateToPage(pageId) {
         dashboard: '📊SHA Dashboard',
         users: '👥 Users Management',
         exchanges: '🤝 Exchanges Management',
-        modules: '🎓 Modules Management',
-        videos: '🎥 Video Library',
         skills: '🎯 Skills Management',
         analytics: '📈 Analytics',
         backup: '💾 Backup & Data Management',
@@ -188,12 +192,6 @@ function loadPageData(pageId) {
             break;
         case 'skills':
             loadSkills();
-            break;
-        case 'modules':
-            loadModules();
-            break;
-        case 'videos':
-            loadVideos();
             break;
         case 'analytics':
             loadAnalytics();
@@ -256,7 +254,7 @@ function toggleNetworkMonitor() {
 
 async function checkDatabaseConnection() {
     try {
-        const response = await fetch('/api/admin/status');
+        const response = await fetch('/api/admin/status', { headers: getAuthHeaders() });
         const data = await response.json();
         
         const dbStatus = document.getElementById('dbStatus');
@@ -373,7 +371,7 @@ async function loadDashboardStats() {
         if (dashboardUsersEl) dashboardUsersEl.innerHTML = '<div class="loading">Loading users...</div>';
         if (dashboardExchangesEl) dashboardExchangesEl.innerHTML = '<div class="loading">Loading exchanges...</div>';
         
-        const response = await fetch('/api/admin/stats');
+        const response = await fetch('/api/admin/stats', { headers: getAuthHeaders() });
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -383,10 +381,12 @@ async function loadDashboardStats() {
         
         if (data.success && data.stats) {
             // Update stat cards
-            updateStatCard('totalUsers', data.stats.totalUsers || 0, '+12%');
-            updateStatCard('totalExchanges', data.stats.totalExchanges || 0, '+8%');
-            updateStatCard('avgRating', (data.stats.averageRating || 0).toFixed(1), '+5%');
-            updateStatCard('successRate', `${data.stats.successRate || 0}%`, '+3%');
+            const trends = data.stats.trends || {};
+            // Use real period-over-period deltas from API — never hardcode these
+            updateStatCard('totalUsers', data.stats.totalUsers || 0, trends.users || '—');
+            updateStatCard('totalExchanges', data.stats.totalExchanges || 0, trends.exchanges || '—');
+            updateStatCard('avgRating', (data.stats.averageRating || 0).toFixed(1), '—');
+            updateStatCard('successRate', `${data.stats.successRate || 0}%`, trends.successRate || '—');
             
             // Update recent users
             displayRecentUsers(data.recentUsers || []);
@@ -602,7 +602,7 @@ async function loadUsers(search = '', filter = 'all', sortBy = 'createdAt', sort
         tableBody.innerHTML = '<tr><td colspan="10" class="loading">⏳ Loading users...</td></tr>';
         
         const url = `/api/admin/users?search=${encodeURIComponent(search)}&filter=${filter}`;
-        const response = await fetch(url);
+        const response = await fetch(url, { headers: getAuthHeaders() });
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1426,7 +1426,7 @@ async function loadExchanges(filter = 'all') {
         tableBody.innerHTML = '<tr><td colspan="7" class="loading">⏳ Loading exchanges...</td></tr>';
         
         const url = `/api/admin/exchanges?status=${filter}`;
-        const response = await fetch(url);
+        const response = await fetch(url, { headers: getAuthHeaders() });
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -1870,18 +1870,8 @@ function displaySkills(skills) {
         return;
     }
     
-    // Category colors and emojis
-    const categoryStyles = {
-        'Programming': { emoji: '💻', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.1)' },
-        'Design': { emoji: '🎨', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },
-        'Marketing': { emoji: '📱', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
-        'Languages': { emoji: '🗣️', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
-        'Business': { emoji: '💼', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },
-        'Music': { emoji: '🎵', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' },
-        'Sports': { emoji: '⚽', color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)' },
-        'Cooking': { emoji: '👨‍🍳', color: '#f97316', bg: 'rgba(249, 115, 22, 0.1)' },
-        'General': { emoji: '🎯', color: '#64748b', bg: 'rgba(100, 116, 139, 0.1)' }
-    };
+    // Category colors and emojis (uses centralized CATEGORY_STYLES to stay in sync with Skill model)
+    const categoryStyles = CATEGORY_STYLES;
     
     const levelBadges = {
         'Beginner': { emoji: '🌱', color: '#10b981' },
@@ -1891,7 +1881,7 @@ function displaySkills(skills) {
     };
     
     const html = skills.map(skill => {
-        const categoryStyle = categoryStyles[skill.category] || categoryStyles['General'];
+        const categoryStyle = categoryStyles[skill.category] || categoryStyles['Other'];
         const levelBadge = levelBadges[skill.level] || levelBadges['Intermediate'];
         const providersCount = skill.providers.length;
         
@@ -2005,21 +1995,11 @@ function viewSkillProviders(skillName, event) {
     // Find the skill in allSkills
     const skill = allSkills.find(s => s.name === skillName);
     if (!skill) return;
-    
-    // Category styles
-    const categoryStyles = {
-        'Programming': { emoji: '💻', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.1)' },
-        'Design': { emoji: '🎨', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },
-        'Marketing': { emoji: '📱', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
-        'Languages': { emoji: '🗣️', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
-        'Business': { emoji: '💼', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },
-        'Music': { emoji: '🎵', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' },
-        'Sports': { emoji: '⚽', color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)' },
-        'Cooking': { emoji: '👨‍🍳', color: '#f97316', bg: 'rgba(249, 115, 22, 0.1)' },
-        'General': { emoji: '🎯', color: '#64748b', bg: 'rgba(100, 116, 139, 0.1)' }
-    };
-    
-    const categoryStyle = categoryStyles[skill.category] || categoryStyles['General'];
+
+    // Category styles (uses centralized CATEGORY_STYLES to stay in sync with Skill model)
+    const categoryStyles = CATEGORY_STYLES;
+
+    const categoryStyle = categoryStyles[skill.category] || categoryStyles['Other'];
     
     // Sort providers by rating
     const sortedProviders = [...skill.providers].sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -2141,24 +2121,27 @@ function viewSkillProviders(skillName, event) {
 async function loadAnalytics() {
     try {
         // Load analytics data
-        const response = await fetch('/api/admin/analytics');
-        
+        const response = await fetch('/api/admin/analytics', { headers: getAuthHeaders() });
+
         if (!response.ok) {
-            console.warn(`Analytics API returned ${response.status}, loading demo data`);
-            loadDemoAnalytics();
+            console.warn(`Analytics API returned ${response.status}, computing from loaded data`);
+            loadAnalyticsFromLocalData();
             return;
         }
-        
+
         const data = await response.json();
-        
+
         if (data.success && data.charts) {
-            // Update summary stats
+            // Update summary stats using real API values
             const totalActivity = (allUsers.length || 0) + (allExchanges.length || 0);
             document.getElementById('analyticsActivity').textContent = totalActivity;
-            document.getElementById('analyticsGrowth').textContent = '+15%';
-            document.getElementById('analyticsCompletion').textContent = '78%';
-            document.getElementById('analyticsSatisfaction').textContent = '4.5';
-            
+            // data.metrics contains server-computed values
+            if (data.metrics) {
+                document.getElementById('analyticsGrowth').textContent = data.metrics.userGrowth || '—';
+                document.getElementById('analyticsCompletion').textContent = data.metrics.exchangeSuccess || '—';
+                document.getElementById('analyticsSatisfaction').textContent = data.metrics.avgSatisfaction != null ? parseFloat(data.metrics.avgSatisfaction).toFixed(1) : '—';
+            }
+
             // Render charts if Chart.js is available
             if (typeof Chart !== 'undefined' && data.charts) {
                 renderChart('userGrowthCanvas', 'line', data.charts.userGrowth);
@@ -2168,23 +2151,22 @@ async function loadAnalytics() {
             } else {
                 console.warn('⚠️ Chart.js not available or no chart data');
             }
-            
+
             // Display insights
             if (data.insights) {
                 displayInsights(data.insights);
             }
-            
+
             // Display top users and popular skills with real data
             displayTopPerformingUsers();
             displayMostPopularSkills();
         } else {
-            console.warn('No analytics data available, loading demo data');
-            loadDemoAnalytics();
+            console.warn('Analytics API returned no chart data, computing from loaded data');
+            loadAnalyticsFromLocalData();
         }
     } catch (error) {
         console.error('❌ Error loading analytics:', error);
-        // Load demo data on error
-        loadDemoAnalytics();
+        loadAnalyticsFromLocalData();
     }
 }
 
@@ -2283,68 +2265,41 @@ function displayInsights(insights) {
     container.innerHTML = html;
 }
 
-function loadDemoAnalytics() {
-    // Set summary stats
+// Compute analytics from already-loaded allUsers and allExchanges data (API fallback)
+function loadAnalyticsFromLocalData() {
     const totalActivity = (allUsers.length || 0) + (allExchanges.length || 0);
     document.getElementById('analyticsActivity').textContent = totalActivity;
-    document.getElementById('analyticsGrowth').textContent = '+15%';
-    document.getElementById('analyticsCompletion').textContent = '78%';
-    document.getElementById('analyticsSatisfaction').textContent = '4.5';
-    
-    // Create demo chart data
-    if (typeof Chart !== 'undefined') {
-        // User Growth Chart
-        const userGrowthData = {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            datasets: [{
-                label: 'New Users',
-                data: [12, 19, 15, 25, 32, 28],
-                borderColor: '#6366f1',
-                backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                tension: 0.4
-            }]
-        };
-        
-        // Exchange Status Chart
-        const exchangeStatusData = {
-            labels: ['Completed', 'Pending', 'Active', 'Cancelled'],
-            datasets: [{
-                data: [45, 10, 25, 5],
-                backgroundColor: ['#10b981', '#f59e0b', '#6366f1', '#ef4444']
-            }]
-        };
-        
-        // Popular Skills Chart
-        const popularSkillsData = {
-            labels: ['JavaScript', 'Python', 'Design', 'Marketing', 'Business'],
-            datasets: [{
-                label: 'Number of Providers',
-                data: [45, 38, 32, 25, 18],
-                backgroundColor: '#6366f1'
-            }]
-        };
-        
-        // Monthly Activity Chart
-        const monthlyActivityData = {
-            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-            datasets: [{
-                label: 'Exchanges',
-                data: [65, 78, 90, 81],
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                tension: 0.4
-            }]
-        };
-        
-        // Render all charts
-        renderChart('userGrowthCanvas', 'line', userGrowthData);
-        renderChart('exchangeStatsCanvas', 'doughnut', exchangeStatusData);
-        renderChart('skillsDistCanvas', 'bar', popularSkillsData);
-        renderChart('ratingDistCanvas', 'line', monthlyActivityData);
-    } else {
-        console.warn('⚠️ Chart.js not available');
+
+    // Compute exchange success rate from real data
+    const completed = allExchanges.filter(e => e.status === 'completed').length;
+    const completionRate = allExchanges.length > 0
+        ? Math.round((completed / allExchanges.length) * 100)
+        : 0;
+    document.getElementById('analyticsGrowth').textContent = '—';
+    document.getElementById('analyticsCompletion').textContent = `${completionRate}%`;
+
+    // Compute avg rating from real users
+    const ratedUsers = allUsers.filter(u => u.rating && u.rating > 0);
+    const avgRating = ratedUsers.length > 0
+        ? (ratedUsers.reduce((sum, u) => sum + u.rating, 0) / ratedUsers.length).toFixed(1)
+        : '—';
+    document.getElementById('analyticsSatisfaction').textContent = avgRating;
+
+    // Build real exchange status chart from allExchanges
+    if (typeof Chart !== 'undefined' && allExchanges.length > 0) {
+        const statusCounts = allExchanges.reduce((acc, e) => {
+            acc[e.status] = (acc[e.status] || 0) + 1;
+            return acc;
+        }, {});
+        const statusLabels = Object.keys(statusCounts).map(s => s.charAt(0).toUpperCase() + s.slice(1));
+        const statusData = Object.values(statusCounts);
+
+        renderChart('exchangeStatsCanvas', 'doughnut', {
+            labels: statusLabels,
+            datasets: [{ data: statusData, backgroundColor: ['#10b981', '#f59e0b', '#6366f1', '#ef4444', '#64748b'] }]
+        });
     }
-    
+
     // Display top users and popular skills with real data
     displayTopPerformingUsers();
     displayMostPopularSkills();
@@ -2383,7 +2338,10 @@ function displayUserGrowthChart(data) {
             <div style="display: flex; justify-content: space-around; margin-top: 30px;">
                 <div>
                     <div style="font-size: 24px; font-weight: 600;">📊</div>
-                    <div style="margin-top: 8px; color: var(--text-secondary);">Growing +15%</div>
+                    <div style="margin-top: 8px; color: var(--text-secondary);">This month: ${allUsers.filter(u => {
+                        const d = new Date(u.createdAt); const now = new Date();
+                        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+                    }).length} new</div>
                 </div>
                 <div>
                     <div style="font-size: 24px; font-weight: 600;">📈</div>
@@ -2621,23 +2579,15 @@ async function displayMostPopularSkills() {
             return;
         }
         
-        // Category emojis
-        const categoryEmojis = {
-            'Programming': '💻',
-            'Design': '🎨',
-            'Marketing': '📱',
-            'Languages': '🗣️',
-            'Business': '💼',
-            'Music': '🎵',
-            'Sports': '⚽',
-            'Cooking': '👨‍🍳',
-            'General': '🎯'
-        };
+        // Category emojis (derived from CATEGORY_STYLES to stay in sync with Skill model)
+        const categoryEmojis = Object.fromEntries(
+            Object.entries(CATEGORY_STYLES).map(([k, v]) => [k, v.emoji])
+        );
         
         const html = sortedSkills.map((skill, index) => {
             const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'rank-default';
             const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
-            const categoryEmoji = categoryEmojis[skill.category] || '🎯';
+            const categoryEmoji = categoryEmojis[skill.category] || CATEGORY_STYLES['Other'].emoji;
             
             // Calculate percentage of total users
             const percentage = allUsers.length > 0 ? Math.round((skill.count / allUsers.length) * 100) : 0;
@@ -2785,7 +2735,7 @@ async function createFullBackup() {
             exchanges: allExchanges,
             skills: allSkills,
             timestamp: new Date().toISOString(),
-            version: '1.0.0'
+            version: window._appVersion || 'unknown'
         };
         
         const backup = {
@@ -2963,7 +2913,7 @@ async function exportToJSON() {
             skills: allSkills,
             exportDate: new Date().toISOString(),
             platform: 'SkillExchange',
-            version: '1.0.0'
+            version: window._appVersion || 'unknown'
         };
         
         const dataStr = JSON.stringify(exportData, null, 2);
@@ -3176,14 +3126,19 @@ function formatBytes(bytes) {
 // ===== SETTINGS =====
 async function loadSettings() {
     try {
-        const response = await fetch('/api/admin/settings');
+        const response = await fetch('/api/admin/settings', { headers: getAuthHeaders() });
         const data = await response.json();
-        
+
         if (data.success) {
+            // Cache app version for use in backup/export
+            if (data.system && data.system.version) {
+                window._appVersion = data.system.version;
+            }
+
             // Populate settings - check if elements exist
             const mongoUriEl = document.getElementById('mongoUri');
             const dbNameEl = document.getElementById('dbNameSetting');
-            
+
             if (mongoUriEl) mongoUriEl.value = data.settings.dbUri || '***hidden***';
             if (dbNameEl) dbNameEl.value = data.settings.dbName || 'skillExchange';
         }
@@ -3204,7 +3159,7 @@ async function saveSettings() {
     try {
         const response = await fetch('/api/admin/settings', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify(settings)
         });
         
@@ -3250,8 +3205,8 @@ function refreshData() {
  * - Compatible with both .show and .active classes
  * 
  * Usage:
- *   openModal('editModuleModal')
- *   closeModal('editModuleModal')
+ *   openModal('skillModal')
+ *   closeModal('skillModal')
  */
 
 function openModal(modalId) {
@@ -4055,887 +4010,6 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// ===== MODULES MANAGEMENT =====
-let allModules = [];
-let filteredModules = [];
-
-async function loadModules() {
-    try {
-        // Fetch all learning paths with modules (admin endpoint)
-        const response = await fetch('/api/learning-paths/admin/all', {
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch modules');
-        }
-
-        const data = await response.json();
-        const learningPaths = data.learningPaths || data || [];
-        
-        // Extract all modules from learning paths
-        allModules = [];
-        learningPaths.forEach(path => {
-            if (path.modules && Array.isArray(path.modules)) {
-                path.modules.forEach(module => {
-                    allModules.push({
-                        ...module,
-                        learningPathId: path._id,
-                        skillName: path.skillId?.name || 'Unknown Skill',
-                        skillCategory: path.skillId?.category || 'Uncategorized',
-                        learnerName: path.learner?.fullName || 'Unknown',
-                        instructorName: path.instructor?.fullName || 'Unknown'
-                    });
-                });
-            }
-        });
-
-        filteredModules = [...allModules];
-        
-        // Update stats
-        updateModuleStats(learningPaths);
-        
-        // Render modules
-        renderModules();
-        
-        // Update badge count
-        const moduleCountBadge = document.getElementById('moduleCount');
-        if (moduleCountBadge) {
-            moduleCountBadge.textContent = allModules.length;
-        }
-
-    } catch (error) {
-        console.error('Error loading modules:', error);
-        showNotification('Failed to load modules', 'error');
-        document.getElementById('modulesGrid').innerHTML = `
-            <div class="error-message">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Failed to load modules. Please try again.</p>
-            </div>
-        `;
-    }
-}
-
-function updateModuleStats(learningPaths) {
-    const totalModules = allModules.length;
-    const completedModules = allModules.filter(m => m.isCompleted).length;
-    const totalDuration = allModules.reduce((sum, m) => sum + (m.duration || 0), 0);
-    const avgDuration = totalModules > 0 ? Math.round(totalDuration / totalModules) : 0;
-    
-    document.getElementById('totalModulesCount').textContent = totalModules;
-    document.getElementById('avgModuleDuration').textContent = `${avgDuration} min`;
-    document.getElementById('completedModulesCount').textContent = completedModules;
-    document.getElementById('learningPathsCount').textContent = learningPaths.length;
-}
-
-function renderModules() {
-    const grid = document.getElementById('modulesGrid');
-    
-    if (filteredModules.length === 0) {
-        grid.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">🎓</div>
-                <h3>No Modules Found</h3>
-                <p>No learning modules are available yet.</p>
-            </div>
-        `;
-        return;
-    }
-
-    grid.innerHTML = filteredModules.map((module, index) => `
-        <div class="module-card" data-module-id="${module._id}">
-            <div class="module-header">
-                <div class="module-number">#${module.order || index + 1}</div>
-                <div class="module-status ${module.isCompleted ? 'completed' : 'pending'}">
-                    ${module.isCompleted ? '✅ Completed' : '📝 In Progress'}
-                </div>
-            </div>
-            
-            <div class="module-body">
-                <h4 class="module-title">${module.title || 'Untitled Module'}</h4>
-                <p class="module-description">${module.description || 'No description available'}</p>
-                
-                <div class="module-meta">
-                    <div class="meta-item">
-                        <span class="meta-icon">🎯</span>
-                        <span class="meta-text">${module.skillName}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-icon">⏱️</span>
-                        <span class="meta-text">${module.duration || 0} min</span>
-                    </div>
-                    ${module.videoUrl ? `
-                    <div class="meta-item">
-                        <span class="meta-icon">🎥</span>
-                        <span class="meta-text">Video Available</span>
-                    </div>
-                    ` : ''}
-                </div>
-                
-                <div class="module-people">
-                    <div class="person">
-                        <strong>👨‍🎓 Learner:</strong> ${module.learnerName}
-                    </div>
-                    <div class="person">
-                        <strong>👨‍🏫 Instructor:</strong> ${module.instructorName}
-                    </div>
-                </div>
-            </div>
-            
-            <div class="module-footer">
-                <button class="btn-sm btn-primary" onclick="viewModuleDetails('${module._id}', '${module.learningPathId}')">
-                    <i class="fas fa-eye"></i> View Details
-                </button>
-                <button class="btn-sm btn-secondary" onclick="editModule('${module._id}', '${module.learningPathId}')">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-async function viewModuleDetails(moduleId, learningPathId) {
-    try {
-        const response = await fetch(`/api/learning-paths/admin/${learningPathId}/modules/${moduleId}`, {
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch module details');
-        }
-
-        const data = await response.json();
-        const module = data.module;
-
-        // Create and show modal with module details
-        const modal = document.createElement('div');
-        modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 800px;">
-                <div class="modal-header">
-                    <h3>📚 ${module.title}</h3>
-                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="module-detail-section">
-                        <h4>Description</h4>
-                        <p>${module.description || 'No description available'}</p>
-                    </div>
-                    
-                    <div class="module-detail-section">
-                        <h4>Information</h4>
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <span class="info-label">Order</span>
-                                <span class="info-value">#${module.order}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Duration</span>
-                                <span class="info-value">${module.duration || 0} minutes</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Status</span>
-                                <span class="info-value ${module.isCompleted ? 'status-active' : 'status-pending'}">
-                                    ${module.isCompleted ? '✅ Completed' : '📝 In Progress'}
-                                </span>
-                            </div>
-                            ${module.completedAt ? `
-                            <div class="info-item">
-                                <span class="info-label">Completed At</span>
-                                <span class="info-value">${new Date(module.completedAt).toLocaleDateString()}</span>
-                            </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                    
-                    ${module.videoUrl ? `
-                    <div class="module-detail-section">
-                        <h4>📹 Video Content</h4>
-                        <div class="video-info">
-                            <p><strong>Title:</strong> ${module.videoTitle || 'Video'}</p>
-                            <p><strong>URL:</strong> <a href="${module.videoUrl}" target="_blank">${module.videoUrl}</a></p>
-                            ${module.videoUrl.includes('youtube.com') || module.videoUrl.includes('youtu.be') ? (() => {
-                                const embedUrl = getYouTubeEmbedUrl(module.videoUrl);
-                                if (embedUrl) {
-                                    return `
-                                    <div class="video-player" style="margin-top: 15px;">
-                                        <iframe 
-                                            width="100%" 
-                                            height="400" 
-                                            src="${embedUrl}" 
-                                            frameborder="0" 
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                            allowfullscreen>
-                                        </iframe>
-                                    </div>`;
-                                } else {
-                                    return `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border-left: 3px solid #ef4444; margin-top: 15px; border-radius: 4px;">
-                                        <p style="color: #ef4444; margin: 0;"><strong>⚠ Error loading video</strong></p>
-                                        <p style="color: #666; margin: 5px 0 0 0; font-size: 14px;">The YouTube URL may be invalid or improperly formatted. Please check the URL and try again.</p>
-                                    </div>`;
-                                }
-                            })() : ''}
-                        </div>
-                    </div>
-                    ` : ''}
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-
-    } catch (error) {
-        console.error('Error loading module details:', error);
-        showNotification('Failed to load module details', 'error');
-    }
-}
-
-function getYouTubeEmbedUrl(url) {
-    if (!url) {
-        console.error('YouTube URL is empty');
-        return '';
-    }
-    
-    // Extract video ID using regex for all YouTube URL formats
-    let videoId = '';
-    
-    try {
-        // Handle various YouTube URL formats
-        const patterns = [
-            /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/, // youtube.com/watch?v=ID
-            /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/, // youtube.com/embed/ID
-            /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/, // youtu.be/ID
-            /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/, // youtube.com/v/ID
-            /(?:youtube\.com\/.*[?&]v=)([a-zA-Z0-9_-]{11})/ // youtube.com with v parameter
-        ];
-        
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match && match[1]) {
-                videoId = match[1];
-                break;
-            }
-        }
-        
-        // Fallback: Try extractYouTubeId function
-        if (!videoId) {
-            videoId = extractYouTubeId(url);
-        }
-        
-        // Validate video ID (should be 11 characters)
-        if (!videoId || videoId.length !== 11) {
-            console.error('Invalid YouTube video ID:', videoId, 'from URL:', url);
-            return '';
-        }
-        
-        // Return proper embed URL with autoplay and other parameters
-        return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;
-        
-    } catch (error) {
-        console.error('Error parsing YouTube URL:', url, error);
-        return '';
-    }
-}
-
-function searchModules() {
-    const searchTerm = document.getElementById('moduleSearch').value.toLowerCase();
-    
-    filteredModules = allModules.filter(module => {
-        return (
-            (module.title && module.title.toLowerCase().includes(searchTerm)) ||
-            (module.description && module.description.toLowerCase().includes(searchTerm)) ||
-            (module.skillName && module.skillName.toLowerCase().includes(searchTerm))
-        );
-    });
-    
-    renderModules();
-}
-
-function filterModules() {
-    const filter = document.getElementById('moduleFilter').value;
-    
-    if (filter === 'all') {
-        filteredModules = [...allModules];
-    } else {
-        filteredModules = allModules.filter(module => {
-            return module.skillCategory && module.skillCategory.toLowerCase().includes(filter);
-        });
-    }
-    
-    renderModules();
-}
-
-// ============================================
-// MODULE CRUD OPERATIONS
-// ============================================
-
-async function editModule(moduleId, learningPathId) {
-    console.log('Editing module:', moduleId, 'from learning path:', learningPathId);
-    
-    try {
-        const url = `/api/learning-paths/admin/${learningPathId}/modules/${moduleId}`;
-        console.log('Fetching module details from:', url);
-        
-        const response = await fetch(url, {
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('Fetch error:', errorData);
-            throw new Error(errorData.message || 'Failed to fetch module details');
-        }
-
-        const data = await response.json();
-        console.log('Module data:', data);
-        const module = data.module;
-
-        // Set modal title
-        document.getElementById('moduleModalTitle').textContent = 'Edit Module';
-        
-        // Populate the edit form
-        document.getElementById('editLearningPathId').value = learningPathId;
-        document.getElementById('editModuleId').value = moduleId;
-        document.getElementById('editModuleTitleInput').value = module.title || '';
-        document.getElementById('editModuleDescription').value = module.description || '';
-        document.getElementById('editModuleDuration').value = module.duration || '';
-        document.getElementById('editModuleVideoUrl').value = module.videoUrl || '';
-        document.getElementById('editModuleOrder').value = module.order || '';
-
-        // Hide learning path selector for edit mode
-        document.getElementById('learningPathSelectGroup').style.display = 'none';
-        
-        // Show delete button for existing modules
-        document.getElementById('deleteModuleBtn').style.display = 'inline-flex';
-
-        // Show modal
-        document.getElementById('editModuleModal').classList.add('active');
-        console.log('Modal opened successfully');
-    } catch (error) {
-        console.error('Edit module error:', error);
-        showNotification(error.message || 'Failed to load module details', 'error');
-    }
-}
-
-async function saveModuleChanges(event) {
-    event.preventDefault();
-    
-    console.log('Saving module changes...');
-    
-    // Clear any existing form errors
-    clearFormErrors('editModuleForm');
-    
-    const learningPathId = document.getElementById('editLearningPathId').value;
-    const moduleId = document.getElementById('editModuleId').value;
-    
-    // Validate form fields with inline error messages
-    const title = document.getElementById('editModuleTitleInput').value.trim();
-    const videoUrl = document.getElementById('editModuleVideoUrl').value.trim();
-    
-    let hasErrors = false;
-    
-    if (!title) {
-        showFieldError('editModuleTitleInput', 'Module title is required');
-        hasErrors = true;
-    }
-    
-    if (!videoUrl) {
-        showFieldError('editModuleVideoUrl', 'YouTube video URL is required');
-        hasErrors = true;
-    } else if (!videoUrl.includes('youtube.com') && !videoUrl.includes('youtu.be')) {
-        showFieldError('editModuleVideoUrl', 'Please enter a valid YouTube URL');
-        hasErrors = true;
-    }
-    
-    // For new modules, validate learning path selection
-    if (!moduleId) {
-        const selectedPath = document.getElementById('selectLearningPath').value;
-        if (!selectedPath) {
-            showFieldError('selectLearningPath', 'Please select a learning path');
-            hasErrors = true;
-        }
-    }
-    
-    if (hasErrors) {
-        showNotification('Please fix the errors in the form', 'error');
-        return;
-    }
-    
-    const updateData = {
-        title: title,
-        description: document.getElementById('editModuleDescription').value.trim(),
-        duration: parseInt(document.getElementById('editModuleDuration').value) || 0,
-        videoUrl: videoUrl,
-        order: parseInt(document.getElementById('editModuleOrder').value) || 1
-    };
-    
-    console.log('Update data:', updateData);
-
-    try {
-        let response;
-        let url;
-        
-        if (moduleId) {
-            // Update existing module
-            if (!learningPathId) {
-                showNotification('Learning path ID is missing', 'error');
-                return;
-            }
-            url = `/api/learning-paths/admin/${learningPathId}/modules/${moduleId}`;
-            console.log('Updating module:', url);
-            
-            response = await fetch(url, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(updateData)
-            });
-        } else {
-            // Add new module
-            const selectedPath = document.getElementById('selectLearningPath').value;
-            console.log('Selected learning path:', selectedPath);
-            
-            url = `/api/learning-paths/admin/${selectedPath}/modules`;
-            console.log('Adding module:', url);
-            
-            response = await fetch(url, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(updateData)
-            });
-        }
-        
-        console.log('Response status:', response.status);
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('API Error:', errorData);
-            throw new Error(errorData.message || (moduleId ? 'Failed to update module' : 'Failed to add module'));
-        }
-
-        const data = await response.json();
-        console.log('Success:', data);
-        
-        showNotification(moduleId ? 'Module updated successfully!' : 'Module added successfully!', 'success');
-        closeModal('editModuleModal');
-        
-        // Reload modules
-        await loadModules();
-    } catch (error) {
-        console.error('Save module error:', error);
-        showNotification(error.message || 'Failed to save module', 'error');
-    }
-}
-
-function confirmDeleteModule() {
-    const learningPathId = document.getElementById('editLearningPathId').value;
-    const moduleId = document.getElementById('editModuleId').value;
-    const moduleTitle = document.getElementById('editModuleTitleInput').value;
-    
-    if (confirm(`Are you sure you want to delete "${moduleTitle}"? This action cannot be undone.`)) {
-        deleteModule(learningPathId, moduleId);
-    }
-}
-
-async function deleteModule(learningPathId, moduleId) {
-    try {
-        const response = await fetch(`/api/learning-paths/admin/${learningPathId}/modules/${moduleId}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to delete module');
-        }
-
-        showNotification('Module deleted successfully!', 'success');
-        closeModal('editModuleModal');
-        
-        // Reload modules
-        await loadModules();
-    } catch (error) {
-        console.error('Delete module error:', error);
-        showNotification('Failed to delete module', 'error');
-    }
-}
-
-async function showAddModuleModal() {
-    console.log('Opening add module modal...');
-    
-    // Set modal title
-    document.getElementById('moduleModalTitle').textContent = 'Add New Module';
-    
-    // Clear form
-    document.getElementById('editLearningPathId').value = '';
-    document.getElementById('editModuleId').value = '';
-    document.getElementById('editModuleTitleInput').value = '';
-    document.getElementById('editModuleDescription').value = '';
-    document.getElementById('editModuleDuration').value = '';
-    document.getElementById('editModuleVideoUrl').value = '';
-    document.getElementById('editModuleOrder').value = '1';
-    
-    // Show learning path selector for add mode
-    const selectGroup = document.getElementById('learningPathSelectGroup');
-    if (selectGroup) {
-        selectGroup.style.display = 'block';
-    }
-    
-    // Hide delete button for new modules
-    const deleteBtn = document.getElementById('deleteModuleBtn');
-    if (deleteBtn) {
-        deleteBtn.style.display = 'none';
-    }
-    
-    // Load learning paths for selection
-    try {
-        console.log('Loading learning paths...');
-        const response = await fetch('/api/learning-paths/admin/all', {
-            headers: getAuthHeaders()
-        });
-        
-        console.log('Learning paths response status:', response.status);
-        
-        if (response.ok) {
-            const data = await response.json();
-            console.log('Learning paths data:', data);
-            
-            const select = document.getElementById('selectLearningPath');
-            if (!select) {
-                console.error('Select element not found!');
-                return;
-            }
-            
-            select.innerHTML = '<option value="">Select a learning path</option>';
-            
-            if (data.learningPaths && data.learningPaths.length > 0) {
-                data.learningPaths.forEach(lp => {
-                    const option = document.createElement('option');
-                    option.value = lp._id;
-                    option.textContent = `${lp.skillId?.name || 'Unknown Skill'} - ${lp.learner?.fullName || 'Unknown'}`;
-                    select.appendChild(option);
-                });
-                console.log('Loaded', data.learningPaths.length, 'learning paths');
-            } else {
-                showNotification('No learning paths available', 'error');
-            }
-        } else {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('Failed to load learning paths:', errorData);
-            showNotification('Failed to load learning paths', 'error');
-        }
-    } catch (error) {
-        console.error('Failed to load learning paths:', error);
-        showNotification('Error loading learning paths: ' + error.message, 'error');
-    }
-    
-    // Show modal
-    document.getElementById('editModuleModal').classList.add('active');
-    console.log('Modal opened');
-}
-
-// ============================================
-// VIDEO MANAGEMENT FUNCTIONS
-// ============================================
-
-let allVideos = [];
-let filteredVideos = [];
-
-async function loadVideos() {
-    try {
-        console.log('Loading videos...');
-        const response = await fetch('/api/learning-paths/admin/all', {
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch learning paths');
-        }
-
-        const data = await response.json();
-        
-        // Extract all videos from all modules in all learning paths
-        allVideos = [];
-        let videoId = 1;
-        
-        data.learningPaths.forEach(lp => {
-            if (lp.modules && lp.modules.length > 0) {
-                lp.modules.forEach(module => {
-                    if (module.videoUrl) {
-                        allVideos.push({
-                            id: videoId++,
-                            moduleId: module._id,
-                            learningPathId: lp._id,
-                            title: module.title || 'Untitled Video',
-                            videoUrl: module.videoUrl,
-                            description: module.description || '',
-                            duration: module.duration || 0,
-                            skillName: lp.skillId?.name || 'Unknown Skill',
-                            learnerName: lp.learner?.fullName || 'Unknown',
-                            isCompleted: module.isCompleted,
-                            order: module.order
-                        });
-                    }
-                });
-            }
-        });
-
-        filteredVideos = [...allVideos];
-        updateVideoStats();
-        renderVideos();
-        
-        // Update badge count
-        document.getElementById('videoCount').textContent = allVideos.length;
-        
-        console.log('Loaded', allVideos.length, 'videos');
-    } catch (error) {
-        console.error('Load videos error:', error);
-        showNotification('Failed to load videos', 'error');
-    }
-}
-
-function updateVideoStats() {
-    const totalVideos = allVideos.length;
-    const activeVideos = allVideos.filter(v => v.videoUrl).length;
-    const totalDuration = allVideos.reduce((sum, v) => sum + (v.duration || 0), 0);
-    const usedVideos = allVideos.length;
-
-    document.getElementById('totalVideosCount').textContent = totalVideos;
-    document.getElementById('activeVideosCount').textContent = activeVideos;
-    document.getElementById('totalVideoDuration').textContent = totalDuration + ' min';
-    document.getElementById('videosUsedCount').textContent = usedVideos;
-}
-
-function renderVideos() {
-    const grid = document.getElementById('videosGrid');
-    
-    if (filteredVideos.length === 0) {
-        grid.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">🎥</div>
-                <h3>No Videos Found</h3>
-                <p>No video content available in the system.</p>
-                <button class="btn btn-primary" onclick="showAddVideoModal()">
-                    <i class="fas fa-plus"></i> Add First Video
-                </button>
-            </div>
-        `;
-        return;
-    }
-
-    grid.innerHTML = filteredVideos.map((video, index) => `
-        <div class="video-card" data-video-id="${video.id}">
-            <div class="video-thumbnail">
-                <img src="https://img.youtube.com/vi/${extractYouTubeId(video.videoUrl)}/mqdefault.jpg" 
-                     alt="${video.title}"
-                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22320%22 height=%22180%22%3E%3Crect fill=%22%23ddd%22 width=%22320%22 height=%22180%22/%3E%3Ctext fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3ENo Preview%3C/text%3E%3C/svg%3E'">
-                <div class="video-duration-badge">${video.duration || 0} min</div>
-                <div class="video-play-overlay">
-                    <i class="fas fa-play-circle"></i>
-                </div>
-            </div>
-            
-            <div class="video-card-body">
-                <h4 class="video-title">${video.title}</h4>
-                <p class="video-description">${video.description || 'No description'}</p>
-                
-                <div class="video-meta">
-                    <div class="meta-item">
-                        <span class="meta-icon">🎯</span>
-                        <span class="meta-text">${video.skillName}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-icon">👨‍🎓</span>
-                        <span class="meta-text">${video.learnerName}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-icon">#</span>
-                        <span class="meta-text">Order ${video.order}</span>
-                    </div>
-                </div>
-                
-                <div class="video-status ${video.isCompleted ? 'completed' : 'pending'}">
-                    ${video.isCompleted ? '✅ Completed' : '📝 In Progress'}
-                </div>
-            </div>
-            
-            <div class="video-card-footer">
-                <button class="btn-sm btn-primary" onclick="viewVideo('${video.moduleId}', '${video.learningPathId}')">
-                    <i class="fas fa-play"></i> Play
-                </button>
-                <button class="btn-sm btn-secondary" onclick="editVideo('${video.moduleId}', '${video.learningPathId}')">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <a href="${video.videoUrl}" target="_blank" class="btn-sm" style="text-decoration: none;">
-                    <i class="fas fa-external-link-alt"></i> Open
-                </a>
-            </div>
-        </div>
-    `).join('');
-}
-
-function extractYouTubeId(url) {
-    if (!url || typeof url !== 'string') {
-        console.warn('Invalid URL provided to extractYouTubeId:', url);
-        return '';
-    }
-    
-    try {
-        // Clean the URL
-        url = url.trim();
-        
-        // Try multiple regex patterns for better compatibility
-        const patterns = [
-            /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/, // Standard watch URL
-            /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/, // Short URL
-            /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/, // Embed URL
-            /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/, // V URL
-            /^([a-zA-Z0-9_-]{11})$/ // Just the ID
-        ];
-        
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match && match[1] && match[1].length === 11) {
-                return match[1];
-            }
-        }
-        
-        console.warn('Could not extract YouTube ID from URL:', url);
-        return '';
-        
-    } catch (error) {
-        console.error('Error extracting YouTube ID:', error);
-        return '';
-    }
-}
-
-function searchVideos() {
-    const searchTerm = document.getElementById('videoSearch').value.toLowerCase();
-    
-    filteredVideos = allVideos.filter(video => {
-        return video.title.toLowerCase().includes(searchTerm) ||
-               (video.description && video.description.toLowerCase().includes(searchTerm)) ||
-               video.skillName.toLowerCase().includes(searchTerm);
-    });
-    
-    renderVideos();
-}
-
-function filterVideos() {
-    const filter = document.getElementById('videoFilter').value;
-    
-    if (filter === 'all') {
-        filteredVideos = [...allVideos];
-    } else if (filter === 'used') {
-        filteredVideos = allVideos.filter(v => v.moduleId);
-    } else if (filter === 'unused') {
-        filteredVideos = allVideos.filter(v => !v.moduleId);
-    }
-    
-    renderVideos();
-}
-
-async function viewVideo(moduleId, learningPathId) {
-    try {
-        const video = allVideos.find(v => v.moduleId === moduleId && v.learningPathId === learningPathId);
-        if (!video) {
-            showNotification('Video not found', 'error');
-            return;
-        }
-
-        const embedUrl = getYouTubeEmbedUrl(video.videoUrl);
-        
-        // Check if embed URL is valid
-        if (!embedUrl) {
-            showNotification('Invalid YouTube URL. Cannot display video.', 'error');
-            return;
-        }
-        
-        // Create modal to play video
-        const modal = document.createElement('div');
-        modal.className = 'modal active';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 900px;">
-                <div class="modal-header">
-                    <h3>🎥 ${video.title}</h3>
-                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="video-player">
-                        <iframe src="${embedUrl}" 
-                                width="100%" 
-                                height="500" 
-                                frameborder="0" 
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowfullscreen>
-                        </iframe>
-                    </div>
-                    <div style="margin-top: 20px;">
-                        <h4>Description</h4>
-                        <p>${video.description || 'No description available'}</p>
-                        <div class="video-info-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
-                            <div>
-                                <strong>Duration:</strong> ${video.duration || 0} minutes
-                            </div>
-                            <div>
-                                <strong>Skill:</strong> ${video.skillName}
-                            </div>
-                            <div>
-                                <strong>Status:</strong> ${video.isCompleted ? '✅ Completed' : '📝 In Progress'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-    } catch (error) {
-        console.error('View video error:', error);
-        showNotification('Failed to load video', 'error');
-    }
-}
-
-async function editVideo(moduleId, learningPathId) {
-    // Redirect to edit module with video focus
-    editModule(moduleId, learningPathId);
-}
-
-function showAddVideoModal() {
-    showNotification('Please use the Modules page to add videos to specific modules', 'info');
-    navigateToPage('modules');
-}
-
-function previewVideo() {
-    const videoUrl = document.getElementById('videoUrl').value;
-    if (!videoUrl) {
-        showNotification('Please enter a YouTube URL first', 'error');
-        return;
-    }
-
-    const embedUrl = getYouTubeEmbedUrl(videoUrl);
-    
-    if (!embedUrl) {
-        showNotification('Invalid YouTube URL. Please check the URL format.', 'error');
-        document.getElementById('videoPreviewGroup').style.display = 'none';
-        return;
-    }
-    
-    document.getElementById('videoPreviewFrame').src = embedUrl;
-    document.getElementById('videoPreviewGroup').style.display = 'block';
-}
-
-async function saveVideo(event) {
-    event.preventDefault();
-    showNotification('Please edit videos through the Modules page', 'info');
-    closeModal('videoModal');
-}
-
-function confirmDeleteVideo() {
-    showNotification('Please delete videos through the Modules page', 'info');
-}
-
 // ===== MODAL SYSTEM DEBUG UTILITIES =====
 // Helper functions for testing modal system (can be called from browser console)
 window.testModalSystem = function() {
@@ -4963,11 +4037,6 @@ window.testModalSystem = function() {
     console.log('  - clearFormErrors:', typeof clearFormErrors === 'function' ? '✓' : '✗');
     
     console.log('\n🎉 Modal system test complete!');
-    console.log('📝 To test manually:');
-    console.log('  - openModal("editModuleModal")');
-    console.log('  - closeModal("editModuleModal")');
-    console.log('  - Press ESC to close any modal');
-    console.log('  - Click outside modal to close');
 };
 
 // Auto-log modal system status on load

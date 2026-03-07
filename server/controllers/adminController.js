@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Exchange = require('../models/Exchange');
 const mongoose = require('mongoose');
+const { version: APP_VERSION } = require('../../package.json');
 
 // Get system status
 exports.getSystemStatus = async (req, res) => {
@@ -18,7 +19,7 @@ exports.getSystemStatus = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting system status',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -26,45 +27,72 @@ exports.getSystemStatus = async (req, res) => {
 // Get platform statistics
 exports.getStats = async (req, res) => {
     try {
+        const now = new Date();
+        const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
         // Total users
         const totalUsers = await User.countDocuments();
-        
+        const usersThisMonth = await User.countDocuments({ createdAt: { $gte: startOfThisMonth } });
+        const usersLastMonth = await User.countDocuments({ createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth } });
+        const usersTrend = usersLastMonth > 0
+            ? `${usersThisMonth >= usersLastMonth ? '+' : ''}${Math.round(((usersThisMonth - usersLastMonth) / usersLastMonth) * 100)}%`
+            : (usersThisMonth > 0 ? '+100%' : '—');
+
         // Total exchanges
         const totalExchanges = await Exchange.countDocuments();
-        
+        const exchangesThisMonth = await Exchange.countDocuments({ created_date: { $gte: startOfThisMonth } });
+        const exchangesLastMonth = await Exchange.countDocuments({ created_date: { $gte: startOfLastMonth, $lt: startOfThisMonth } });
+        const exchangesTrend = exchangesLastMonth > 0
+            ? `${exchangesThisMonth >= exchangesLastMonth ? '+' : ''}${Math.round(((exchangesThisMonth - exchangesLastMonth) / exchangesLastMonth) * 100)}%`
+            : (exchangesThisMonth > 0 ? '+100%' : '—');
+
         // Average rating
-        const usersWithRatings = await User.find({ rating: { $exists: true, $ne: null } });
-        const avgRating = usersWithRatings.length > 0
-            ? usersWithRatings.reduce((sum, user) => sum + user.rating, 0) / usersWithRatings.length
-            : 0;
-        
+        const ratingAgg = await User.aggregate([
+            { $match: { rating: { $exists: true, $ne: null, $gt: 0 } } },
+            { $group: { _id: null, avg: { $avg: '$rating' } } }
+        ]);
+        const avgRating = ratingAgg.length > 0 ? ratingAgg[0].avg : 0;
+
         // Success rate (completed exchanges / total exchanges)
         const completedExchanges = await Exchange.countDocuments({ status: 'completed' });
         const successRate = totalExchanges > 0
             ? Math.round((completedExchanges / totalExchanges) * 100)
             : 0;
-        
-        // Recent users (last 5) - use correct field names from User model
+
+        // Success rate trend (compare this month vs last month)
+        const completedThisMonth = await Exchange.countDocuments({ status: 'completed', created_date: { $gte: startOfThisMonth } });
+        const completedLastMonth = await Exchange.countDocuments({ status: 'completed', created_date: { $gte: startOfLastMonth, $lt: startOfThisMonth } });
+        const successRateTrend = completedLastMonth > 0
+            ? `${completedThisMonth >= completedLastMonth ? '+' : ''}${Math.round(((completedThisMonth - completedLastMonth) / completedLastMonth) * 100)}%`
+            : (completedThisMonth > 0 ? '+100%' : '—');
+
+        // Recent users (last 5)
         const recentUsers = await User.find()
             .sort({ createdAt: -1 })
             .limit(5)
             .select('name email avatar createdAt');
-        
-        // Recent exchanges (last 5) - populate with correct field names
+
+        // Recent exchanges (last 5)
         const recentExchanges = await Exchange.find()
             .sort({ created_date: -1 })
             .limit(5)
             .populate('requester_id', 'name email avatar')
             .populate('provider_id', 'name email avatar')
             .select('requester_id provider_id requested_skill offered_skill status created_date');
-        
+
         res.json({
             success: true,
             stats: {
                 totalUsers,
                 totalExchanges,
                 averageRating: parseFloat(avgRating.toFixed(1)),
-                successRate
+                successRate,
+                trends: {
+                    users: usersTrend,
+                    exchanges: exchangesTrend,
+                    successRate: successRateTrend
+                }
             },
             recentUsers,
             recentExchanges
@@ -74,7 +102,7 @@ exports.getStats = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting statistics',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -122,7 +150,7 @@ exports.getAllUsers = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting users',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -147,7 +175,7 @@ exports.getUserById = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting user',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -258,7 +286,7 @@ exports.updateUser = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error updating user',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -291,7 +319,7 @@ exports.deleteUser = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error deleting user',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -321,7 +349,7 @@ exports.getAllExchanges = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting exchanges',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -348,7 +376,7 @@ exports.getExchangeById = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting exchange',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -380,7 +408,7 @@ exports.updateExchange = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error updating exchange',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -405,7 +433,7 @@ exports.deleteExchange = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error deleting exchange',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -458,7 +486,7 @@ exports.getAllSkills = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting skills',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -467,13 +495,13 @@ exports.getAllSkills = async (req, res) => {
 exports.getSettings = async (req, res) => {
     try {
         const settings = {
-            dbUri: process.env.MONGODB_URI || '',
+            dbUri: '',  // deliberately omitted for security
             dbName: mongoose.connection.name || ''
         };
         
         const system = {
             uptime: `${Math.floor(process.uptime() / 3600)} hours`,
-            version: process.env.APP_VERSION || '1.0.0',
+            version: process.env.APP_VERSION || APP_VERSION,
             nodeVersion: process.version
         };
         
@@ -486,7 +514,7 @@ exports.getSettings = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting settings',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -505,7 +533,7 @@ exports.updateSettings = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error updating settings',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -590,6 +618,13 @@ exports.getAnalytics = async (req, res) => {
         const totalExchanges = await Exchange.countDocuments();
         const completedExchanges = await Exchange.countDocuments({ status: 'completed' });
         const successRate = totalExchanges > 0 ? Math.round((completedExchanges / totalExchanges) * 100) : 0;
+
+        // Average satisfaction from user ratings
+        const ratingAgg = await User.aggregate([
+            { $match: { rating: { $gt: 0 } } },
+            { $group: { _id: null, avgRating: { $avg: '$rating' } } }
+        ]);
+        const avgSatisfaction = ratingAgg.length > 0 ? ratingAgg[0].avgRating.toFixed(1) : null;
         
         // User growth percentage (compare last month to month before)
         const lastMonthUsers = await User.countDocuments({
@@ -658,7 +693,7 @@ exports.getAnalytics = async (req, res) => {
                 userGrowth: `+${userGrowthPercent}%`,
                 exchangeSuccess: `${successRate}%`,
                 skillDistribution: popularSkills.length,
-                revenue: '$12,450' // Mock data - implement real revenue tracking
+                avgSatisfaction: avgSatisfaction
             },
             charts: {
                 userGrowth: userGrowthChart,
@@ -694,7 +729,7 @@ exports.getAnalytics = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting analytics',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -709,7 +744,7 @@ exports.createBackup = async (req, res) => {
             users,
             exchanges,
             timestamp: new Date().toISOString(),
-            version: '1.0.0',
+            version: APP_VERSION,
             platform: 'SkillExchange'
         };
         
@@ -727,7 +762,7 @@ exports.createBackup = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error creating backup',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -784,7 +819,7 @@ exports.restoreBackup = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error restoring backup',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };

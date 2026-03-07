@@ -249,7 +249,7 @@ exports.getPopularSkills = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting popular skills',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -271,31 +271,17 @@ exports.getSkillsByCategory = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting skills by category',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
 
-// Get skill categories
+// Get skill categories (derives list dynamically from Mongoose schema enum)
 exports.getCategories = async (req, res) => {
     try {
-        const categories = [
-            'Programming & Development',
-            'Design & Creative',
-            'Business & Finance',
-            'Marketing & Sales',
-            'Writing & Translation',
-            'Music & Audio',
-            'Video & Animation',
-            'Photography',
-            'Health & Fitness',
-            'Teaching & Academics',
-            'Lifestyle',
-            'Data & Analytics',
-            'AI & Machine Learning',
-            'Other'
-        ];
-        
+        // Read directly from the Skill model's category enum — single source of truth
+        const categories = Skill.schema.path('category').enumValues;
+
         // Get count for each category
         const categoriesWithCount = await Promise.all(
             categories.map(async (category) => {
@@ -313,7 +299,7 @@ exports.getCategories = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting categories',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -348,7 +334,7 @@ exports.bulkCreateSkills = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error creating skills',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };

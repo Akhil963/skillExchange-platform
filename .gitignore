@@ -13,7 +13,7 @@ yarn.lock
 .env.test.local
 .env.production.local
 .env.production
-admin/.env.admin
+client/admin/.env.admin
 
 # IDE
 .vscode/
@@ -42,18 +42,17 @@ build/
 coverage/
 .nyc_output/
 
-
-
-
-
-when someone come new member then what can we do which Skill you can offer in exchange we provide or a give a beginner or give a new start like a new like a professional development make it dynamic and proper with no error with proper working code and make it dynamic for the project to professional level
+# Deployment
 .vercel
-
-# Local Netlify folder
 .netlify
 NODE_ENV.txt
-.pdf
-SkillExchange Platform - Project.pdf
+
+# PDFs / generated docs
+*.pdf
 SkillExchange_Presentation.pdf
+
+# SSL certificates (never commit private keys)
 certificate.crt
 private.key
+*.pem
+*.key

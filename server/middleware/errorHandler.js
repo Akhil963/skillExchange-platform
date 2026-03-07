@@ -1,6 +1,11 @@
 // Global error handler
 const errorHandler = (err, req, res, next) => {
-  console.error('Error:', err);
+  // Capture in Sentry (production only)
+  if (process.env.NODE_ENV === 'production' && global.Sentry) {
+    global.Sentry.captureException(err);
+  }
+
+  console.error('Error:', err.message || err);
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
@@ -12,7 +17,7 @@ const errorHandler = (err, req, res, next) => {
 
   // Mongoose duplicate key
   if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
+    const field = Object.keys(err.keyValue || {})[0] || 'field';
     return res.status(400).json({
       success: false,
       message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`
@@ -45,10 +50,10 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Default error
-  res.status(err.statusCode || 500).json({
+  res.status(err.statusCode || err.status || 500).json({
     success: false,
-    message: err.message || 'Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    message: process.env.NODE_ENV === 'production' ? 'Internal server error' : (err.message || 'Server Error'),
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
   });
 };
 

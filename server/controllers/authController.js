@@ -129,8 +129,6 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    console.log(`✓ Login successful for user: ${email}`);
-
     // Update last login
     user.lastLogin = new Date();
     await user.save();
@@ -428,8 +426,6 @@ exports.resetPassword = async (req, res, next) => {
       });
     }
 
-    console.log(`[Reset Password] Processing reset for user: ${user.email}`);
-
     // ========== HASH PASSWORD ==========
     const bcrypt = require('bcryptjs');
     const salt = await bcrypt.genSalt(10);
@@ -453,7 +449,6 @@ exports.resetPassword = async (req, res, next) => {
     ).select('+password');
 
     if (!updatedUser) {
-      console.error(`[Reset Password] Failed to update user: ${user.email}`);
       throw new Error('Failed to reset password');
     }
 
@@ -463,7 +458,6 @@ exports.resetPassword = async (req, res, next) => {
     const passwordsMatch = await updatedUser.comparePassword(password);
     
     if (!passwordsMatch) {
-      console.error(`[Reset Password] ✗ Password verification failed for user: ${user.email}`);
       throw new Error('Password verification failed - password may not be stored correctly');
     }
 
@@ -475,8 +469,6 @@ exports.resetPassword = async (req, res, next) => {
       loginUrl: `${getBaseUrl()}/#login`,
       timestamp: new Date().toLocaleString()
     }).catch(err => console.error('[Reset Password] Confirmation email error:', err.message));
-
-    console.log(`[Reset Password] ✓ Password reset successful for user: ${updatedUser.email}`);
 
     // ========== SUCCESS RESPONSE ==========
     res.status(200).json({

@@ -112,7 +112,7 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
+    match: [/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, 'Please provide a valid email']
   },
   username: {
     type: String,
@@ -132,7 +132,7 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters'],
+    minlength: [8, 'Password must be at least 8 characters'],
     select: false
   },
   bio: {
@@ -147,7 +147,7 @@ const userSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    default: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+    default: ''
   },
   rating: {
     type: Number,
@@ -281,25 +281,14 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
-  // Only hash if password is modified AND not already hashed
-  if (!this.isModified('password')) {
-    return next();
-  }
-  
-  // Skip hashing if password is already a bcrypt hash (starts with $2a$, $2b$, $2y$, or $2x$)
-  if (this.password && this.password.startsWith('$2')) {
-    console.log(`[Pre-save hook] Password already hashed for user: ${this.email}`);
-    return next();
-  }
-  
+  if (!this.isModified('password')) return next();
+  // Skip if already hashed
+  if (this.password && this.password.startsWith('$2')) return next();
   try {
-    console.log(`[Pre-save hook] Hashing password for user: ${this.email}`);
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    console.log(`[Pre-save hook] ✓ Password hashed successfully for user: ${this.email}`);
     next();
   } catch (error) {
-    console.error(`[Pre-save hook] Error hashing password: ${error.message}`);
     next(error);
   }
 });
@@ -407,37 +396,37 @@ userSchema.statics.findByIdentifier = async function(identifier) {
   return await this.findOne(query);
 };
 
-// Generate 6-digit OTP for 2FA
+// Generate 6-digit OTP for 2FA (cryptographically secure)
 userSchema.methods.generateResetOTP = function() {
-  // Generate 6-digit OTP (random number from 100000 to 999999)
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  
-  // Store OTP (in production, consider hashing this too)
-  this.resetOTP = otp;
-  this.resetOTPExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
-  this.resetOTPAttempts = 0; // Reset attempts counter
-  
-  return otp;
+  const crypto = require('crypto');
+  // crypto.randomInt is cryptographically secure (not Math.random)
+  const otp = crypto.randomInt(100000, 1000000).toString();
+
+  // Hash before storing so plain OTP is never persisted to the database
+  this.resetOTP = crypto.createHash('sha256').update(otp).digest('hex');
+  this.resetOTPExpire  = Date.now() + 10 * 60 * 1000; // 10 minutes
+  this.resetOTPAttempts = 0;
+
+  return otp; // return plain OTP to be sent via email/SMS only
 };
 
-// Verify OTP
+// Verify OTP — compare hashed value
 userSchema.methods.verifyResetOTP = function(otp) {
-  // Check if OTP is expired
+  const crypto = require('crypto');
+
   if (Date.now() > this.resetOTPExpire) {
     return { success: false, message: 'OTP has expired' };
   }
-  
-  // Check maximum attempts (max 5 attempts)
+
   if (this.resetOTPAttempts >= 5) {
     return { success: false, message: 'Maximum OTP attempts exceeded. Request a new one.' };
   }
-  
-  // Verify OTP
-  if (this.resetOTP === otp) {
+
+  const hashedInput = crypto.createHash('sha256').update(otp).digest('hex');
+  if (this.resetOTP === hashedInput) {
     return { success: true, message: 'OTP verified successfully' };
   }
-  
-  // Increment failed attempts
+
   this.resetOTPAttempts += 1;
   return { success: false, message: `Invalid OTP. ${5 - this.resetOTPAttempts} attempts remaining.` };
 };

@@ -1,17 +1,15 @@
 // Load environment variables from parent directory
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
-// ===== SENTRY SETUP (ADD AT VERY TOP) =====
+// ===== SENTRY SETUP (must be very first) =====
 if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
   try {
     const Sentry = require("@sentry/node");
-    
     Sentry.init({
       dsn: process.env.SENTRY_DSN,
       tracesSampleRate: 0.1,
       environment: process.env.NODE_ENV
     });
-    
     global.Sentry = Sentry;
   } catch (err) {
     console.error('⚠️  Sentry initialization failed:', err.message);
@@ -25,6 +23,9 @@ const morgan = require('morgan');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const hpp = require('hpp');
 const path = require('path');
 
 const connectDB = require('./config/database');
@@ -41,7 +42,6 @@ const adminAuthRoutes = require('./routes/adminAuthRoutes');
 const skillRoutes = require('./routes/skillRoutes');
 const learningPathRoutes = require('./routes/learningPathRoutes');
 
-// Initialize express app
 const app = express();
 
 // Trust proxy (Render and other reverse proxies set X-Forwarded-For)
@@ -57,44 +57,49 @@ connectDB().then(() => {
   dbConnected = false;
 });
 
-// Security middleware
+// ── Security headers ────────────────────────────────────────────────────────
 app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
-  hsts: {
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true,
-    preload: true
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:     ["'self'"],
+      scriptSrc:      ["'self'", "'unsafe-inline'", 'https://kit.fontawesome.com', 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net'],
+      styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', 'https://fonts.cdnfonts.com'],
+      fontSrc:        ["'self'", 'https://fonts.gstatic.com', 'https://ka-f.fontawesome.com', 'https://cdnjs.cloudflare.com'],
+      imgSrc:         ["'self'", 'data:', 'blob:', 'https:'],
+      connectSrc:     ["'self'"],
+      frameSrc:       ["'none'"],
+      objectSrc:      ["'none'"],
+      baseUri:        ["'self'"],
+      formAction:     ["'self'"],
+    }
   },
+  crossOriginEmbedderPolicy: false,
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   frameguard: { action: 'deny' },
   noSniff: true,
   xssFilter: true
 }));
 
-// CORS configuration - Allow localhost, 127.0.0.1, and CLIENT_URL
+// ── CORS ─────────────────────────────────────────────────────────────────────
 const corsOptions = {
   origin: function(origin, callback) {
-    // Get the base URL from CLIENT_URL or default to localhost:5000
     const allowedBaseUrl = process.env.CLIENT_URL || 'http://localhost:5000';
-    const allowedPort = allowedBaseUrl.split(':').pop();
-    
-    // Allow these origins:
-    // 1. No origin (same-origin requests, mobile apps, Postman, etc.)
-    // 2. localhost with matching port
-    // 3. 127.0.0.1 with matching port
-    // 4. Exact CLIENT_URL match
-    // 5. Any whitelisted domains in production
-    
-    if (!origin || 
-        origin === `http://localhost:${allowedPort}` || 
+    const allowedPort   = allowedBaseUrl.split(':').pop();
+
+    // Build the whitelist from both env var names (CORS_WHITELIST and CORS_ORIGINS)
+    const whitelist = [
+      ...(process.env.CORS_WHITELIST ? process.env.CORS_WHITELIST.split(',') : []),
+      ...(process.env.CORS_ORIGINS   ? process.env.CORS_ORIGINS.split(',')   : [])
+    ].map(s => s.trim()).filter(Boolean);
+
+    if (!origin ||
+        origin === `http://localhost:${allowedPort}` ||
         origin === `http://127.0.0.1:${allowedPort}` ||
         origin === `https://localhost:${allowedPort}` ||
         origin === `https://127.0.0.1:${allowedPort}` ||
         origin === allowedBaseUrl ||
-        process.env.CORS_WHITELIST?.split(',').includes(origin)) {
-      callback(null, true);
-    } else if (process.env.NODE_ENV === 'development') {
-      // Allow all in development for testing
+        whitelist.includes(origin) ||
+        process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -104,21 +109,17 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
-
 app.use(cors(corsOptions));
 
-// Rate limiting - Different limits for dev vs production
+// ── Global rate limit ────────────────────────────────────────────────────────
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 1000 for dev, 100 for prod
-  message: JSON.stringify({
-    success: false,
-    message: 'Too many requests from this IP, please try again later.'
-  }),
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  skip: (req) => process.env.NODE_ENV !== 'production', // Skip rate limiting in development
-  validate: { xForwardedForHeader: process.env.NODE_ENV === 'production' }, // Only validate X-Forwarded-For in production
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000,
+  message: JSON.stringify({ success: false, message: 'Too many requests from this IP, please try again later.' }),
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV !== 'production',
+  validate: { xForwardedForHeader: process.env.NODE_ENV === 'production' },
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -129,11 +130,31 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Body parser middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// ── Stricter rate limits for sensitive auth endpoints ─────────────────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 10 : 100,
+  message: JSON.stringify({ success: false, message: 'Too many authentication attempts. Please try again in 15 minutes.' }),
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV !== 'production'
+});
+app.use('/api/auth/login',           authLimiter);
+app.use('/api/auth/register',        authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/verify-otp',      authLimiter);
+app.use('/api/admin-auth/login',     authLimiter);
 
-// Middleware to check database status for API requests
+// ── Body parsers (keep limit reasonable for JSON APIs) ───────────────────────
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// ── Input sanitization ────────────────────────────────────────────────────────
+app.use(mongoSanitize({ replaceWith: '_' }));  // NoSQL injection prevention
+app.use(xss());                                 // XSS payload stripping
+app.use(hpp());                                 // HTTP parameter pollution prevention
+
+// ── DB gate for API routes ────────────────────────────────────────────────────
 app.use('/api', (req, res, next) => {
   if (!dbConnected && !req.path.includes('health')) {
     return res.status(503).json({
@@ -145,243 +166,195 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Compression middleware
+// ── Compression ───────────────────────────────────────────────────────────────
 app.use(compression());
 
-// Logging middleware
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined'));
-}
+// ── Request logging ───────────────────────────────────────────────────────────
+app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 
-// Live reload for development
+// ── Live reload (dev only) ────────────────────────────────────────────────────
 if (process.env.NODE_ENV === 'development') {
   try {
-    const livereload = require('livereload');
+    const livereload      = require('livereload');
     const connectLivereload = require('connect-livereload');
-    
-    const liveReloadServer = livereload.createServer({
-      exts: ['html', 'css', 'js'],
-      debug: false
-    });
-    
-    liveReloadServer.watch([
-      path.join(__dirname, '../client'),
-    ]);
-    
+    const liveReloadServer  = livereload.createServer({ exts: ['html', 'css', 'js'], debug: false });
+    liveReloadServer.watch([path.join(__dirname, '../client')]);
     app.use(connectLivereload());
-    
     console.log('🔄 Live reload enabled');
   } catch (err) {
     console.log('⚠️  Live reload not available (install: npm i livereload connect-livereload -D)');
   }
 }
 
-// Serve static files from client directory
+// ── Static files ──────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, '../client')));
 
-// Add cache headers for static assets
+// Cache headers for static assets
 app.use((req, res, next) => {
-  if (req.url.endsWith('.js') || req.url.endsWith('.css')) {
-    res.set('Cache-Control', 'public, max-age=31536000, immutable');
-  } else if (req.url.endsWith('.html')) {
-    res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
-  } else if (req.url.match(/\.(jpg|jpeg|png|gif|svg|webp)$/i)) {
-    res.set('Cache-Control', 'public, max-age=31536000, immutable');
-  }
+  if (req.url.match(/\.(js|css)$/))                    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  else if (req.url.endsWith('.html'))                  res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+  else if (req.url.match(/\.(jpg|jpeg|png|gif|svg|webp)$/i)) res.set('Cache-Control', 'public, max-age=31536000, immutable');
   next();
 });
 
-// Serve admin static files (now inside client folder)
+// Block .env* and private key files before serving admin static directory
+app.use('/admin', (req, res, next) => {
+  if (/\.env/i.test(req.path) || /\.(key|pem|crt)$/i.test(req.path)) {
+    return res.status(403).end();
+  }
+  next();
+});
 app.use('/admin', express.static(path.join(__dirname, '../client/admin')));
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/exchanges', exchangeRoutes);
-app.use('/api/conversations', conversationRoutes);
-app.use('/api/contact', contactRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/admin-auth', adminAuthRoutes);
-app.use('/api/skills', skillRoutes);
+// ── API Routes ─────────────────────────────────────────────────────────────────
+app.use('/api/auth',           authRoutes);
+app.use('/api/users',          userRoutes);
+app.use('/api/exchanges',      exchangeRoutes);
+app.use('/api/conversations',  conversationRoutes);
+app.use('/api/contact',        contactRoutes);
+app.use('/api/admin',          adminRoutes);
+app.use('/api/admin-auth',     adminAuthRoutes);
+app.use('/api/skills',         skillRoutes);
 app.use('/api/learning-paths', learningPathRoutes);
 
-// Health check route
+// ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is running',
+  const mongoose  = require('mongoose');
+  const dbStatus  = mongoose.connection.readyState; // 0=disc, 1=conn, 2=connecting, 3=disc
+  const dbReady   = dbStatus === 1;
+  res.status(dbReady ? 200 : 503).json({
+    success:   dbReady,
+    status:    dbReady ? 'healthy' : 'degraded',
+    db:        dbReady ? 'connected' : ['disconnected','connected','connecting','disconnecting'][dbStatus] || 'unknown',
+    uptime:    Math.floor(process.uptime()),
     timestamp: new Date().toISOString()
   });
 });
 
-// Platform stats route
+// ── Platform stats ────────────────────────────────────────────────────────────
 app.get('/api/stats', async (req, res) => {
   try {
-    const User = require('./models/User');
+    const User     = require('./models/User');
     const Exchange = require('./models/Exchange');
 
-    const totalUsers = await User.countDocuments({ isActive: true });
-    const totalExchanges = await Exchange.countDocuments();
-    const completedExchanges = await Exchange.countDocuments({ status: 'completed' });
-    const activeExchanges = await Exchange.countDocuments({ status: 'active' });
-
-    const successRate = totalExchanges > 0
-      ? Math.round((completedExchanges / totalExchanges) * 100)
-      : 0;
-
-    const avgRatingResult = await User.aggregate([
-      { $group: { _id: null, avgRating: { $avg: '$rating' } } }
-    ]);
-
-    const avgRating = avgRatingResult.length > 0
-      ? Math.round(avgRatingResult[0].avgRating * 10) / 10
-      : 0;
+    const [totalUsers, totalExchanges, completedExchanges, activeExchanges, avgRatingResult] =
+      await Promise.all([
+        User.countDocuments({ isActive: true }),
+        Exchange.countDocuments(),
+        Exchange.countDocuments({ status: 'completed' }),
+        Exchange.countDocuments({ status: 'active' }),
+        User.aggregate([{ $group: { _id: null, avg: { $avg: '$rating' } } }])
+      ]);
 
     res.status(200).json({
       success: true,
       stats: {
-        total_users: totalUsers,
-        total_exchanges: totalExchanges,
-        active_exchanges: activeExchanges,
-        completed_exchanges: completedExchanges,
-        success_rate: successRate,
-        average_rating: avgRating
+        total_users:          totalUsers,
+        total_exchanges:      totalExchanges,
+        active_exchanges:     activeExchanges,
+        completed_exchanges:  completedExchanges,
+        success_rate:         totalExchanges > 0 ? Math.round((completedExchanges / totalExchanges) * 100) : 0,
+        average_rating:       avgRatingResult.length > 0 ? Math.round(avgRatingResult[0].avg * 10) / 10 : 0
       }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching stats'
-    });
+    res.status(500).json({ success: false, message: 'Error fetching stats' });
   }
 });
 
-// Handle password reset link from email
-// Redirect /reset-password/:token to /?reset=token
+// Redirect email-based password reset links to SPA
 app.get('/reset-password/:token', (req, res) => {
-  const { token } = req.params;
-  res.redirect(`/?reset=${token}`);
+  res.redirect(`/?reset=${req.params.token}`);
 });
 
-// Serve frontend for all other routes
+// Serve SPA for all non-API routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
-// Error handler with Sentry integration
-app.use((err, req, res, next) => {
-  // Capture error in Sentry (production only)
-  if (process.env.NODE_ENV === 'production' && global.Sentry) {
-    global.Sentry.captureException(err);
-  }
-
-  // Log error
-  console.error('ERROR:', err.message || err);
-
-  // Send response
-  res.status(err.status || 500).json({
-    success: false,
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
-      : err.message,
-    ...(process.env.NODE_ENV !== 'production' && { error: err })
-  });
-});
-
-// Error handling middleware (must be last)
 app.use(notFound);
 app.use(errorHandler);
 
-// === HTTPS SETUP ===
-const fs = require('fs');
+// ── Server startup ────────────────────────────────────────────────────────────
+const fs    = require('fs');
 const https = require('https');
-
-const PORT = process.env.PORT || 5000;
+const PORT  = process.env.PORT || 5000;
 
 let server;
 
-// Check if SSL certificates exist before trying to use them
-const hasSSLCerts = process.env.SSL_KEY_PATH && process.env.SSL_CERT_PATH && 
-                    fs.existsSync(process.env.SSL_KEY_PATH) && 
+const hasSSLCerts = process.env.SSL_KEY_PATH && process.env.SSL_CERT_PATH &&
+                    fs.existsSync(process.env.SSL_KEY_PATH) &&
                     fs.existsSync(process.env.SSL_CERT_PATH);
 
+// Sanitize DB URI for logging (hide credentials)
+const safeDbUri = () => (process.env.MONGODB_URI || '').replace(/\/\/[^:]+:[^@]+@/, '//***:***@') || 'configured';
+
+const logStartup = (proto, port) => {
+  console.log('');
+  console.log('═══════════════════════════════════════════════════════');
+  console.log(`🚀 SkillExchange Server Running`);
+  console.log(`📡 Environment : ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 Server      : ${proto}://0.0.0.0:${port}`);
+  console.log(`🔗 API         : ${proto}://0.0.0.0:${port}/api`);
+  console.log(`💾 Database    : ${safeDbUri()}`);
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('');
+};
+
 if (process.env.NODE_ENV === 'production' && hasSSLCerts) {
-  // Production with local SSL certificates (self-hosted)
   try {
     const options = {
-      key: fs.readFileSync(process.env.SSL_KEY_PATH),
+      key:  fs.readFileSync(process.env.SSL_KEY_PATH),
       cert: fs.readFileSync(process.env.SSL_CERT_PATH)
     };
-    
     server = https.createServer(options, app);
-    server.listen(PORT, () => {
-      console.log('');
-      console.log('═══════════════════════════════════════════════════════');
-      console.log(`🔒 SkillExchange HTTPS Server Running`);
-      console.log(`📡 Environment: ${process.env.NODE_ENV}`);
-      console.log(`🌐 Server: https://0.0.0.0:${PORT}`);
-      console.log(`🔗 API: https://0.0.0.0:${PORT}/api`);
-      console.log(`💾 Database: ${process.env.MONGODB_URI}`);
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('');
-    });
-    
-    // Redirect HTTP to HTTPS
-    const http = require('http');
+    server.listen(PORT, () => logStartup('https', PORT));
+
+    // HTTP → HTTPS redirect
+    const http    = require('http');
     const httpApp = require('express')();
-    httpApp.use((req, res) => {
-      res.redirect(301, `https://${req.headers.host}${req.url}`);
-    });
-    httpApp.listen(80, () => {
-      console.log('HTTP → HTTPS redirect running on port 80');
-    });
+    httpApp.use((req, res) => res.redirect(301, `https://${req.headers.host}${req.url}`));
+    httpApp.listen(80, () => console.log('HTTP → HTTPS redirect on port 80'));
   } catch (err) {
-    console.error('❌ SSL certificate error:', err.message);
-    console.error('Falling back to HTTP server...');
-    // Fall back to HTTP
-    server = app.listen(PORT, () => {
-      console.log('');
-      console.log('═══════════════════════════════════════════════════════');
-      console.log(`🚀 SkillExchange Server Running (HTTP Fallback)`);
-      console.log(`📡 Environment: ${process.env.NODE_ENV}`);
-      console.log(`🌐 Server: http://0.0.0.0:${PORT}`);
-      console.log(`🔗 API: http://0.0.0.0:${PORT}/api`);
-      console.log(`💾 Database: ${process.env.MONGODB_URI}`);
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('');
-    });
+    console.error('❌ SSL certificate error:', err.message, '— falling back to HTTP');
+    server = app.listen(PORT, () => logStartup('http', PORT));
   }
 } else {
-  // Development or production without local SSL (e.g., Render handles HTTPS automatically)
-  server = app.listen(PORT, () => {
-    console.log('');
-    console.log('═══════════════════════════════════════════════════════');
-    console.log(`🚀 SkillExchange Server Running`);
-    console.log(`📡 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🌐 Server: http://0.0.0.0:${PORT}`);
-    console.log(`🔗 API: http://0.0.0.0:${PORT}/api`);
-    console.log(`💾 Database: ${process.env.MONGODB_URI}`);
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('');
-  });
+  server = app.listen(PORT, () => logStartup('http', PORT));
 }
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error('❌ Unhandled Promise Rejection:', err);
-  server.close(() => {
-    process.exit(1);
+// ── Process signal handling & graceful shutdown ────────────────────────────────
+const gracefulShutdown = (signal) => {
+  console.log(`\n👋 ${signal} received. Shutting down gracefully...`);
+  server.close(async () => {
+    try {
+      const mongoose = require('mongoose');
+      await mongoose.connection.close(false);
+      console.log('✅ MongoDB connection closed');
+    } catch (err) {
+      console.error('Error closing MongoDB:', err.message);
+    }
+    process.exit(0);
   });
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
+
+// Unhandled promise rejections — log + alert; only exit in truly critical scenarios
+process.on('unhandledRejection', (err) => {
+  const msg = err?.message || String(err);
+  console.error('❌ Unhandled Promise Rejection:', msg);
+  if (global.Sentry) global.Sentry.captureException(err);
+  // Exit only if the HTTP server failed to start (catastrophic)
+  if (!server?.listening) process.exit(1);
 });
 
-// Handle SIGTERM
-process.on('SIGTERM', () => {
-  console.log('👋 SIGTERM received. Shutting down gracefully...');
-  server.close(() => {
-    console.log('✅ Process terminated');
-  });
+// Synchronous exceptions that were never caught — always fatal
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err.message);
+  if (global.Sentry) global.Sentry.captureException(err);
+  process.exit(1);
 });
 
 module.exports = app;

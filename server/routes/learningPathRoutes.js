@@ -8,18 +8,6 @@ const learningPathController = require('../controllers/learningPathController');
 // GET /api/learning-paths/admin/all - Get all learning paths (Admin only)
 router.get('/admin/all', adminAuth.protect, learningPathController.getAllLearningPaths);
 
-// GET /api/learning-paths/admin/:learningPathId/modules/:moduleId - Get module details (Admin only)
-router.get('/admin/:learningPathId/modules/:moduleId', adminAuth.protect, learningPathController.getModuleDetailsAdmin);
-
-// PUT /api/learning-paths/admin/:learningPathId/modules/:moduleId - Update module (Admin only)
-router.put('/admin/:learningPathId/modules/:moduleId', adminAuth.protect, learningPathController.updateModule);
-
-// DELETE /api/learning-paths/admin/:learningPathId/modules/:moduleId - Delete module (Admin only)
-router.delete('/admin/:learningPathId/modules/:moduleId', adminAuth.protect, learningPathController.deleteModule);
-
-// POST /api/learning-paths/admin/:learningPathId/modules - Add new module (Admin only)
-router.post('/admin/:learningPathId/modules', adminAuth.protect, learningPathController.addModule);
-
 // POST /api/learning-paths/admin/create-missing - Create missing learning paths (Admin only)
 router.post('/admin/create-missing', adminAuth.protect, learningPathController.createMissingLearningPaths);
 
@@ -45,16 +33,27 @@ router.get('/:learningPathId/progress', protect, learningPathController.getProgr
 // GET /api/learning-paths/:learningPathId - Get a specific learning path
 router.get('/:learningPathId', protect, learningPathController.getLearningPath);
 
-// PUT /api/learning-paths/:learningPathId/modules/:moduleId/complete - Complete a module
-router.put('/:learningPathId/modules/:moduleId/complete', protect, learningPathController.completeModule);
-
-// GET /api/learning-paths/:learningPathId/modules/:moduleId - Get module details
-router.get('/:learningPathId/modules/:moduleId', protect, learningPathController.getModuleDetails);
-
-// PUT /api/learning-paths/:learningPathId/modules/:moduleId/incomplete - Mark module as incomplete
-router.put('/:learningPathId/modules/:moduleId/incomplete', protect, learningPathController.incompleteModule);
-
 // PUT /api/learning-paths/:learningPathId/complete - Complete entire learning path
 router.put('/:learningPathId/complete', protect, learningPathController.completeLearning);
+
+// Materials routes
+// POST /api/learning-paths/:learningPathId/materials - Upload a material (instructor only)
+router.post('/:learningPathId/materials', protect, learningPathController.uploadMaterialToPath);
+
+// GET /api/learning-paths/:learningPathId/materials - Get all materials
+router.get('/:learningPathId/materials', protect, learningPathController.getMaterials);
+
+// DELETE /api/learning-paths/:learningPathId/materials/:materialId - Delete a material
+router.delete('/:learningPathId/materials/:materialId', protect, learningPathController.deleteMaterial);
+
+// Task routes
+// POST /api/learning-paths/:learningPathId/tasks - Add a task
+router.post('/:learningPathId/tasks', protect, learningPathController.addTask);
+
+// PUT /api/learning-paths/:learningPathId/tasks/:taskId - Update a task
+router.put('/:learningPathId/tasks/:taskId', protect, learningPathController.updateTask);
+
+// DELETE /api/learning-paths/:learningPathId/tasks/:taskId - Delete a task
+router.delete('/:learningPathId/tasks/:taskId', protect, learningPathController.deleteTask);
 
 module.exports = router;

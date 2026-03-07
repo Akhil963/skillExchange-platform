@@ -27,7 +27,7 @@ exports.createExchange = async (req, res, next) => {
     }
 
     // Validate ID format
-    if (provider_id.length !== 24) {
+    if (!mongoose.Types.ObjectId.isValid(provider_id)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid provider ID format'
@@ -124,13 +124,11 @@ exports.getUserExchanges = async (req, res, next) => {
     }
 
     const exchanges = await Exchange.find(query)
-      .populate('requester_id', 'name email avatar rating')
-      .populate('provider_id', 'name email avatar rating')
-      .populate('requested_skill', 'name description') // Populate requested skill
-      .populate('offered_skill', 'name description') // Populate offered skill
-      .populate('learningPathId') // Legacy field
-      .populate('requester_learningPathId') // Requester's learning path
-      .populate('provider_learningPathId') // Provider's learning path
+      .populate('requester_id', 'name email avatar rating total_exchanges')
+      .populate('provider_id', 'name email avatar rating total_exchanges')
+      .populate('learningPathId')
+      .populate('requester_learningPathId')
+      .populate('provider_learningPathId')
       .sort({ created_date: -1 });
 
     res.status(200).json({
@@ -151,11 +149,9 @@ exports.getExchangeById = async (req, res, next) => {
     const exchange = await Exchange.findById(req.params.id)
       .populate('requester_id', 'name email avatar rating')
       .populate('provider_id', 'name email avatar rating')
-      .populate('requested_skill', 'name description') // Populate requested skill
-      .populate('offered_skill', 'name description') // Populate offered skill
-      .populate('learningPathId') // Legacy field
-      .populate('requester_learningPathId') // Requester's learning path
-      .populate('provider_learningPathId'); // Provider's learning path
+      .populate('learningPathId')
+      .populate('requester_learningPathId')
+      .populate('provider_learningPathId');
 
     if (!exchange) {
       return res.status(404).json({
@@ -232,17 +228,11 @@ exports.checkLearningCompletion = async (req, res, next) => {
 
     // Calculate progress for each path
     const requesterProgress = requesterPath ? {
-      completed: requesterPath.completedModules || 0,
-      total: requesterPath.totalModules || 0,
-      percentage: requesterPath.progressPercentage || 0,
       status: requesterPath.status || 'not-started',
       isComplete: requesterCompleted
     } : null;
 
     const providerProgress = providerPath ? {
-      completed: providerPath.completedModules || 0,
-      total: providerPath.totalModules || 0,
-      percentage: providerPath.progressPercentage || 0,
       status: providerPath.status || 'not-started',
       isComplete: providerCompleted
     } : null;
@@ -316,83 +306,19 @@ exports.updateExchangeStatus = async (req, res, next) => {
       // LEARNING PATH 1: Requester learns requested_skill, Provider teaches
       if (!exchange.requester_learningPathId) {
         try {
-          console.log(`📚 Creating requester learning path for exchange ${exchange._id}`);
-          console.log(`   - Learner: ${exchange.requester_id._id}`);
-          console.log(`   - Instructor: ${exchange.provider_id._id}`);
-          console.log(`   - Skill to learn: ${exchange.requested_skill}`);
-          
-          // Try multiple matching strategies for better skill finding
-          let skill = await Skill.findOne({ name: exchange.requested_skill });
-          if (!skill) {
-            skill = await Skill.findOne({ name: { $regex: new RegExp(`^${exchange.requested_skill}$`, 'i') } });
-          }
-          if (!skill) {
-            // Try fuzzy matching - e.g., "REACT JS" should match "React"
-            const cleanedSkillName = exchange.requested_skill.replace(/\s+(JS|JAVA|CPP|PY|PROGRAMMING)$/i, '').trim();
-            skill = await Skill.findOne({ name: { $regex: new RegExp(`^${cleanedSkillName}`, 'i') } });
-          }
-          if (!skill) {
-            // Try word matching - "Project Management" contains "Management"
-            const skillWords = exchange.requested_skill.split(/\s+/).filter(word => word.length > 3);
-            for (const word of skillWords) {
-              skill = await Skill.findOne({ name: { $regex: new RegExp(word, 'i') } });
-              if (skill && skill.videos && skill.videos.length >= 5) break;
-            }
-          }
-
-          if (!skill || !skill.videos || skill.videos.length < 5) {
-            console.warn(`⚠️ Skill "${exchange.requested_skill}" not found with 5 videos`);
-          } else {
-            console.log(`   ✓ Found skill: ${skill._id}`);
-          }
-
-          const modules = [];
-          if (skill && skill.videos && skill.videos.length >= 5) {
-            // Use exactly 5 videos from the skill
-            for (let i = 0; i < 5; i++) {
-              modules.push({
-                title: skill.videos[i].title || `Module ${i + 1}: ${skill.name}`,
-                description: `Learn ${skill.name} - ${skill.videos[i].title || `Part ${i + 1}`}`,
-                videoUrl: skill.videos[i].url || '',
-                duration: skill.videos[i].duration || 45,
-                order: i + 1,
-                isCompleted: false
-              });
-            }
-            console.log(`   ✅ Created 5 modules from skill videos`);
-          } else {
-            // Create 5 default modules if skill not found or has < 5 videos
-            for (let i = 0; i < 5; i++) {
-              modules.push({
-                title: `Module ${i + 1}: ${exchange.requested_skill}`,
-                description: `Learn ${exchange.requested_skill} - Part ${i + 1}`,
-                videoUrl: '',
-                duration: 45,
-                order: i + 1,
-                isCompleted: false
-              });
-            }
-            console.log(`   ⚠️ Skill not found - created 5 default modules`);
-          }
+          const skill = await Skill.findOne({ name: { $regex: new RegExp(`^${exchange.requested_skill}$`, 'i') } });
 
           const requesterPath = new LearningPath({
             exchangeId: exchange._id,
-            skillId: skill ? skill._id : null,  // Set to null instead of orphaned ObjectId
+            skillId: skill ? skill._id : null,
             learner: exchange.requester_id._id,
             instructor: exchange.provider_id._id,
-            modules: modules,
-            totalModules: 5,
-            completedModules: 0,
-            progressPercentage: 0,
-            status: 'not-started',
-            estimatedDuration: 225 // 5 modules * 45 min
+            status: 'not-started'
           });
 
           await requesterPath.save();
-          console.log(`✅ Requester learning path created: ${requesterPath._id} (5 modules)`);
-          
           exchange.requester_learningPathId = requesterPath._id;
-          exchange.learningPathId = requesterPath._id; // Keep legacy field for compatibility
+          exchange.learningPathId = requesterPath._id;
           await exchange.save();
         } catch (lpError) {
           console.error('Error creating requester learning path:', lpError);
@@ -402,81 +328,17 @@ exports.updateExchangeStatus = async (req, res, next) => {
       // LEARNING PATH 2: Provider learns offered_skill, Requester teaches
       if (!exchange.provider_learningPathId) {
         try {
-          console.log(`📚 Creating provider learning path for exchange ${exchange._id}`);
-          console.log(`   - Learner: ${exchange.provider_id._id}`);
-          console.log(`   - Instructor: ${exchange.requester_id._id}`);
-          console.log(`   - Skill to learn: ${exchange.offered_skill}`);
-          
-          // Try multiple matching strategies for better skill finding
-          let skill = await Skill.findOne({ name: exchange.offered_skill });
-          if (!skill) {
-            skill = await Skill.findOne({ name: { $regex: new RegExp(`^${exchange.offered_skill}$`, 'i') } });
-          }
-          if (!skill) {
-            // Try fuzzy matching - e.g., "HOME ORGANIZATION" should match "Home Organization"
-            const cleanedSkillName = exchange.offered_skill.replace(/\s+(JS|JAVA|CPP|PY|PROGRAMMING)$/i, '').trim();
-            skill = await Skill.findOne({ name: { $regex: new RegExp(`^${cleanedSkillName}`, 'i') } });
-          }
-          if (!skill) {
-            // Try word matching
-            const skillWords = exchange.offered_skill.split(/\s+/).filter(word => word.length > 3);
-            for (const word of skillWords) {
-              skill = await Skill.findOne({ name: { $regex: new RegExp(word, 'i') } });
-              if (skill && skill.videos && skill.videos.length >= 5) break;
-            }
-          }
-
-          if (!skill || !skill.videos || skill.videos.length < 5) {
-            console.warn(`⚠️ Skill "${exchange.offered_skill}" not found with 5 videos`);
-          } else {
-            console.log(`   ✓ Found skill: ${skill._id}`);
-          }
-
-          const modules = [];
-          if (skill && skill.videos && skill.videos.length >= 5) {
-            // Use exactly 5 videos from the skill
-            for (let i = 0; i < 5; i++) {
-              modules.push({
-                title: skill.videos[i].title || `Module ${i + 1}: ${skill.name}`,
-                description: `Learn ${skill.name} - ${skill.videos[i].title || `Part ${i + 1}`}`,
-                videoUrl: skill.videos[i].url || '',
-                duration: skill.videos[i].duration || 45,
-                order: i + 1,
-                isCompleted: false
-              });
-            }
-            console.log(`   ✅ Created 5 modules from skill videos`);
-          } else {
-            // Create 5 default modules if skill not found or has < 5 videos
-            for (let i = 0; i < 5; i++) {
-              modules.push({
-                title: `Module ${i + 1}: ${exchange.offered_skill}`,
-                description: `Learn ${exchange.offered_skill} - Part ${i + 1}`,
-                videoUrl: '',
-                duration: 45,
-                order: i + 1,
-                isCompleted: false
-              });
-            }
-            console.log(`   ⚠️ Skill not found - created 5 default modules`);
-          }
+          const skill = await Skill.findOne({ name: { $regex: new RegExp(`^${exchange.offered_skill}$`, 'i') } });
 
           const providerPath = new LearningPath({
             exchangeId: exchange._id,
-            skillId: skill ? skill._id : null,  // Set to null instead of orphaned ObjectId
+            skillId: skill ? skill._id : null,
             learner: exchange.provider_id._id,
             instructor: exchange.requester_id._id,
-            modules: modules,
-            totalModules: 5,
-            completedModules: 0,
-            progressPercentage: 0,
-            status: 'not-started',
-            estimatedDuration: 225 // 5 modules * 45 min
+            status: 'not-started'
           });
 
           await providerPath.save();
-          console.log(`✅ Provider learning path created: ${providerPath._id} (5 modules)`);
-          
           exchange.provider_learningPathId = providerPath._id;
           await exchange.save();
         } catch (lpError) {

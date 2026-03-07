@@ -3,6 +3,12 @@
 // API Base URL
 const API_URL = window.location.origin + '/api';
 
+// Generate a dynamic avatar URL using ui-avatars.com
+function getDefaultAvatar(name) {
+  const encoded = encodeURIComponent((name || 'User').trim());
+  return `https://ui-avatars.com/api/?name=${encoded}&size=150&background=random&color=fff&rounded=true&bold=true`;
+}
+
 // ========================================
 // PERFORMANCE OPTIMIZATION SETTINGS
 // ========================================
@@ -43,8 +49,9 @@ const AppState = {
   requestTimings: {}, // Track request timings for optimization
   batchRequests: [], // Batch multiple requests
   batchTimeout: null,
-  notifiedExchanges: new Set(), // Track exchanges that have shown completion notification
-  useBatching: true // Enable request batching
+  notifiedExchanges: new Set(JSON.parse(localStorage.getItem('_notifiedExchanges') || '[]')), // Persisted across reloads
+  useBatching: true, // Enable request batching
+  pollingIntervals: { messages: null, conversations: null, dashboard: null }
 };
 
 // ======================
@@ -297,16 +304,24 @@ async function loadCategories() {
     }
   } catch (error) {
     console.error('Error loading categories:', error);
-    // Set default categories if loading fails
+    // Fallback categories — must match server/models/Skill.js category enum exactly
     AppState.skillCategories = [
-      'Programming',
-      'Design',
-      'Languages',
-      'Music',
-      'Business',
+      'Programming & Development',
+      'Design & Creative',
+      'Business & Finance',
+      'Marketing & Sales',
+      'Writing & Translation',
+      'Music & Audio',
+      'Video & Animation',
+      'Photography',
+      'Health & Fitness',
+      'Teaching & Academics',
+      'Lifestyle',
+      'Data & Analytics',
+      'AI & Machine Learning',
       'Other'
     ];
-    
+
     // Populate with defaults
     const categoryFilter = document.getElementById('categoryFilter');
     if (categoryFilter) {
@@ -535,6 +550,12 @@ function navigateToPage(page, userId = null) {
   // Save current page to localStorage for reload persistence
   localStorage.setItem('currentPage', page);
 
+  // Push browser history state so back button works
+  history.pushState({ page }, '', '#' + page);
+
+  // Stop all existing polling before starting fresh
+  stopAllPolling();
+
   // Update active nav links
   document.querySelectorAll('.nav-link').forEach(link => {
     if (link.dataset.page === page) {
@@ -557,6 +578,13 @@ function navigateToPage(page, userId = null) {
   startExchangeAutoRefresh(page);
 
   renderPage(userId);
+
+  // Start page-appropriate polling
+  if (page === 'messages') {
+    startConversationPolling();
+  } else if (page === 'dashboard') {
+    startDashboardPolling();
+  }
 }
 
 // Auto-refresh exchanges to detect when both complete
@@ -591,6 +619,126 @@ function startExchangeAutoRefresh(page) {
         }
       }
     }, 5000); // Refresh every 5 seconds (only for active exchanges)
+  }
+}
+
+// ======================
+// POLLING HELPERS
+// ======================
+
+function stopAllPolling() {
+  Object.keys(AppState.pollingIntervals).forEach(key => {
+    if (AppState.pollingIntervals[key]) {
+      clearInterval(AppState.pollingIntervals[key]);
+      AppState.pollingIntervals[key] = null;
+    }
+  });
+}
+
+function startMessagePolling(conversationId) {
+  stopMessagePolling();
+  AppState.pollingIntervals.messages = setInterval(async () => {
+    if (document.hidden || AppState.currentPage !== 'messages' || !AppState.activeConversation) return;
+    if (!AppState.activeConversation.exchange_id || !AppState.activeConversation.exchange_id._id) return;
+    try {
+      const chatMessages = document.getElementById('chatMessages');
+      if (!chatMessages) return;
+      const atBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 100;
+
+      const exchangeData = await apiRequest(`/conversations/exchange/${AppState.activeConversation.exchange_id._id}`);
+      const messages = exchangeData.messages || [];
+      if (!messages.length) return;
+
+      const getStartOfDay = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
+      const today = getStartOfDay(new Date());
+      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+      const getDateLabel = (d) => {
+        const day = getStartOfDay(d).getTime();
+        if (day === today.getTime()) return 'Today';
+        if (day === yesterday.getTime()) return 'Yesterday';
+        return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      };
+
+      let prevLabel = '';
+      let html = '';
+      messages.forEach(msg => {
+        const isOwnMessage = msg.user_id._id === AppState.currentUser._id;
+        const userName = msg.user_id.name || 'Unknown';
+        const userAvatar = msg.user_id.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}`;
+        const timeInline = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const dateLabel = getDateLabel(msg.timestamp);
+        if (dateLabel !== prevLabel) {
+          html += `<div class="chat-date-separator"><span>${dateLabel}</span></div>`;
+          prevLabel = dateLabel;
+        }
+        const status = msg.read === true ? 'read' : 'delivered';
+        const escapedMessage = (msg.message || '')
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#039;').replace(/\n/g, '<br>');
+        html += `
+          <div class="message ${isOwnMessage ? 'own' : ''}" data-message-id="${msg._id || ''}">
+            <img src="${userAvatar}" alt="${userName}" class="message-avatar"
+                 onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}'">
+            <div class="message-content">
+              <div class="message-bubble">
+                ${escapedMessage}
+                <span class="message-meta">
+                  <span class="message-time-inline">${timeInline}</span>
+                  ${isOwnMessage ? `<span class="msg-status" data-status="${status}">${status === 'read' ? '✓✓' : '✓✓'}</span>` : ''}
+                </span>
+              </div>
+              <div class="message-time">${timeInline}</div>
+            </div>
+          </div>`;
+      });
+
+      chatMessages.innerHTML = html;
+      if (atBottom) chatMessages.scrollTop = chatMessages.scrollHeight;
+    } catch (e) {
+      // silently ignore polling errors to avoid console noise
+    }
+  }, 4000);
+}
+
+function stopMessagePolling() {
+  if (AppState.pollingIntervals.messages) {
+    clearInterval(AppState.pollingIntervals.messages);
+    AppState.pollingIntervals.messages = null;
+  }
+}
+
+function startConversationPolling() {
+  stopConversationPolling();
+  AppState.pollingIntervals.conversations = setInterval(async () => {
+    if (document.hidden || AppState.currentPage !== 'messages') return;
+    try {
+      await renderConversationsList();
+    } catch (e) {}
+  }, 10000);
+}
+
+function stopConversationPolling() {
+  if (AppState.pollingIntervals.conversations) {
+    clearInterval(AppState.pollingIntervals.conversations);
+    AppState.pollingIntervals.conversations = null;
+  }
+}
+
+function startDashboardPolling() {
+  stopDashboardPolling();
+  AppState.pollingIntervals.dashboard = setInterval(async () => {
+    if (document.hidden || AppState.currentPage !== 'dashboard') return;
+    try {
+      const data = await apiRequest('/auth/me');
+      if (data && data.user) AppState.currentUser = data.user;
+    } catch (e) {}
+  }, 30000);
+}
+
+function stopDashboardPolling() {
+  if (AppState.pollingIntervals.dashboard) {
+    clearInterval(AppState.pollingIntervals.dashboard);
+    AppState.pollingIntervals.dashboard = null;
   }
 }
 
@@ -649,9 +797,6 @@ async function loadLearningPathFromExchange(exchangeId) {
       console.log('✅ Learning path loaded successfully');
       console.log('   Path ID:', lpId);
       console.log('   Role:', info.user_role);
-      console.log('   Learner:', response.learningPath.learner?.name);
-      console.log('   Instructor:', response.learningPath.instructor?.name);
-      console.log('   Modules:', response.learningPath.totalModules);
       
       // Store info in localStorage
       localStorage.setItem('currentLearningPathId', lpId);
@@ -677,6 +822,27 @@ async function loadLearningPathFromExchange(exchangeId) {
     showNotification('Error loading learning path. Please try again.', 'error');
   }
 }
+
+// Mark the current user's learning as complete from the exchanges list
+async function markLearningComplete(learningPathId, exchangeId) {
+  if (!confirm('Are you sure you want to mark your learning as complete? This cannot be undone.')) return;
+  try {
+    showNotification('Marking learning as complete…', 'info');
+    const res = await apiRequest(`/learning-paths/${learningPathId}/complete`, { method: 'PUT' });
+    if (res.success) {
+      showNotification('🎉 Learning marked complete!', 'success');
+      // Refresh exchanges so the progress card updates immediately
+      await renderExchanges();
+    } else {
+      showNotification(res.message || 'Could not mark complete. Try again.', 'error');
+    }
+  } catch (err) {
+    console.error('markLearningComplete error:', err);
+    showNotification('Error: ' + (err.message || 'Try again'), 'error');
+  }
+}
+
+
 
 function renderPage(userId = null) {
   // Hide all pages
@@ -761,8 +927,10 @@ function updateNavigation() {
     profileLink.style.display = 'block';
     settingsLink.style.display = 'block';
     userTokens.textContent = `${AppState.currentUser.tokens_earned} tokens`;
-    const navAvatarUrl = AppState.currentUser.profilePicture || AppState.currentUser.avatar;
+    const navAvatarUrl = AppState.currentUser.profilePicture || AppState.currentUser.avatar || getDefaultAvatar(AppState.currentUser.name);
     userAvatar.style.backgroundImage = `url(${navAvatarUrl})`;
+    userAvatar.style.backgroundSize = 'cover';
+    userAvatar.style.backgroundPosition = 'center';
   } else {
     navAuth.style.display = 'flex';
     navUser.style.display = 'none';
@@ -778,105 +946,213 @@ function updateNavigation() {
 // SKILL IMAGE & UTILITY FUNCTIONS
 // ======================
 
-// Category colors mapping for gradient backgrounds
+// Category colors mapping for gradient backgrounds (keys match Skill model enum)
 const CATEGORY_COLORS = {
-  'Programming': { primary: '#667eea', secondary: '#764ba2' },
-  'Design': { primary: '#f093fb', secondary: '#f5576c' },
-  'Languages': { primary: '#4facfe', secondary: '#00f2fe' },
-  'Music': { primary: '#fa709a', secondary: '#fee140' },
-  'Business': { primary: '#30cfd0', secondary: '#330867' },
-  'Marketing': { primary: '#a8edea', secondary: '#fed6e3' },
-  'Writing': { primary: '#ff9a9e', secondary: '#fecfef' },
-  'Photography': { primary: '#ffecd2', secondary: '#fcb69f' },
-  'Video': { primary: '#ff6e7f', secondary: '#bfe9ff' },
-  'Teaching': { primary: '#a1c4fd', secondary: '#c2e9fb' },
-  'Fitness': { primary: '#fa709a', secondary: '#fee140' },
-  'Data': { primary: '#30cfd0', secondary: '#330867' },
-  'AI': { primary: '#667eea', secondary: '#764ba2' },
-  'Other': { primary: '#667eea', secondary: '#764ba2' }
+  'Programming & Development': { primary: '#667eea', secondary: '#764ba2' },
+  'Design & Creative':         { primary: '#f093fb', secondary: '#f5576c' },
+  'Business & Finance':        { primary: '#30cfd0', secondary: '#330867' },
+  'Marketing & Sales':         { primary: '#a8edea', secondary: '#fed6e3' },
+  'Writing & Translation':     { primary: '#ff9a9e', secondary: '#fecfef' },
+  'Music & Audio':             { primary: '#fa709a', secondary: '#fee140' },
+  'Video & Animation':         { primary: '#ff6e7f', secondary: '#bfe9ff' },
+  'Photography':               { primary: '#ffecd2', secondary: '#fcb69f' },
+  'Health & Fitness':          { primary: '#56ab2f', secondary: '#a8e063' },
+  'Teaching & Academics':      { primary: '#a1c4fd', secondary: '#c2e9fb' },
+  'Lifestyle':                 { primary: '#ffd89b', secondary: '#19547b' },
+  'Data & Analytics':          { primary: '#30cfd0', secondary: '#330867' },
+  'AI & Machine Learning':     { primary: '#667eea', secondary: '#764ba2' },
+  'Other':                     { primary: '#667eea', secondary: '#764ba2' }
 };
 
-// Category emojis
+// Category emojis (match Skill model enum)
 const CATEGORY_EMOJIS = {
-  'Programming': '💻',
-  'Design': '🎨',
-  'Languages': '🌍',
-  'Music': '🎵',
-  'Business': '💼',
-  'Marketing': '📢',
-  'Writing': '✍️',
-  'Photography': '📷',
-  'Video': '🎬',
-  'Teaching': '📚',
-  'Fitness': '💪',
-  'Data': '📊',
-  'AI': '🤖',
-  'Other': '⭐',
-  'Academic': '🎓',
-  'Arts & Crafts': '🎭',
-  'Management': '📈'
+  'Programming & Development': '💻',
+  'Design & Creative':         '🎨',
+  'Business & Finance':        '💼',
+  'Marketing & Sales':         '📢',
+  'Writing & Translation':     '✍️',
+  'Music & Audio':             '🎵',
+  'Video & Animation':         '🎬',
+  'Photography':               '📷',
+  'Health & Fitness':          '💪',
+  'Teaching & Academics':      '📚',
+  'Lifestyle':                 '🌿',
+  'Data & Analytics':          '📊',
+  'AI & Machine Learning':     '🤖',
+  'Other':                     '⭐'
 };
+
+// =============================================
+// SKILL-SPECIFIC DYNAMIC BACKGROUNDS
+// Keys are lowercase keywords matched against skill name
+// =============================================
+const SKILL_BACKGROUNDS = {
+  // --- Programming Languages ---
+  'javascript':     { grad: 'linear-gradient(135deg, #f7df1e 0%, #c8a400 100%)', emoji: '⚡', dark: true },
+  ' js ':           { grad: 'linear-gradient(135deg, #f7df1e 0%, #c8a400 100%)', emoji: '⚡', dark: true },
+  'typescript':     { grad: 'linear-gradient(135deg, #3178c6 0%, #235a97 100%)', emoji: '🔷' },
+  'python':         { grad: 'linear-gradient(135deg, #3776ab 0%, #ffd43b 100%)', emoji: '🐍' },
+  'java ':          { grad: 'linear-gradient(135deg, #ed8b00 0%, #005891 100%)', emoji: '☕' },
+  'c++':            { grad: 'linear-gradient(135deg, #00599c 0%, #004482 100%)', emoji: '⚙️' },
+  'c#':             { grad: 'linear-gradient(135deg, #239120 0%, #68217a 100%)', emoji: '🎯' },
+  'ruby':           { grad: 'linear-gradient(135deg, #cc342d 0%, #a02020 100%)', emoji: '💎' },
+  'php':            { grad: 'linear-gradient(135deg, #8892bf 0%, #4f5b93 100%)', emoji: '🐘' },
+  'swift':          { grad: 'linear-gradient(135deg, #f05138 0%, #d44f29 100%)', emoji: '🦅' },
+  'kotlin':         { grad: 'linear-gradient(135deg, #7f52ff 0%, #c811e1 100%)', emoji: '📱' },
+  'rust':           { grad: 'linear-gradient(135deg, #dea584 0%, #a86b3c 100%)', emoji: '⚙️' },
+  'golang':         { grad: 'linear-gradient(135deg, #00add8 0%, #007d9c 100%)', emoji: '🐹' },
+  ' go ':           { grad: 'linear-gradient(135deg, #00add8 0%, #007d9c 100%)', emoji: '🐹' },
+  'scala':          { grad: 'linear-gradient(135deg, #dc322f 0%, #a8291f 100%)', emoji: '🔴' },
+  'perl':           { grad: 'linear-gradient(135deg, #39457e 0%, #2d3561 100%)', emoji: '🐪' },
+  'r programming':  { grad: 'linear-gradient(135deg, #2165b6 0%, #75aadb 100%)', emoji: '📊' },
+  'dart':           { grad: 'linear-gradient(135deg, #0175c2 0%, #01579b 100%)', emoji: '🎯' },
+  'flutter':        { grad: 'linear-gradient(135deg, #54c5f8 0%, #0175c2 100%)', emoji: '📱' },
+  // --- Frontend Frameworks ---
+  'react':          { grad: 'linear-gradient(135deg, #61dafb 0%, #20232a 100%)', emoji: '⚛️' },
+  'vue':            { grad: 'linear-gradient(135deg, #42b883 0%, #35495e 100%)', emoji: '💚' },
+  'angular':        { grad: 'linear-gradient(135deg, #dd0031 0%, #c3002f 100%)', emoji: '🔴' },
+  'svelte':         { grad: 'linear-gradient(135deg, #ff3e00 0%, #c7310a 100%)', emoji: '🔥' },
+  'next.js':        { grad: 'linear-gradient(135deg, #000000 0%, #444444 100%)', emoji: '▲' },
+  'tailwind':       { grad: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', emoji: '💨' },
+  'bootstrap':      { grad: 'linear-gradient(135deg, #7952b3 0%, #553c8f 100%)', emoji: '🎛️' },
+  // --- Web Basics ---
+  'html':           { grad: 'linear-gradient(135deg, #e44d26 0%, #f16529 100%)', emoji: '🌐' },
+  'css':            { grad: 'linear-gradient(135deg, #264de4 0%, #2965f1 100%)', emoji: '🎨' },
+  'sass':           { grad: 'linear-gradient(135deg, #cd6799 0%, #a14771 100%)', emoji: '💅' },
+  'web development':{ grad: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', emoji: '🌐' },
+  'web design':     { grad: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', emoji: '🎨' },
+  // --- Backend ---
+  'node':           { grad: 'linear-gradient(135deg, #339933 0%, #1a1a1a 100%)', emoji: '🟢' },
+  'express':        { grad: 'linear-gradient(135deg, #404040 0%, #1a1a1a 100%)', emoji: '🚂' },
+  'django':         { grad: 'linear-gradient(135deg, #0c4b33 0%, #092b1d 100%)', emoji: '🎸' },
+  'flask':          { grad: 'linear-gradient(135deg, #444444 0%, #222222 100%)', emoji: '🧪' },
+  'spring':         { grad: 'linear-gradient(135deg, #6db33f 0%, #4a7c2f 100%)', emoji: '🍃' },
+  'laravel':        { grad: 'linear-gradient(135deg, #ff2d20 0%, #c41c14 100%)', emoji: '🔥' },
+  'fastapi':        { grad: 'linear-gradient(135deg, #009688 0%, #00796b 100%)', emoji: '⚡' },
+  // --- Databases ---
+  'mysql':          { grad: 'linear-gradient(135deg, #4479a1 0%, #e38c00 100%)', emoji: '🐬' },
+  'postgresql':     { grad: 'linear-gradient(135deg, #336791 0%, #1e4566 100%)', emoji: '🐘' },
+  'mongodb':        { grad: 'linear-gradient(135deg, #47a248 0%, #1a7a3a 100%)', emoji: '🍃' },
+  'redis':          { grad: 'linear-gradient(135deg, #dc382d 0%, #a0281f 100%)', emoji: '🔴' },
+  'firebase':       { grad: 'linear-gradient(135deg, #ffca28 0%, #f57c00 100%)', emoji: '🔥', dark: true },
+  'graphql':        { grad: 'linear-gradient(135deg, #e10098 0%, #85005b 100%)', emoji: '◉' },
+  ' sql':           { grad: 'linear-gradient(135deg, #4479a1 0%, #2d5b7e 100%)', emoji: '🗄️' },
+  // --- DevOps & Cloud ---
+  'docker':         { grad: 'linear-gradient(135deg, #2496ed 0%, #1d7dc4 100%)', emoji: '🐳' },
+  'kubernetes':     { grad: 'linear-gradient(135deg, #326ce5 0%, #1b52c7 100%)', emoji: '☸️' },
+  'aws':            { grad: 'linear-gradient(135deg, #ff9900 0%, #232f3e 100%)', emoji: '☁️' },
+  'azure':          { grad: 'linear-gradient(135deg, #0078d4 0%, #005a9e 100%)', emoji: '🔷' },
+  'google cloud':   { grad: 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)', emoji: '☁️' },
+  'devops':         { grad: 'linear-gradient(135deg, #2c3e50 0%, #3498db 100%)', emoji: '⚙️' },
+  ' git':           { grad: 'linear-gradient(135deg, #f05032 0%, #de4c36 100%)', emoji: '🌿' },
+  'linux':          { grad: 'linear-gradient(135deg, #fcc624 0%, #2c2c2c 100%)', emoji: '🐧', dark: true },
+  'terraform':      { grad: 'linear-gradient(135deg, #7b42bc 0%, #5e3392 100%)', emoji: '🏗️' },
+  'jenkins':        { grad: 'linear-gradient(135deg, #d33833 0%, #a82a26 100%)', emoji: '🔧' },
+  // --- Design Tools ---
+  'figma':          { grad: 'linear-gradient(135deg, #f24e1e 0%, #a259ff 100%)', emoji: '🎭' },
+  'photoshop':      { grad: 'linear-gradient(135deg, #001d34 0%, #31a8ff 100%)', emoji: '🖼️' },
+  'illustrator':    { grad: 'linear-gradient(135deg, #330000 0%, #ff7c00 100%)', emoji: '✏️' },
+  'blender':        { grad: 'linear-gradient(135deg, #e87d0d 0%, #265787 100%)', emoji: '🎮' },
+  'sketch':         { grad: 'linear-gradient(135deg, #f7b500 0%, #e69700 100%)', emoji: '💎', dark: true },
+  'canva':          { grad: 'linear-gradient(135deg, #00c4cc 0%, #0093d0 100%)', emoji: '🖌️' },
+  'after effects':  { grad: 'linear-gradient(135deg, #9999ff 0%, #6666cc 100%)', emoji: '🎬' },
+  'premiere':       { grad: 'linear-gradient(135deg, #9999ff 0%, #2a0a3e 100%)', emoji: '🎬' },
+  // --- Data & ML ---
+  'machine learning': { grad: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', emoji: '🧠' },
+  'deep learning':  { grad: 'linear-gradient(135deg, #7b2ff7 0%, #f107a3 100%)', emoji: '🧠' },
+  'tensorflow':     { grad: 'linear-gradient(135deg, #ff6f00 0%, #ffa000 100%)', emoji: '🤖' },
+  'pytorch':        { grad: 'linear-gradient(135deg, #ee4c2c 0%, #c0392b 100%)', emoji: '🔥' },
+  'data science':   { grad: 'linear-gradient(135deg, #0f3460 0%, #e94560 100%)', emoji: '📊' },
+  'excel':          { grad: 'linear-gradient(135deg, #217346 0%, #107c10 100%)', emoji: '📊' },
+  'tableau':        { grad: 'linear-gradient(135deg, #e97627 0%, #005073 100%)', emoji: '📈' },
+  'pandas':         { grad: 'linear-gradient(135deg, #150458 0%, #e70488 100%)', emoji: '🐼' },
+  'power bi':       { grad: 'linear-gradient(135deg, #f2c811 0%, #d4a00f 100%)', emoji: '📊', dark: true },
+  // --- Music Instruments ---
+  'guitar':         { grad: 'linear-gradient(135deg, #b5651d 0%, #8b4513 100%)', emoji: '🎸' },
+  'piano':          { grad: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', emoji: '🎹' },
+  'drums':          { grad: 'linear-gradient(135deg, #c0392b 0%, #922b21 100%)', emoji: '🥁' },
+  'violin':         { grad: 'linear-gradient(135deg, #8b4513 0%, #5d2e0c 100%)', emoji: '🎻' },
+  'singing':        { grad: 'linear-gradient(135deg, #e91e63 0%, #9c27b0 100%)', emoji: '🎤' },
+  'ukulele':        { grad: 'linear-gradient(135deg, #f9ca24 0%, #f0932b 100%)', emoji: '🎵', dark: true },
+  'bass':           { grad: 'linear-gradient(135deg, #6c3483 0%, #4a235a 100%)', emoji: '🎸' },
+  // --- Languages ---
+  'english':        { grad: 'linear-gradient(135deg, #012169 0%, #c8102e 100%)', emoji: '🇬🇧' },
+  'spanish':        { grad: 'linear-gradient(135deg, #c60b1e 0%, #ffc400 100%)', emoji: '🇪🇸' },
+  'french':         { grad: 'linear-gradient(135deg, #002395 0%, #ed2939 100%)', emoji: '🇫🇷' },
+  'german':         { grad: 'linear-gradient(135deg, #000000 0%, #dd0000 100%)', emoji: '🇩🇪' },
+  'japanese':       { grad: 'linear-gradient(135deg, #bc002d 0%, #8b0000 100%)', emoji: '🇯🇵' },
+  'chinese':        { grad: 'linear-gradient(135deg, #de2910 0%, #ffd700 100%)', emoji: '🇨🇳' },
+  'hindi':          { grad: 'linear-gradient(135deg, #ff9933 0%, #138808 100%)', emoji: '🇮🇳' },
+  'arabic':         { grad: 'linear-gradient(135deg, #009736 0%, #ce1126 100%)', emoji: '🌙' },
+  'portuguese':     { grad: 'linear-gradient(135deg, #006600 0%, #ff0000 100%)', emoji: '🇵🇹' },
+  // --- Health & Fitness ---
+  'yoga':           { grad: 'linear-gradient(135deg, #9b59b6 0%, #6c3483 100%)', emoji: '🧘' },
+  'gym':            { grad: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)', emoji: '🏋️' },
+  'nutrition':      { grad: 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)', emoji: '🥗' },
+  'meditation':     { grad: 'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)', emoji: '🧘' },
+  // --- Photography & Video ---
+  'photography':    { grad: 'linear-gradient(135deg, #2c3e50 0%, #e74c3c 100%)', emoji: '📷' },
+  'videography':    { grad: 'linear-gradient(135deg, #e74c3c 0%, #8e44ad 100%)', emoji: '🎬' },
+  'youtube':        { grad: 'linear-gradient(135deg, #ff0000 0%, #cc0000 100%)', emoji: '▶️' },
+  'editing':        { grad: 'linear-gradient(135deg, #2c3e50 0%, #3498db 100%)', emoji: '✂️' },
+  // --- Business ---
+  'marketing':      { grad: 'linear-gradient(135deg, #fd7e14 0%, #e04e00 100%)', emoji: '📢' },
+  'finance':        { grad: 'linear-gradient(135deg, #27ae60 0%, #1e8449 100%)', emoji: '💰' },
+  'accounting':     { grad: 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)', emoji: '🧾' },
+  'seo':            { grad: 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)', emoji: '🔍' },
+  'social media':   { grad: 'linear-gradient(135deg, #405de6 0%, #e1306c 100%)', emoji: '📱' },
+  'copywriting':    { grad: 'linear-gradient(135deg, #2c3e50 0%, #e74c3c 100%)', emoji: '✍️' },
+  // --- Writing ---
+  'writing':        { grad: 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)', emoji: '✍️' },
+  'blogging':       { grad: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)', emoji: '📝' }
+};
+
+/**
+ * Returns a background config { grad, emoji } by matching the skill name
+ * against SKILL_BACKGROUNDS keywords (longest match wins).
+ */
+function getSkillBackground(skillName) {
+  const lower = ' ' + (skillName || '').toLowerCase() + ' ';
+  // Prefer longer keyword matches (more specific wins)
+  let best = null;
+  let bestLen = 0;
+  for (const key of Object.keys(SKILL_BACKGROUNDS)) {
+    if (lower.includes(key) && key.length > bestLen) {
+      best = SKILL_BACKGROUNDS[key];
+      bestLen = key.length;
+    }
+  }
+  return best;
+}
 
 // Get gradient colors for a category
 function getCategoryGradient(category) {
-  // Normalize category name
-  const normalizedCategory = Object.keys(CATEGORY_COLORS).find(cat => 
-    category?.toLowerCase().includes(cat.toLowerCase()) || cat.toLowerCase().includes(category?.toLowerCase())
-  ) || 'Other';
-  
-  const colors = CATEGORY_COLORS[normalizedCategory];
+  const colors = CATEGORY_COLORS[category] || CATEGORY_COLORS['Other'];
   return `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`;
 }
 
 // Get emoji icon for a category
 function getCategoryEmoji(category) {
-  const normalizedCategory = Object.keys(CATEGORY_EMOJIS).find(cat => 
-    category?.toLowerCase().includes(cat.toLowerCase()) || cat.toLowerCase().includes(category?.toLowerCase())
-  ) || 'Other';
-  
-  return CATEGORY_EMOJIS[normalizedCategory];
+  return CATEGORY_EMOJIS[category] || '⭐';
 }
 
-// Get skill image or fallback gradient
+// Get skill image config: custom thumbnail > skill-name match > category gradient
 function getSkillImage(skill) {
-  // If skill has a custom thumbnail, use it
+  // 1. Custom thumbnail wins
   if (skill.thumbnail && skill.thumbnail.trim() !== '') {
-    return {
-      type: 'image',
-      value: skill.thumbnail,
-      fallback: getCategoryGradient(skill.category)
-    };
+    return { type: 'image', value: skill.thumbnail };
   }
-  
-  // Check if there's a video thumbnail from first video
-  if (skill.videos && skill.videos.length > 0 && skill.videos[0].url) {
-    const videoUrl = skill.videos[0].url;
-    let thumbnailUrl = null;
-    
-    // Extract YouTube thumbnail
-    if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
-      const videoId = videoUrl.includes('youtu.be') 
-        ? videoUrl.split('/').pop().split('?')[0]
-        : new URL(videoUrl).searchParams.get('v');
-      if (videoId) {
-        thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-      }
-    }
-    
-    if (thumbnailUrl) {
-      return {
-        type: 'image',
-        value: thumbnailUrl,
-        fallback: getCategoryGradient(skill.category)
-      };
-    }
+  // 2. Match skill name against specific technology keywords
+  const match = getSkillBackground(skill.name);
+  if (match) {
+    return { type: 'gradient', value: match.grad, emoji: match.emoji, darkText: !!match.dark };
   }
-  
-  // Fallback to category-based gradient
+  // 3. Category-level gradient fallback
   return {
     type: 'gradient',
     value: getCategoryGradient(skill.category),
-    emoji: getCategoryEmoji(skill.category)
+    emoji: getCategoryEmoji(skill.category),
+    darkText: false
   };
 }
 
@@ -894,18 +1170,18 @@ async function renderHomePage() {
       if (AppState.featuredSkills.length > 0) {
         featuredSkillsGrid.innerHTML = AppState.featuredSkills.map(skill => {
           const skillImage = getSkillImage(skill);
-          const imageStyle = skillImage.type === 'image' 
+          const imageStyle = skillImage.type === 'image'
             ? `background-image: url('${skillImage.value}'); background-size: cover; background-position: center;`
-            : `background: ${skillImage.value}; display: flex; align-items: center; justify-content: center; font-size: 48px;`;
-          
-          const imageContent = skillImage.type === 'gradient' 
-            ? `<div style="font-size: 48px;">${skillImage.emoji}</div>` 
-            : '';
+            : `background: ${skillImage.value};`;
+          const skillEmoji = skillImage.emoji || getCategoryEmoji(skill.category);
+          const textColor = skillImage.darkText ? 'rgba(0,0,0,0.85)' : 'white';
 
           return `
             <div class="skill-card">
-              <div class="skill-image" style="${imageStyle}">
-                ${imageContent}
+              <div class="skill-image" style="${imageStyle}; position: relative; height: 140px; overflow: hidden; border-radius: var(--radius-md) var(--radius-md) 0 0;">
+                <div style="position: absolute; top: 10px; right: 10px; width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,0.22); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; font-size: 22px; border: 2px solid rgba(255,255,255,0.4);">
+                  ${skillEmoji}
+                </div>
               </div>
               <div class="skill-info">
                 <h3 class="skill-name">${skill.name}</h3>
@@ -981,7 +1257,7 @@ async function renderDashboard() {
   const userRating = document.getElementById('userRating');
 
   if (dashboardAvatar) {
-    const avatarUrl = user.profilePicture || user.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face';
+    const avatarUrl = user.profilePicture || user.avatar || getDefaultAvatar(user.name);
     dashboardAvatar.src = avatarUrl;
     dashboardAvatar.alt = user.name || 'User';
   }
@@ -1075,7 +1351,7 @@ function renderProfileCompletion() {
       id: 'avatar',
       icon: '📷',
       text: 'Add profile picture',
-      completed: user.avatar && user.avatar !== 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+      completed: user.avatar && !user.avatar.includes('ui-avatars.com'),
       action: 'Edit Profile',
       onclick: 'showEditProfileModal()'
     },
@@ -1289,7 +1565,8 @@ async function renderActiveExchanges() {
       ? exchanges
           .filter(exchange => exchange.requester_id && exchange.provider_id) // Skip exchanges with deleted users
           .map(exchange => {
-            const otherUser = exchange.requester_id._id === AppState.currentUser._id
+            const _rqId = exchange.requester_id?._id || exchange.requester_id;
+            const otherUser = _rqId?.toString() === AppState.currentUser._id?.toString()
               ? exchange.provider_id
               : exchange.requester_id;
 
@@ -1585,27 +1862,35 @@ function renderSkillsGrid(skills) {
 
   skillsMarketplace.innerHTML = filteredSkills.map(skill => {
     const skillImage = getSkillImage(skill);
-    const imageStyle = skillImage.type === 'image' 
+    const imageStyle = skillImage.type === 'image'
       ? `background-image: url('${skillImage.value}'); background-size: cover; background-position: center;`
       : `background: ${skillImage.value};`;
-    
+    const textColor = skillImage.darkText ? 'rgba(0,0,0,0.85)' : 'white';
+    const shadowColor = skillImage.darkText ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
+    const skillEmoji = skillImage.emoji || getCategoryEmoji(skill.category);
+
     const userRating = skill.user?.rating || 0;
     const userName = skill.user?.name || 'Unknown User';
     const userAvatar = skill.user?.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userName);
     const userId = skill.user?._id;
-    
+
     return `
-      <div class="marketplace-skill-card" style="overflow: hidden; border: 1px solid var(--color-card-border); border-radius: var(--radius-lg); transition: all 0.3s ease;">
-        <div class="skill-thumbnail" style="${imageStyle}; height: 160px; display: flex; align-items: flex-end; justify-content: flex-start; padding: 12px; background-color: var(--color-surface);">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <img src="${userAvatar}" 
-                 alt="${userName}" 
+      <div class="marketplace-skill-card" style="overflow: hidden; border: 1px solid var(--color-card-border); border-radius: var(--radius-lg); transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <div class="skill-thumbnail" style="${imageStyle}; height: 160px; position: relative; background-color: var(--color-surface);">
+          <!-- Skill icon badge top-right -->
+          <div style="position: absolute; top: 10px; right: 10px; width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.22); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; font-size: 24px; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+            ${skillEmoji}
+          </div>
+          <!-- User info bottom-left -->
+          <div style="position: absolute; bottom: 10px; left: 10px; display: flex; align-items: center; gap: 8px;">
+            <img src="${userAvatar}"
+                 alt="${userName}"
                  class="skill-avatar"
-                 style="width: 48px; height: 48px; border-radius: 50%; border: 3px solid white; background: white;"
+                 style="width: 44px; height: 44px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.85); background: white; object-fit: cover; flex-shrink: 0;"
                  onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}'">
             <div>
-              <div style="color: white; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${userName}</div>
-              <div style="color: rgba(255,255,255,0.9); font-size: 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">⭐ ${userRating.toFixed(1)}</div>
+              <div style="color: ${textColor}; font-weight: 600; font-size: 13px; text-shadow: 0 1px 4px ${shadowColor}; line-height: 1.2;">${userName}</div>
+              <div style="color: ${textColor}; font-size: 11px; text-shadow: 0 1px 3px ${shadowColor}; opacity: 0.92;">⭐ ${userRating.toFixed(1)}</div>
             </div>
           </div>
         </div>
@@ -1647,7 +1932,7 @@ async function renderProfile(userId) {
     // Use fallbacks for all user data to prevent undefined values
     const displayName = user.name || 'User';
     const displayBio = user.bio || 'No bio available';
-    const displayAvatar = user.profilePicture || user.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face';
+    const displayAvatar = user.profilePicture || user.avatar || getDefaultAvatar(user.name);
     const displayExchanges = user.total_exchanges || 0;
     const displayTokens = user.tokens_earned || 0;
     const displayRating = (user.rating || 0).toFixed(1);
@@ -1925,7 +2210,8 @@ async function renderExchanges() {
         return ''; // Skip this exchange
       }
 
-      const isRequester = exchange.requester_id._id === AppState.currentUser._id;
+      const reqId = exchange.requester_id?._id || exchange.requester_id;
+      const isRequester = reqId?.toString() === AppState.currentUser._id?.toString();
       const otherUser = isRequester ? exchange.provider_id : exchange.requester_id;
       
       // CLEAR SKILL ASSIGNMENT LOGIC:
@@ -1954,33 +2240,106 @@ async function renderExchanges() {
         return '';
       }
 
-      // Additional safety check for otherUser
-      if (!otherUser) {
-        console.warn('Other user is null for exchange:', exchange);
-        return '';
+      // ── Derived values used throughout the card ───────────────────────────
+      const myRating    = isRequester ? exchange.requester_rating   : exchange.provider_rating;
+      const theirRating = isRequester ? exchange.provider_rating    : exchange.requester_rating;
+      const myReview    = isRequester ? exchange.requester_review   : exchange.provider_review;
+      const theirReview = isRequester ? exchange.provider_review    : exchange.requester_review;
+      const myLpId      = (() => {
+        const lp = isRequester ? exchange.requester_learningPathId : exchange.provider_learningPathId;
+        return lp?._id || lp || null;
+      })();
+      const theirLpStatus = (() => {
+        const lp = isRequester ? exchange.provider_learningPathId : exchange.requester_learningPathId;
+        return lp?.status || 'not-started';
+      })();
+      const myLpStatus  = (() => {
+        const lp = isRequester ? exchange.requester_learningPathId : exchange.provider_learningPathId;
+        return lp?.status || 'not-started';
+      })();
+
+      const avatarUrl = (user) =>
+        user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'U')}&background=667eea&color=fff&size=64`;
+
+      const fmtStatus = { pending: '⏳ Pending', active: '🔄 Active', completed: '✅ Completed', rejected: '❌ Rejected', cancelled: '🚫 Cancelled' };
+      const statusLabel = fmtStatus[exchange.status] || exchange.status;
+
+      const statusColor = {
+        pending:   { bg: '#fff3cd', color: '#856404' },
+        active:    { bg: '#cfe2ff', color: '#084298' },
+        completed: { bg: '#d4edda', color: '#155724' },
+        rejected:  { bg: '#f8d7da', color: '#721c24' },
+        cancelled: { bg: '#e2e3e5', color: '#383d41' }
+      }[exchange.status] || { bg: '#e2e3e5', color: '#383d41' };
+
+      const fmtDate = (d) => d ? new Date(d).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' }) : '';
+
+      // ── Completion notification (once per exchange) ───────────────────────
+      if (!AppState.notifiedExchanges.has(exchange._id) && (exchange.status === 'active' || exchange.status === 'completed')) {
+        if (!myRating) {
+          AppState.notifiedExchanges.add(exchange._id);
+          try { localStorage.setItem('_notifiedExchanges', JSON.stringify([...AppState.notifiedExchanges])); } catch (_) {}
+          (async () => {
+            const completion = await checkLearningCompletion(exchange._id);
+            if (completion && completion.bothCompleted) {
+              showCompletionNotification(completion, exchange._id, otherUser.name);
+            } else {
+              AppState.notifiedExchanges.delete(exchange._id);
+              try { localStorage.setItem('_notifiedExchanges', JSON.stringify([...AppState.notifiedExchanges])); } catch (_) {}
+            }
+          })();
+        }
       }
 
-      // Check and show completion notification asynchronously (only once per exchange)
-      if (!AppState.notifiedExchanges.has(exchange._id) && (exchange.status === 'active' || exchange.status === 'completed')) {
-        (async () => {
-          const completion = await checkLearningCompletion(exchange._id);
-          if (completion && completion.bothCompleted && !exchange.requester_rating && !exchange.provider_rating) {
-            // Only show if current user hasn't rated yet
-            const hasUserRated = isRequester ? exchange.requester_rating : exchange.provider_rating;
-            if (!hasUserRated) {
-              // Mark this exchange as notified to prevent repeated notifications
-              AppState.notifiedExchanges.add(exchange._id);
-              showCompletionNotification(completion, exchange._id, otherUser.name);
-            }
-          }
-        })();
-      }
+      // ── Progress helpers ──────────────────────────────────────────────────
+      const progColor = (s) => s === 'completed' ? '#28a745' : s === 'in-progress' ? '#ffc107' : '#dee2e6';
+      const progPct   = (s) => s === 'completed' ? 100 : s === 'in-progress' ? 50 : 0;
+      const statusBadge = (s) => {
+        const map = {
+          'completed':   ['#d4edda','#155724','✅ Completed'],
+          'in-progress': ['#fff3cd','#856404','⏳ In Progress'],
+          'not-started': ['#f0f0f0','#666',   '🔘 Not Started'],
+          'cancelled':   ['#f8d7da','#721c24','🚫 Cancelled'],
+        };
+        const [bg, color, label] = map[s] || map['not-started'];
+        return `<span style="display:inline-flex;align-items:center;gap:4px;background:${bg};color:${color};padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;">${label}</span>`;
+      };
+
+      const sidesComplete = (myLpStatus==='completed'?1:0) + (theirLpStatus==='completed'?1:0);
+      const overallPct    = sidesComplete * 50;
+
+      const myActionBtn = !myLpId
+        ? `<button onclick="loadLearningPathFromExchange('${exchange._id}')" style="background:#667eea;color:#fff;border:none;padding:5px 11px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">▶ Start</button>`
+        : myLpStatus === 'completed'
+        ? `<span style="font-size:16px;" title="Learning complete">🎓</span>`
+        : myLpStatus === 'in-progress'
+        ? `<button onclick="markLearningComplete('${myLpId}','${exchange._id}')" style="background:#28a745;color:#fff;border:none;padding:5px 11px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;" title="Mark ${myLearningSkill} as learned">✅ Mark Complete</button>`
+        : `<button onclick="navigateToLearningDashboard('${myLpId}','${exchange._id}')" style="background:#667eea;color:#fff;border:none;padding:5px 11px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">▶ Start</button>`;
+
+      const contextMsg = myLpStatus==='completed' && theirLpStatus==='completed'
+        ? '🏆 Both sides finished — great exchange!'
+        : myLpStatus==='completed'
+        ? `✅ You finished! Waiting for ${otherUser.name} to complete.`
+        : theirLpStatus==='completed'
+        ? `⚡ ${otherUser.name} is done — keep going!`
+        : myLpStatus==='in-progress'
+        ? `📖 Keep going — you're making progress on ${myLearningSkill}!`
+        : `🚀 Open the dashboard to start learning ${myLearningSkill}.`;
+
+      const isExchangeComplete = exchange.status === 'completed';
+
+      // ── Rating stars helper ───────────────────────────────────────────────
+      const ratingStars = (n) => n ? `${'⭐'.repeat(n)}${'☆'.repeat(5-n)} <span style="color:#999;font-size:11px;">${n}/5</span>` : '';
+
 
       return `
         <div class="exchange-item" data-exchange-id="${exchange._id}">
+
+          <!-- ── Card Header ── -->
           <div class="exchange-header">
             <div class="exchange-user-info">
-              <img src="${otherUser.avatar || '/assets/default-avatar.png'}" alt="${otherUser.name || 'User'}" class="exchange-avatar">
+              <img src="${avatarUrl(otherUser)}" alt="${otherUser.name || 'User'}" class="exchange-avatar"
+                   onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser.name||'U')}&background=667eea&color=fff&size=64'">
               <div class="exchange-user-details">
                 <h3>${otherUser.name || 'Unknown User'}</h3>
                 <div class="exchange-user-rating">
@@ -1988,12 +2347,14 @@ async function renderExchanges() {
                 </div>
               </div>
             </div>
-            <span class="exchange-status-badge exchange-status-${exchange.status}">
-              ${exchange.status}
+            <span style="background:${statusColor.bg};color:${statusColor.color};padding:4px 10px;border-radius:12px;font-size:12px;font-weight:700;white-space:nowrap;">
+              ${statusLabel}
             </span>
           </div>
 
           <div class="exchange-body">
+
+            <!-- ── Skills Summary ── -->
             <div class="exchange-skills">
               <div class="exchange-skill-box skill-i-learn">
                 <div class="exchange-skill-label">📚 I'm Learning</div>
@@ -2006,151 +2367,109 @@ async function renderExchanges() {
               </div>
             </div>
 
-            <div class="exchange-other-skills" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; font-size: 13px; color: #666;">
-              <div style="margin-bottom: 8px;">
-                <strong>${otherUser.name}</strong> is:
-              </div>
-              <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                <div>
-                  <span style="color: #667eea; font-weight: 600;">Learning:</span> ${theirLearningSkill}
-                </div>
-                <div>
-                  <span style="color: #4caf50; font-weight: 600;">Teaching:</span> ${theirTeachingSkill}
-                </div>
-              </div>
+            <!-- ── Partner info ── -->
+            <div style="margin-top:10px;padding:8px 12px;background:#f8f9fa;border-radius:8px;font-size:13px;color:#555;display:flex;gap:20px;flex-wrap:wrap;">
+              <span><strong>${otherUser.name}</strong> is learning <strong>${theirLearningSkill}</strong></span>
+              <span style="color:#aaa;">|</span>
+              <span>teaching <strong>${theirTeachingSkill}</strong></span>
             </div>
 
-            <div class="exchange-meta">
+            <!-- ── Meta dates ── -->
+            <div class="exchange-meta" style="margin-top:8px;">
               <div class="exchange-meta-item">
                 <span>📅</span>
-                <span>Created ${new Date(exchange.created_date).toLocaleDateString()}</span>
+                <span>Started ${fmtDate(exchange.created_date)}</span>
               </div>
               ${exchange.completed_date ? `
-                <div class="exchange-meta-item">
-                  <span>✅</span>
-                  <span>Completed ${new Date(exchange.completed_date).toLocaleDateString()}</span>
-                </div>
-              ` : ''}
+              <div class="exchange-meta-item">
+                <span>🏁</span>
+                <span>Completed ${fmtDate(exchange.completed_date)}</span>
+              </div>` : ''}
             </div>
 
-            <!-- Learning Progress Display (for active/completed exchanges) -->
+            <!-- ── Learning Progress (active / completed) ── -->
             ${(exchange.status === 'active' || exchange.status === 'completed') ? `
-              <div class="learning-progress-section" style="background: #f5f7fa; padding: 12px; border-radius: 8px; margin-top: 12px; border-left: 4px solid ${exchange.status === 'completed' ? '#4caf50' : '#667eea'};">
-                <div style="font-size: 12px; font-weight: 700; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-                  ${exchange.status === 'completed' ? '🎉 Learning Complete' : '📚 Learning Progress'}
+            <div style="background:#f8f9fc;border-radius:10px;margin-top:14px;overflow:hidden;border:1px solid #e2e8f0;">
+
+              <!-- Header + overall bar -->
+              <div style="background:${isExchangeComplete?'#d4edda':'#eff0ff'};padding:10px 14px;border-bottom:1px solid #e2e8f0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                  <span style="font-size:12px;font-weight:800;color:${isExchangeComplete?'#28a745':'#667eea'};text-transform:uppercase;letter-spacing:0.6px;">
+                    ${isExchangeComplete ? '🎉 Exchange Complete' : '📚 Learning Progress'}
+                  </span>
+                  <span style="font-size:11px;font-weight:700;color:${isExchangeComplete?'#28a745':'#667eea'};">${overallPct}% done</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                  <!-- Your Learning Progress -->
-                  <div style="background: white; padding: 10px; border-radius: 6px; border-left: 3px solid #667eea;">
-                    <div style="font-size: 12px; color: #666; font-weight: 600;">Your Learning</div>
-                    <div style="font-size: 13px; color: #333; font-weight: 600; margin-top: 2px;">${isRequester ? exchange.requested_skill : exchange.offered_skill}</div>
-                    ${(() => {
-                      const myPath = isRequester ? exchange.requester_learningPathId : exchange.provider_learningPathId;
-                      if (myPath && myPath.totalModules) {
-                        const progress = Math.round((myPath.completedModules / myPath.totalModules) * 100);
-                        return `
-                          <div style="margin-top: 8px;">
-                            <div style="font-size: 14px; font-weight: 700; color: #667eea; margin-bottom: 4px;">
-                              ${myPath.completedModules}/${myPath.totalModules} modules
-                            </div>
-                            <div style="background: #e0e7ff; border-radius: 10px; height: 6px; overflow: hidden;">
-                              <div style="background: linear-gradient(90deg, #667eea, #764ba2); height: 100%; width: ${progress}%; transition: width 0.3s;"></div>
-                            </div>
-                            <div style="font-size: 11px; color: #999; margin-top: 4px;">
-                              ${myPath.status === 'completed' ? '✅ Completed' : `${progress}% complete`}
-                            </div>
-                          </div>
-                        `;
-                      }
-                      return '<div style="font-size: 11px; color: #999; margin-top: 4px;">⏳ Not started</div>';
-                    })()}
-                  </div>
-                  <!-- Their Learning Progress -->
-                  <div style="background: white; padding: 10px; border-radius: 6px; border-left: 3px solid #4caf50;">
-                    <div style="font-size: 12px; color: #666; font-weight: 600;">${otherUser.name}'s Learning</div>
-                    <div style="font-size: 13px; color: #333; font-weight: 600; margin-top: 2px;">${isRequester ? exchange.offered_skill : exchange.requested_skill}</div>
-                    ${(() => {
-                      const theirPath = isRequester ? exchange.provider_learningPathId : exchange.requester_learningPathId;
-                      if (theirPath && theirPath.totalModules) {
-                        const progress = Math.round((theirPath.completedModules / theirPath.totalModules) * 100);
-                        return `
-                          <div style="margin-top: 8px;">
-                            <div style="font-size: 14px; font-weight: 700; color: #4caf50; margin-bottom: 4px;">
-                              ${theirPath.completedModules}/${theirPath.totalModules} modules
-                            </div>
-                            <div style="background: #e8f5e9; border-radius: 10px; height: 6px; overflow: hidden;">
-                              <div style="background: linear-gradient(90deg, #4caf50, #81c784); height: 100%; width: ${progress}%; transition: width 0.3s;"></div>
-                            </div>
-                            <div style="font-size: 11px; color: #999; margin-top: 4px;">
-                              ${theirPath.status === 'completed' ? '✅ Completed' : `${progress}% complete`}
-                            </div>
-                          </div>
-                        `;
-                      }
-                      return '<div style="font-size: 11px; color: #999; margin-top: 4px;">⏳ Not started</div>';
-                    })()}
-                  </div>
+                <div style="background:rgba(0,0,0,0.08);border-radius:6px;height:7px;overflow:hidden;">
+                  <div style="background:${overallPct===100?'#28a745':'#667eea'};width:${overallPct}%;height:100%;border-radius:6px;transition:width 0.5s ease;"></div>
                 </div>
-                ${exchange.status === 'completed' ? `
-                  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; border-radius: 6px; margin-top: 12px; text-align: center; font-size: 13px; font-weight: 600;">
-                    🎓 Both completed! Time to rate each other's teaching
-                  </div>
-                ` : ''}
               </div>
+
+              <!-- Two columns: my side | their side -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+
+                <!-- MY SIDE -->
+                <div style="padding:12px 14px;border-right:1px solid #e2e8f0;">
+                  <div style="font-size:10px;color:#888;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">🎓 You're Learning</div>
+                  <div style="font-size:13px;color:#222;font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${myLearningSkill}">${myLearningSkill}</div>
+                  <div style="background:#e9ecef;border-radius:4px;height:4px;margin-bottom:7px;">
+                    <div style="background:${progColor(myLpStatus)};width:${progPct(myLpStatus)}%;height:100%;border-radius:4px;transition:width 0.4s;"></div>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px;">
+                    ${statusBadge(myLpStatus)}
+                    ${myActionBtn}
+                  </div>
+                </div>
+
+                <!-- THEIR SIDE -->
+                <div style="padding:12px 14px;">
+                  <div style="font-size:10px;color:#888;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">📖 ${otherUser.name} Learns</div>
+                  <div style="font-size:13px;color:#222;font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${theirLearningSkill}">${theirLearningSkill}</div>
+                  <div style="background:#e9ecef;border-radius:4px;height:4px;margin-bottom:7px;">
+                    <div style="background:${progColor(theirLpStatus)};width:${progPct(theirLpStatus)}%;height:100%;border-radius:4px;transition:width 0.4s;"></div>
+                  </div>
+                  ${statusBadge(theirLpStatus)}
+                </div>
+              </div>
+
+              <!-- Context bar -->
+              <div style="padding:9px 14px;background:#fff;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                <span style="font-size:12px;color:#666;">${contextMsg}</span>
+                ${myLpId ? `
+                <button onclick="navigateToLearningDashboard('${myLpId}','${exchange._id}')"
+                  style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;padding:6px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;"
+                  onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                  📂 Dashboard →
+                </button>` : ''}
+              </div>
+            </div>
             ` : ''}
 
-            <!-- Enhanced Bidirectional Rating Display -->
+            <!-- ── Ratings (completed only) ── -->
             ${exchange.status === 'completed' ? `
-              <div class="exchange-ratings-section" style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #eee;">
-                <div style="font-size: 12px; font-weight: 700; color: #666; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">⭐ RATINGS</div>
-                ${isRequester ? `
-                  <!-- Requester's rating of Provider -->
-                  <div class="exchange-rating-item" style="margin-bottom: 12px; background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
-                    <div style="font-size: 12px; color: #666; font-weight: 600; margin-bottom: 8px;">Your Rating</div>
-                    ${exchange.requester_rating ? `
-                      <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="font-size: 18px; letter-spacing: 2px;">${'⭐'.repeat(exchange.requester_rating)}${'☆'.repeat(5 - exchange.requester_rating)}</div>
-                        <span style="font-size: 12px; color: #999; font-weight: 500;">${exchange.requester_rating}/5</span>
-                      </div>
-                      ${exchange.requester_review ? `<div style="font-size: 13px; color: #555; margin-top: 8px; font-style: italic; padding: 8px; background: white; border-radius: 4px;">"${exchange.requester_review}"</div>` : ''}
-                    ` : `<div style="color: #999; font-size: 13px; padding: 8px 0;">⏳ You haven't rated yet</div>`}
-                  </div>
-                  ${exchange.provider_rating ? `
-                    <div class="exchange-rating-item" style="background: #f0f8ff; padding: 12px; border-radius: 6px; border-left: 3px solid #4caf50;">
-                      <div style="font-size: 12px; color: #666; font-weight: 600; margin-bottom: 8px;">${otherUser.name}'s Rating of You</div>
-                      <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="font-size: 18px; letter-spacing: 2px;">${'⭐'.repeat(exchange.provider_rating)}${'☆'.repeat(5 - exchange.provider_rating)}</div>
-                        <span style="font-size: 12px; color: #999; font-weight: 500;">${exchange.provider_rating}/5</span>
-                      </div>
-                      ${exchange.provider_review ? `<div style="font-size: 13px; color: #555; margin-top: 8px; font-style: italic; padding: 8px; background: white; border-radius: 4px;">"${exchange.provider_review}"</div>` : ''}
-                    </div>
-                  ` : ''}
-                ` : `
-                  <!-- Provider's rating of Requester -->
-                  <div class="exchange-rating-item" style="margin-bottom: 12px; background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
-                    <div style="font-size: 12px; color: #666; font-weight: 600; margin-bottom: 8px;">Your Rating</div>
-                    ${exchange.provider_rating ? `
-                      <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="font-size: 18px; letter-spacing: 2px;">${'⭐'.repeat(exchange.provider_rating)}${'☆'.repeat(5 - exchange.provider_rating)}</div>
-                        <span style="font-size: 12px; color: #999; font-weight: 500;">${exchange.provider_rating}/5</span>
-                      </div>
-                      ${exchange.provider_review ? `<div style="font-size: 13px; color: #555; margin-top: 8px; font-style: italic; padding: 8px; background: white; border-radius: 4px;">"${exchange.provider_review}"</div>` : ''}
-                    ` : `<div style="color: #999; font-size: 13px; padding: 8px 0;">⏳ You haven't rated yet</div>`}
-                  </div>
-                  ${exchange.requester_rating ? `
-                    <div class="exchange-rating-item" style="background: #f0f8ff; padding: 12px; border-radius: 6px; border-left: 3px solid #4caf50;">
-                      <div style="font-size: 12px; color: #666; font-weight: 600; margin-bottom: 8px;">${otherUser.name}'s Rating of You</div>
-                      <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="font-size: 18px; letter-spacing: 2px;">${'⭐'.repeat(exchange.requester_rating)}${'☆'.repeat(5 - exchange.requester_rating)}</div>
-                        <span style="font-size: 12px; color: #999; font-weight: 500;">${exchange.requester_rating}/5</span>
-                      </div>
-                      ${exchange.requester_review ? `<div style="font-size: 13px; color: #555; margin-top: 8px; font-style: italic; padding: 8px; background: white; border-radius: 4px;">"${exchange.requester_review}"</div>` : ''}
-                    </div>
-                  ` : ''}
-                `}
+            <div style="margin-top:14px;padding-top:14px;border-top:2px solid #eee;">
+              <div style="font-size:11px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">⭐ Ratings</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <!-- MY RATING -->
+                <div style="background:#f9f9f9;padding:10px;border-radius:8px;border-left:3px solid #667eea;">
+                  <div style="font-size:11px;color:#666;font-weight:600;margin-bottom:5px;">Your Rating</div>
+                  ${myRating
+                    ? `<div style="font-size:16px;letter-spacing:1px;">${ratingStars(myRating)}</div>
+                       ${myReview ? `<div style="font-size:12px;color:#555;margin-top:5px;font-style:italic;">"${myReview}"</div>` : ''}`
+                    : `<div style="color:#aaa;font-size:12px;">⏳ Not rated yet</div>`}
+                </div>
+                <!-- THEIR RATING -->
+                <div style="background:#f0f8ff;padding:10px;border-radius:8px;border-left:3px solid #4caf50;">
+                  <div style="font-size:11px;color:#666;font-weight:600;margin-bottom:5px;">${otherUser.name}'s Rating</div>
+                  ${theirRating
+                    ? `<div style="font-size:16px;letter-spacing:1px;">${ratingStars(theirRating)}</div>
+                       ${theirReview ? `<div style="font-size:12px;color:#555;margin-top:5px;font-style:italic;">"${theirReview}"</div>` : ''}`
+                    : `<div style="color:#aaa;font-size:12px;">⏳ Not rated yet</div>`}
+                </div>
               </div>
+            </div>
             ` : ''}
-          </div>
+
+          </div><!-- /.exchange-body -->
 
           <div class="exchange-actions">
             ${renderExchangeActions(exchange, isRequester)}
@@ -2166,82 +2485,105 @@ async function renderExchanges() {
 
 function renderExchangeActions(exchange, isRequester) {
   const buttons = [];
+  const eid = exchange._id;
+  const otherName = isRequester ? exchange.provider_id?.name : exchange.requester_id?.name;
+  const safeName = (otherName || 'Partner').replace(/'/g, "\\'");
 
-  // Pending status - Provider can accept/reject, Requester can cancel
+  // ── PENDING ──────────────────────────────────────────────────────────────
   if (exchange.status === 'pending') {
     if (!isRequester) {
       buttons.push(`
-        <button class="btn btn--primary" onclick="updateExchangeStatus('${exchange._id}', 'active')">
+        <button class="btn btn--primary" onclick="updateExchangeStatus('${eid}', 'active')">
           ✓ Accept Request
         </button>
-        <button class="btn btn--outline" onclick="updateExchangeStatus('${exchange._id}', 'rejected')">
+        <button class="btn btn--outline" onclick="updateExchangeStatus('${eid}', 'rejected')">
           ✗ Decline
         </button>
       `);
     } else {
       buttons.push(`
-        <button class="btn btn--outline" onclick="cancelExchange('${exchange._id}')">
+        <button class="btn btn--outline" onclick="cancelExchange('${eid}')">
           Cancel Request
         </button>
       `);
     }
+    return buttons.join('');
   }
 
-  // Active status - Both can complete
+  // ── ACTIVE ───────────────────────────────────────────────────────────────
   if (exchange.status === 'active') {
-    console.log('=== Active Exchange Data ===');
-    console.log('Full Exchange Object:', exchange);
-    console.log('Available Fields:', Object.keys(exchange));
-    
-    // Get the exchange ID
-    const exchangeId = exchange._id;
-    console.log('Exchange ID:', exchangeId);
-    
-    // The button will use the new endpoint to fetch the correct learning path
-    buttons.push(`
-      <button class="btn btn--primary" onclick="loadLearningPathFromExchange('${exchangeId}')">
-        📚 Learning Dashboard
-      </button>
-      <button class="btn btn--outline" onclick="navigateToPage('messages')">
-        💬 View Messages
-      </button>
-      <button class="btn btn--outline" onclick="checkAndRefreshExchange('${exchangeId}')" title="Refresh to see if other user completed">
-        🔄 Check Status
-      </button>
-    `);
-  }
+    // Use already-populated LP id — no extra API call needed
+    const myLpId = isRequester
+      ? (exchange.requester_learningPathId?._id || exchange.requester_learningPathId)
+      : (exchange.provider_learningPathId?._id  || exchange.provider_learningPathId);
 
-  // Completed status - Both parties can rate
-  if (exchange.status === 'completed') {
-    const isRequester = exchange.requester_id._id === AppState.currentUser._id;
-    const hasUserRated = isRequester ? exchange.requester_rating : exchange.provider_rating;
-    
-    if (!hasUserRated) {
+    if (myLpId) {
       buttons.push(`
-        <button class="btn btn--primary" onclick="showEnhancedRatingModal('${exchange._id}', '${exchange.requester_id._id === AppState.currentUser._id ? exchange.provider_id.name : exchange.requester_id.name}')">
-          ⭐ Rate ${exchange.requester_id._id === AppState.currentUser._id ? 'Instructor' : 'Learner'}
+        <button class="btn btn--primary" onclick="navigateToLearningDashboard('${myLpId}', '${eid}')">
+          📂 Open Dashboard
         </button>
       `);
     } else {
+      // LP not created yet — use exchange route to create it
       buttons.push(`
-        <button class="btn btn--outline" onclick="navigateToPage('messages')">
-          💬 View Messages
+        <button class="btn btn--primary" onclick="loadLearningPathFromExchange('${eid}')">
+          📂 Open Dashboard
         </button>
       `);
     }
+
+    buttons.push(`
+      <button class="btn btn--outline" onclick="openMessagesForExchange('${eid}')">
+        💬 Message ${safeName}
+      </button>
+    `);
+    return buttons.join('');
   }
 
-  // All non-pending exchanges can be messaged
-  if (exchange.status !== 'pending' && exchange.status !== 'cancelled') {
-    if (buttons.length === 0) {
+  // ── COMPLETED ────────────────────────────────────────────────────────────
+  if (exchange.status === 'completed') {
+    const hasUserRated = isRequester ? exchange.requester_rating : exchange.provider_rating;
+    const hasPartnerRated = isRequester ? exchange.provider_rating : exchange.requester_rating;
+
+    if (!hasUserRated) {
+      // Prompt to rate
       buttons.push(`
-        <button class="btn btn--outline" onclick="navigateToPage('messages')">
-          💬 View Messages
+        <button class="btn btn--primary" onclick="showEnhancedRatingModal('${eid}', '${safeName}')">
+          ⭐ Rate ${safeName}
         </button>
       `);
+    } else {
+      // Already rated — show static badge
+      buttons.push(`
+        <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:7px;background:#d4edda;color:#155724;font-size:13px;font-weight:600;">
+          ✅ You Rated
+        </span>
+      `);
     }
+
+    if (!hasPartnerRated) {
+      // Partner hasn't rated yet
+      buttons.push(`
+        <span style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:7px;background:#fff3cd;color:#856404;font-size:13px;font-weight:600;">
+          ⏳ Awaiting ${safeName}'s Rating
+        </span>
+      `);
+    }
+
+    buttons.push(`
+      <button class="btn btn--outline" onclick="openMessagesForExchange('${eid}')">
+        💬 Message ${safeName}
+      </button>
+    `);
+    return buttons.join('');
   }
 
+  // ── REJECTED / CANCELLED ─────────────────────────────────────────────────
+  buttons.push(`
+    <button class="btn btn--outline" onclick="openMessagesForExchange('${eid}')">
+      💬 Message ${safeName}
+    </button>
+  `);
   return buttons.join('');
 }
 
@@ -2587,6 +2929,10 @@ async function submitRating(exchangeId) {
     closeRatingModal();
     showNotification('⭐ Rating submitted! Thank you for your feedback.', 'success');
 
+    // Remove from notifiedExchanges so the set stays clean
+    AppState.notifiedExchanges.delete(exchangeId);
+    try { localStorage.setItem('_notifiedExchanges', JSON.stringify([...AppState.notifiedExchanges])); } catch (_) {}
+
     // Refresh exchanges to show the rating
     renderExchanges();
   } catch (error) {
@@ -2659,6 +3005,36 @@ async function saveEmailPreferences() {
 // ======================
 // MESSAGES
 // ======================
+
+// Navigate to Messages page and auto-open the conversation for a specific exchange
+async function openMessagesForExchange(exchangeId) {
+  navigateToPage('messages');
+  // Wait for the conversations list to render, then find and open the matching conversation
+  setTimeout(async () => {
+    try {
+      // Try to find conversation in already-loaded list
+      const existing = AppState.conversations?.find(c => {
+        const ceid = c.exchange_id?._id || c.exchange_id;
+        return ceid && ceid.toString() === exchangeId.toString();
+      });
+      if (existing) {
+        selectConversation(existing._id);
+        return;
+      }
+      // Fallback: fetch conversations fresh and retry
+      const data = await apiRequest('/conversations');
+      const conv = (data.conversations || []).find(c => {
+        const ceid = c.exchange_id?._id || c.exchange_id;
+        return ceid && ceid.toString() === exchangeId.toString();
+      });
+      if (conv) {
+        selectConversation(conv._id);
+      }
+    } catch (e) {
+      console.warn('Could not auto-open conversation for exchange:', e);
+    }
+  }, 500);
+}
 
 async function renderMessages() {
   if (!AppState.currentUser) return;
@@ -2834,6 +3210,9 @@ async function selectConversation(conversationId) {
     if (!AppState.activeConversation.exchange_id || !AppState.activeConversation.exchange_id._id) {
       throw new Error('Invalid exchange data');
     }
+
+    // Start polling for new messages in this conversation
+    startMessagePolling(conversationId);
 
     const exchangeData = await apiRequest(`/conversations/exchange/${AppState.activeConversation.exchange_id._id}`);
 
@@ -3800,7 +4179,13 @@ async function showEditProfileModal() {
   
   modalTitle.textContent = 'Edit Profile';
   
-  const currentAvatar = AppState.currentUser.profilePicture || AppState.currentUser.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face';
+  const currentAvatar = AppState.currentUser.profilePicture || AppState.currentUser.avatar || getDefaultAvatar(AppState.currentUser.name);
+
+  const presetName = encodeURIComponent((AppState.currentUser.name || 'User').trim());
+  const preset1 = `https://ui-avatars.com/api/?name=${presetName}&size=150&background=6366f1&color=fff&rounded=true&bold=true`;
+  const preset2 = `https://ui-avatars.com/api/?name=${presetName}&size=150&background=ec4899&color=fff&rounded=true&bold=true`;
+  const preset3 = `https://ui-avatars.com/api/?name=${presetName}&size=150&background=22c55e&color=fff&rounded=true&bold=true`;
+  const preset4 = `https://ui-avatars.com/api/?name=${presetName}&size=150&background=f97316&color=fff&rounded=true&bold=true`;
   
   modalContent.innerHTML = `
     <form id="editProfileForm" onsubmit="handleEditProfile(event)">
@@ -3829,10 +4214,10 @@ async function showEditProfileModal() {
         </div>
         
         <div id="presetsSection" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
-          <button type="button" class="btn btn--outline btn--sm" onclick="setAvatarPreset('https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face')">👤 Default 1</button>
-          <button type="button" class="btn btn--outline btn--sm" onclick="setAvatarPreset('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face')">👤 Default 2</button>
-          <button type="button" class="btn btn--outline btn--sm" onclick="setAvatarPreset('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face')">👤 Default 3</button>
-          <button type="button" class="btn btn--outline btn--sm" onclick="setAvatarPreset('https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face')">👤 Default 4</button>
+          <button type="button" class="btn btn--outline btn--sm" onclick="setAvatarPreset('${preset1}')">🟣 Indigo</button>
+          <button type="button" class="btn btn--outline btn--sm" onclick="setAvatarPreset('${preset2}')">🩷 Pink</button>
+          <button type="button" class="btn btn--outline btn--sm" onclick="setAvatarPreset('${preset3}')">🟢 Green</button>
+          <button type="button" class="btn btn--outline btn--sm" onclick="setAvatarPreset('${preset4}')">🟠 Orange</button>
         </div>
       </div>
 
@@ -3869,7 +4254,7 @@ function updateAvatarPreview(url) {
   if (preview && url) {
     preview.src = url;
     preview.onerror = () => {
-      preview.src = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face';
+      preview.src = getDefaultAvatar(AppState.currentUser?.name);
     };
   }
 }
@@ -4460,10 +4845,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 1000);
 });
 
+// Browser back/forward button support
+window.addEventListener('popstate', (event) => {
+  const page = (event.state && event.state.page) || location.hash.replace('#', '') || 'home';
+  // Navigate without pushing a new history entry (already handled by popstate)
+  AppState.currentPage = page;
+  localStorage.setItem('currentPage', page);
+  stopAllPolling();
+  // Update nav links
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.toggle('active', link.dataset.page === page);
+  });
+  startExchangeAutoRefresh(page);
+  renderPage();
+  if (page === 'messages') startConversationPolling();
+  else if (page === 'dashboard') startDashboardPolling();
+});
+
 // Refresh user profile data
 async function refreshUserProfile() {
   try {
-    const response = await apiRequest('/users/me');
+    const response = await apiRequest('/auth/me');
     if (response.success && response.user) {
       AppState.currentUser = response.user;
       updateUserDisplay();
@@ -4514,3 +4916,6 @@ window.showForgotPassword = showForgotPassword;
 window.useAccount = useAccount;
 window.switchRecoveryMethod = switchRecoveryMethod;
 window.toggleDemoAccounts = toggleDemoAccounts;
+window.openMessagesForExchange = openMessagesForExchange;
+window.navigateToLearningDashboard = navigateToLearningDashboard;
+window.markLearningComplete = markLearningComplete;

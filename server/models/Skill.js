@@ -43,24 +43,6 @@ const skillSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
-  videos: [{
-    title: {
-      type: String,
-      trim: true
-    },
-    url: {
-      type: String,
-      trim: true
-    },
-    duration: {
-      type: Number,
-      min: 0
-    },
-    order: {
-      type: Number,
-      min: 1
-    }
-  }],
   isActive: {
     type: Boolean,
     default: true

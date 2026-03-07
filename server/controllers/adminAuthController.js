@@ -79,7 +79,7 @@ exports.signup = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error creating admin account',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -156,7 +156,7 @@ exports.login = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error logging in',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -220,7 +220,7 @@ exports.forgotPassword = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error processing request',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -297,7 +297,7 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error resetting password',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
@@ -328,7 +328,7 @@ exports.getMe = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error fetching profile',
-            error: error.message
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message })
         });
     }
 };
