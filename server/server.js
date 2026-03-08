@@ -63,6 +63,9 @@ app.use(helmet({
     directives: {
       defaultSrc:     ["'self'"],
       scriptSrc:      ["'self'", "'unsafe-inline'", 'https://kit.fontawesome.com', 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net'],
+      // This app still uses inline event handlers (onclick, onchange, etc.).
+      // Use explicit CSP key for compatibility across Helmet versions.
+      'script-src-attr': ["'unsafe-inline'"],
       styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', 'https://fonts.cdnfonts.com'],
       fontSrc:        ["'self'", 'https://fonts.gstatic.com', 'https://ka-f.fontawesome.com', 'https://cdnjs.cloudflare.com'],
       imgSrc:         ["'self'", 'data:', 'blob:', 'https:'],
