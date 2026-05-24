@@ -36,7 +36,7 @@ A full-stack skill exchange platform where users can trade skills without money.
 
 ## Demo
 
-**Live Demo:** https://skillexchange-platform.onrender.com/
+**Live Demo:** https://skillexchange-platform.onrender.com
 
 **Test Account:**
 - Email: `demo@test.com`
